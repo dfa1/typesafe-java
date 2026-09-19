@@ -1,0 +1,10 @@
+package ai.typesafe;
+
+import java.util.Map;
+
+public record EvaluateRequest(Object state, String model, Map<String, Question> questions) {
+
+    public static EvaluateRequest of(Object state, Map<String, Question> questions) {
+        return new EvaluateRequest(state, "jev-latest", questions);
+    }
+}
