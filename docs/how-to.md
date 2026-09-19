@@ -223,6 +223,17 @@ Add `--verbose` to print the outgoing request JSON and the response's request id
 print how long the API took (all go to stderr, so stdout stays clean JSON), or run with
 `--version` alone to print the jar's version and exit without calling the API.
 
+For scripting/CI, repeatable `--min <name>=<threshold>` gates on a `noul`/`score` answer's
+value: the JSON is still printed either way, but the process exits `1` if any named answer
+comes back below its threshold (with a `--min failed: ...` line on stderr per failure).
+
+```bash
+java -jar cli/target/typesafe-java-cli-*.jar \
+        --state "My card was charged twice." \
+        --noul "urgent=Is this urgent?" \
+        --min "urgent=0.5" || echo "not urgent enough"
+```
+
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/

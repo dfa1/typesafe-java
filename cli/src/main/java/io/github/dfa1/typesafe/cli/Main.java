@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.cli;
 
+import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
@@ -9,6 +10,7 @@ import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -25,8 +27,10 @@ public final class Main {
             + "[--noul [<name>=]<instructions>]... "
             + "[--choice [<name>=]<instructions>|<option1,option2,...>]... "
             + "[--score [<name>=]<instructions>|<level1,level2,...>]... "
+            + "[--min <name>=<threshold>]... "
             + "[--verbose] [--timing] | --version "
-            + "(name defaults to noul/choice/score, so name it explicitly if you use more than one)";
+            + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
+            + "--min compares a noul/score answer's value, exits 1 if any is below its threshold)";
 
     private Main() {
     }
@@ -40,6 +44,7 @@ public final class Main {
         String state = null;
         Model model = Model.LATEST;
         Map<String, Question> questions = new LinkedHashMap<>();
+        List<String> minSpecs = new ArrayList<>();
         boolean verbose = false;
         boolean timing = false;
 
@@ -52,6 +57,7 @@ public final class Main {
                     case "--timing" -> timing = true;
                     case "--state" -> state = args[++i];
                     case "--model" -> model = modelById(args[++i]);
+                    case "--min" -> minSpecs.add(args[++i]);
                     case "--noul", "--choice", "--score" -> {
                         String value = args[++i];
                         int eq = value.indexOf('=');
@@ -90,6 +96,36 @@ public final class Main {
             System.err.println("time: " + response.metadata().upstreamServiceTime());
         }
         System.out.println(new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
+
+        try {
+            List<String> failures = minFailures(response, minSpecs);
+            if (!failures.isEmpty()) {
+                failures.forEach(f -> System.err.println("--min failed: " + f));
+                System.exit(1);
+            }
+        } catch (RuntimeException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    private static List<String> minFailures(EvaluateResponse response, List<String> minSpecs) {
+        List<String> failures = new ArrayList<>();
+        for (String spec : minSpecs) {
+            int eq = spec.indexOf('=');
+            String name = spec.substring(0, eq);
+            double min = Double.parseDouble(spec.substring(eq + 1));
+            double value = switch (response.answers().get(name)) {
+                case Answer.Noul n -> n.noul();
+                case Answer.Score s -> s.score();
+                case null -> throw new IllegalArgumentException("No such answer: " + name);
+                default -> throw new IllegalArgumentException(
+                        "--min " + name + " only applies to noul/score answers");
+            };
+            if (value < min) {
+                failures.add(name + "=" + value + " < " + min);
+            }
+        }
+        return failures;
     }
 
     private static Question question(String flag, String rest) {
