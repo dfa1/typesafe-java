@@ -28,12 +28,24 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
 bom       — dependency-management POM listing core/jdk-http-client/jackson2/jackson3.
+acceptance — live-API tests only; not published. `AbstractTypesafeClientAcceptanceTest`
+            holds every test method; one concrete subclass per HttpTransport/JsonCodec
+            combination (`JdkHttpClientWithJackson2AcceptanceTest`,
+            `JdkHttpClientWithJackson3AcceptanceTest`) supplies the pair via two abstract
+            hooks, explicitly constructing the codec/transport (`new Jackson2Codec()`, ...)
+            rather than relying on ServiceLoader, since this module deliberately has more
+            than one of each on its test classpath at once. jackson2 and jackson3 both pull
+            in `com.fasterxml.jackson.core:jackson-annotations` transitively at different
+            versions (2.17.2 vs 2.20); acceptance/pom.xml pins the newer one explicitly, or
+            Maven's mediation picks the older one and jackson3 fails at runtime with
+            `NoSuchFieldError` on a field only the newer annotations jar has.
 ```
 
-Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`. Neither
-codec module depends on `jdk-http-client` in `main` scope — `jackson2` depends on it in
-`test` scope only, to run the live-API demo/acceptance tests end-to-end. See
-[ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why.
+Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`,
+`acceptance → core, jdk-http-client, jackson2, jackson3` (test scope only — nothing
+production depends on `acceptance`). See
+[ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
+exist at all.
 
 ## Commands
 
@@ -43,13 +55,13 @@ mvn test -pl jackson2             # one module
 mvn test -pl jackson2 -Dtest=Jackson2CodecTest
 ```
 
-Acceptance tests (`TypesafeClientAcceptanceTest`, `GraphqlSlotFillingDemoTest`,
-`EntitlementTroubleshootingDemoTest` in `jackson2`) are `@Tag("acceptance")`, hit the
-real TypeSafe API, and need a token at `~/.typesafe.apitoken`. Excluded from a routine
-`mvn test` via the `excludedGroups=acceptance` property (surefire). Opt in with:
+Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
+combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at
+`~/.typesafe.apitoken`. Excluded from a routine `mvn test` via the `excludedGroups=acceptance`
+property (surefire). Opt in with:
 
 ```bash
-mvn test -pl jackson2 -am -DexcludedGroups=
+mvn test -pl acceptance -am -DexcludedGroups=
 ```
 
 ## Design decisions

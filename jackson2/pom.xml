@@ -27,15 +27,6 @@
       <version>${jackson2.version}</version>
     </dependency>
 
-    <!-- test-only: a concrete HttpTransport, so the acceptance/demo tests can exercise
-         TypesafeClient (already on the classpath via typesafe-java-core) end-to-end -->
-    <dependency>
-      <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-jdk-http-client</artifactId>
-      <version>${project.version}</version>
-      <scope>test</scope>
-    </dependency>
-
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

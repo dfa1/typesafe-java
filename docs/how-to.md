@@ -198,9 +198,10 @@ EvaluateResponse response = codec.readValue(bytes, EvaluateResponse.class);
 
 ## Run the acceptance tests against the live API
 
-The demo/acceptance tests in `jackson2` are excluded from a routine build. Opt in once you have
+The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/
+JsonCodec combination and are excluded from a routine build. Opt in once you have
 `~/.typesafe.apitoken` in place:
 
 ```bash
-mvn test -pl jackson2 -am -DexcludedGroups=
+mvn test -pl acceptance -am -DexcludedGroups=
 ```

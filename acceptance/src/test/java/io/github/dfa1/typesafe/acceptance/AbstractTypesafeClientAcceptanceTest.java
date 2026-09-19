@@ -1,0 +1,264 @@
+package io.github.dfa1.typesafe.acceptance;
+
+import io.github.dfa1.typesafe.core.ApiToken;
+import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.TypesafeClient;
+import io.github.dfa1.typesafe.json.JsonCodec;
+import io.github.dfa1.typesafe.transport.HttpTransport;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.within;
+
+/**
+ * Acceptance tests against the live TypeSafe API, run once per {@link HttpTransport}/
+ * {@link JsonCodec} combination by a concrete subclass (e.g.
+ * {@code JdkHttpClientWithJackson2AcceptanceTest}). The model's judgment can change over time,
+ * so assertions on {@code Choice}/{@code Score} answers only check the response is structurally
+ * well-formed (values in range, probabilities summing to ~1, keys matching what was asked)
+ * rather than pinning down a specific answer.
+ */
+@Tag("acceptance")
+abstract class AbstractTypesafeClientAcceptanceTest {
+
+    private TypesafeClient sut;
+
+    protected abstract HttpTransport httpTransport();
+
+    protected abstract JsonCodec jsonCodec();
+
+    @BeforeEach
+    void setUp() throws Exception {
+        sut = TypesafeClient.builder(ApiToken.fromDefaultFile())
+                .httpTransport(httpTransport())
+                .jsonCodec(jsonCodec())
+                .build();
+    }
+
+    @Test
+    void evaluatesANoulQuestionAgainstTheLiveApi() throws Exception {
+        // Given
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("Help! My payouts have been failing for 3 days."),
+                Map.of("is_urgent", Question.noul("Does this convey urgency?",
+                        Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.model()).startsWith("jev-");
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class, answer -> {
+            System.out.println("is_urgent noul score = " + answer.noul());
+            assertThat(answer.noul()).isBetween(0.0, 1.0);
+        });
+        assertThat(result.usage().inputTokens()).isPositive();
+        assertThat(result.metadata().requestId().value()).startsWith("req_");
+        assertThat(result.metadata().upstreamServiceTime().toMillis()).isPositive();
+    }
+
+    @Test
+    void evaluatesAsyncAgainstTheLiveApi() throws Exception {
+        // Given
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("Help! My payouts have been failing for 3 days."),
+                Map.of("is_urgent", Question.noul("Does this convey urgency?",
+                        Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
+
+        // When
+        EvaluateResponse result = sut.evaluateAsync(request).get();
+
+        // Then
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class,
+                answer -> assertThat(answer.noul()).isBetween(0.0, 1.0));
+    }
+
+    @Test
+    void noulRatesHowGruntledACustomerReallyIs() throws Exception {
+        // Given
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("""
+                        I've been a customer for six years and this is, hands down, the single
+                        worst support interaction I have ever had with any company, ever.
+                        """),
+                Map.of("would_recommend", Question.noul("Would this customer recommend the company to a friend?",
+                        Map.of("true", "Would recommend", "false", "Would not recommend"))));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("would_recommend")).isInstanceOfSatisfying(Answer.Noul.class, answer -> {
+            System.out.println("would_recommend noul = " + answer.noul());
+            assertThat(answer.noul()).isBetween(0.0, 1.0);
+        });
+    }
+
+    @Test
+    void choicePicksTheCulpritBehindAPizzaOrderGoneWrong() throws Exception {
+        // Given
+        Map<String, String> suspects = Map.of(
+                "wrong_toppings", "The pizza arrived with the wrong toppings entirely",
+                "missing_item", "A side item was missing from the order",
+                "late_delivery", "The order arrived very late",
+                "cold_food", "The food arrived cold");
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("""
+                        I ordered a pepperoni and mushroom pizza with a side of garlic bread.
+                        Ninety minutes later a plain cheese pizza showed up, ice cold, with no
+                        garlic bread in sight.
+                        """),
+                Map.of("root_cause", Question.choice(
+                        "What is the single biggest problem with this order?", suspects)));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("root_cause")).isInstanceOfSatisfying(Answer.Choice.class, answer -> {
+            System.out.println("root_cause choice = " + answer.choice()
+                    + " (confidence " + answer.confidence() + ")");
+            System.out.println("root_cause probabilities = " + answer.probabilities());
+
+            assertThat(answer.choice()).isIn(suspects.keySet());
+            assertThat(answer.confidence()).isBetween(0.0, 1.0);
+            assertThat(answer.probabilities()).containsOnlyKeys(suspects.keySet());
+            assertThat(answer.probabilities().values().stream().mapToDouble(Double::doubleValue).sum())
+                    .isCloseTo(1.0, within(0.02));
+        });
+    }
+
+    @Test
+    void scoreRatesTheSpicinessOfAChiliDescription() throws Exception {
+        // Given
+        List<String> heatLevels = List.of("Mild", "Medium", "Hot", "Face-melting");
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("""
+                        This chili is built around three varieties of ghost pepper, a splash of
+                        pure capsaicin extract, and a garnish of raw habaneros for crunch.
+                        """),
+                Map.of("heat_level", Question.score("How spicy does this dish sound?", heatLevels)));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("heat_level")).isInstanceOfSatisfying(Answer.Score.class, answer -> {
+            System.out.println("heat_level score = " + answer.score()
+                    + " (confidence " + answer.confidence() + ")");
+            System.out.println("heat_level legend = " + answer.legend());
+            System.out.println("heat_level probabilities = " + answer.probabilities());
+
+            List<String> expectedIndices = IntStream.range(0, heatLevels.size())
+                    .mapToObj(String::valueOf)
+                    .toList();
+
+            assertThat(answer.score()).isBetween(0.0, (double) (heatLevels.size() - 1));
+            assertThat(answer.confidence()).isBetween(0.0, 1.0);
+            assertThat(answer.legend()).containsOnlyKeys(expectedIndices);
+            assertThat(answer.probabilities()).containsOnlyKeys(expectedIndices);
+            assertThat(answer.probabilities().values().stream().mapToDouble(Double::doubleValue).sum())
+                    .isCloseTo(1.0, within(0.02));
+        });
+    }
+
+    @Test
+    void fillsGraphqlFilterSlotsFromHumanText() throws Exception {
+        // Given
+        Map<String, String> markets = Map.of("US", "United States market", "EU", "European market",
+                "ASIA", "Asian markets");
+        Map<String, String> instrumentTypes = Map.of("bond", "Bonds", "equity", "Equities", "fx", "FX instruments");
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("Give me all instruments on US market of type bond"),
+                Map.of(
+                        "market", Question.choice("Which market is the request about?", markets),
+                        "instrument_type", Question.choice("Which instrument type is the request about?",
+                                instrumentTypes)));
+
+        for (int i = 1; i <= 10; i++) {
+            // When
+            Instant start = Instant.now();
+            EvaluateResponse result = sut.evaluate(request);
+            Duration endToEnd = Duration.between(start, Instant.now());
+
+            // Then
+            Answer.Choice market = (Answer.Choice) result.answers().get("market");
+            Answer.Choice instrumentType = (Answer.Choice) result.answers().get("instrument_type");
+
+            System.out.printf("run %2d: model = %4d ms, end-to-end = %4d ms%n",
+                    i, result.metadata().upstreamServiceTime().toMillis(), endToEnd.toMillis());
+
+            assertThat(market.choice()).isIn(markets.keySet());
+            assertThat(instrumentType.choice()).isIn(instrumentTypes.keySet());
+        }
+    }
+
+    @Test
+    void diagnosesWhyMarketDataIsMissing() throws Exception {
+        // Given
+        String state = """
+                CLIENT COMPLAINT:
+                "We are not receiving intraday data for SIX Swiss Exchange (XSWX) \
+                equities since Monday."
+
+                CONTRACT:
+                Tier: Real-time Level 1, Europe bundle
+                Market licenses: LSE, XETRA
+                Redistribution rights: internal use only
+
+                ACCOUNT STATUS:
+                Active, no billing hold, no recent changes
+
+                DELIVERY LOG (last 7 days):
+                API feed connection: up, no errors
+                Last successful message: today, other subscribed markets fine
+                """;
+        Map<String, String> rootCauses = Map.of(
+                "market_license_missing", "The requested market isn't in the client's licensed markets",
+                "instrument_class_not_entitled", "The instrument class itself isn't entitled",
+                "redistribution_restricted", "Blocked by redistribution rights, not market access",
+                "technical_delivery_fault", "Feed/config/connectivity problem, entitlements are fine",
+                "billing_hold", "Account or billing issue is blocking delivery");
+
+        EvaluateRequest request = EvaluateRequest.of(State.text(state), Map.of(
+                "root_cause", Question.choice(
+                        "Given the contract, account status, and delivery log, "
+                                + "what is the most likely reason this client isn't receiving XSWX data?",
+                        rootCauses),
+                "needs_specialist_escalation", Question.choice(
+                        "Should this be escalated to the entitlement team, or is it self-service "
+                                + "(e.g. support can just point the client at adding the market to their contract)?",
+                        Map.of(
+                                "yes", "Needs entitlement specialist review",
+                                "no", "Support can resolve directly with the client"))));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("root_cause")).isInstanceOfSatisfying(Answer.Choice.class, rootCause -> {
+            System.out.println("root cause: " + rootCause.choice() + " (confidence " + rootCause.confidence() + ")");
+            System.out.println("probabilities: " + rootCause.probabilities());
+            assertThat(rootCause.choice()).isIn(rootCauses.keySet());
+        });
+        assertThat(result.answers().get("needs_specialist_escalation")).isInstanceOfSatisfying(Answer.Choice.class,
+                escalation -> {
+                    System.out.println("needs escalation: " + escalation.choice()
+                            + " (confidence " + escalation.confidence() + ")");
+                    assertThat(escalation.choice()).isIn("yes", "no");
+                });
+    }
+}
