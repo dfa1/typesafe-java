@@ -42,25 +42,35 @@ public final class Main {
         boolean verbose = false;
         boolean timing = false;
 
-        for (int i = 0; i < args.length; i++) {
-            String flag = args[i];
+        try {
+            for (int i = 0; i < args.length; i++) {
+                String flag = args[i];
 
-            switch (flag) {
-                case "--verbose" -> verbose = true;
-                case "--timing" -> timing = true;
-                case "--state" -> state = args[++i];
-                case "--model" -> model = modelById(args[++i]);
-                case "--noul", "--choice", "--score" -> {
-                    String value = args[++i];
-                    int eq = value.indexOf('=');
-                    questions.put(value.substring(0, eq), question(flag, value.substring(eq + 1)));
+                switch (flag) {
+                    case "--verbose" -> verbose = true;
+                    case "--timing" -> timing = true;
+                    case "--state" -> state = args[++i];
+                    case "--model" -> model = modelById(args[++i]);
+                    case "--noul", "--choice", "--score" -> {
+                        String value = args[++i];
+                        int eq = value.indexOf('=');
+                        if (eq < 0) {
+                            fail(flag + " must be <name>=<instructions>, got: " + value);
+                        }
+                        questions.put(value.substring(0, eq), question(flag, value.substring(eq + 1)));
+                    }
+                    default -> fail("Unknown flag: " + flag);
                 }
-                default -> fail();
             }
+        } catch (ArrayIndexOutOfBoundsException e) {
+            fail("Missing value for " + args[args.length - 1]);
         }
 
-        if (state == null || questions.isEmpty()) {
-            fail();
+        if (state == null) {
+            fail("Missing required --state");
+        }
+        if (questions.isEmpty()) {
+            fail("At least one --noul/--choice/--score question is required");
         }
 
         TypesafeClient client = TypesafeClient.withDefaultToken();
@@ -101,7 +111,8 @@ public final class Main {
         throw new IllegalArgumentException("Unknown model: " + id);
     }
 
-    private static void fail() {
+    private static void fail(String message) {
+        System.err.println(message);
         System.err.println(USAGE);
         System.exit(1);
     }
