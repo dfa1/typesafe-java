@@ -66,3 +66,12 @@ JUnit 5. Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
 `ObjectMapper` during the initial split.
+
+## Documentation is part of every change
+
+Docs live under `docs/`, structured by [Diataxis](https://diataxis.fr/):
+`tutorial.md` (learning-oriented walkthrough), `how-to.md` (task-oriented recipes),
+`reference.md` (API surface), `explanation.md` (design rationale). A change to the
+public API, module structure, or a documented behavior updates whichever of these
+apply, in the same commit — plus `CHANGELOG.md` under `[Unreleased]`. `adr/` and
+released `CHANGELOG.md` sections are exempt — they describe the past.
