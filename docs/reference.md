@@ -54,8 +54,22 @@ record EvaluateRequest(Object state, String model, Map<String, Question> questio
 ```
 
 `EvaluateRequest.of(Object state, Map<String, Question> questions)` builds one with
-`model = "jev-latest"`. `state` is any JSON-serializable value — a `String`, a `record`, a
+`model = Model.LATEST`. `EvaluateRequest.of(Object state, Model model, Map<String, Question> questions)`
+picks a specific model. `state` is any JSON-serializable value — a `String`, a `record`, a
 `Map`, etc.
+
+### `Model`
+
+Known values for `EvaluateRequest.model()` — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
+
+| Constant | Wire value | Meaning |
+|---|---|---|
+| `Model.LATEST` | `jev-latest` | Most recent stable, official release. The default. |
+| `Model.PREVIEW` | `jev-preview` | Most recent release, official or not. |
+| `Model.JEV_1_13_0` | `jev-1.13.0` | TypeSafe's flagship System One model. |
+
+`model.id()` returns the wire value. `EvaluateResponse.model()` stays a plain `String`, since a
+response can report a versioned id this enum doesn't (yet) have a constant for.
 
 ### `EvaluateResponse`
 

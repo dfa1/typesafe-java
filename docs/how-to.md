@@ -61,6 +61,17 @@ TypesafeClient client = TypesafeClient.builder(token)
         .build();
 ```
 
+## Pick a specific model
+
+`EvaluateRequest.of(state, questions)` defaults to `Model.LATEST`. Pin a specific one (e.g. to
+test against a preview build, or a specific version) with the three-argument overload:
+
+```java
+EvaluateRequest request = EvaluateRequest.of(state, Model.PREVIEW, questions);
+```
+
+See [reference.md#model](reference.md#model) for the full list.
+
 ## Ask a Choice question
 
 `Question.choice` picks the best-matching option out of a labeled set:
