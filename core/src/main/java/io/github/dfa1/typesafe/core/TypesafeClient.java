@@ -1,9 +1,6 @@
-package io.github.dfa1.typesafe;
+package io.github.dfa1.typesafe.core;
 
 import io.github.dfa1.typesafe.json.JsonCodec;
-import io.github.dfa1.typesafe.model.EvaluateRequest;
-import io.github.dfa1.typesafe.model.EvaluateResponse;
-import io.github.dfa1.typesafe.model.RequestId;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 

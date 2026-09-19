@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TypesafeClient.evaluateAsync`: `CompletableFuture`-based async variant of `evaluate`, sharing the same retry logic.
 - `EvaluateResponse.Metadata`: captures the `x-typesafe-request-id` and `x-envoy-upstream-service-time` response headers alongside the parsed body.
 - `HttpTransport` SPI (`io.github.dfa1.typesafe.transport`): decouples `TypesafeClient` from any concrete HTTP library, mirroring `JsonCodec`. `typesafe-java-jdk-http-client` supplies `JdkHttpTransport` (`java.net.http`); implement `HttpTransport` yourself for Apache HttpClient, OkHttp, etc.
-- Split into Maven modules: `core` (DTOs in `io.github.dfa1.typesafe.model`, `TypesafeClient`/`ApiToken`/`TypesafeException`, and the `JsonCodec`/`HttpTransport` SPIs — no dependency on any JSON or HTTP library), `jdk-http-client`/`jackson2`/`jackson3` (pluggable implementations, resolved via `ServiceLoader`), and `bom`. See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md).
+- Split into Maven modules: `core` (`TypesafeClient`/`ApiToken`/`TypesafeException` and the DTOs, all in `io.github.dfa1.typesafe.core`, plus the `JsonCodec`/`HttpTransport` SPIs — no dependency on any JSON or HTTP library), `jdk-http-client`/`jackson2`/`jackson3` (pluggable implementations, resolved via `ServiceLoader`), and `bom`. See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md).
 - `checkstyle.xml`, wired to the `validate` phase.
 - `CLAUDE.md` and Diataxis-structured docs (`docs/tutorial.md`, `docs/how-to.md`, `docs/reference.md`, `docs/explanation.md`).
 - MIT license.

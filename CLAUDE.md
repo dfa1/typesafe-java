@@ -10,13 +10,13 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — TypesafeClient, ApiToken, TypesafeException (io.github.dfa1.typesafe); the wire
-            DTOs Answer, Question, EvaluateRequest/EvaluateResponse, Usage, RequestId
-            (io.github.dfa1.typesafe.model); and the JsonCodec (io.github.dfa1.typesafe.json)
-            + HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
+core      — TypesafeClient, ApiToken, TypesafeException, and the wire DTOs (Answer, Question,
+            EvaluateRequest/EvaluateResponse, Usage, RequestId), all in
+            io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
+            HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
             JSON or HTTP library — TypesafeClient talks to HttpTransport/JsonCodec, never to a
-            concrete library directly, so it's reusable (e.g. by a Kafka producer/consumer
-            that only needs the model + JsonCodec) without pulling anything extra in.
+            concrete library directly, so the DTOs + JsonCodec alone are reusable (e.g. by a
+            Kafka producer/consumer) without pulling in TypesafeClient's HTTP concerns.
 jdk-http-client — HttpTransport backed by java.net.http (artifact
             typesafe-java-jdk-http-client, class JdkHttpTransport, package
             io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via

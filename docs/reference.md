@@ -25,7 +25,7 @@ alongside the DTOs without pulling anything extra in.
 
 ## Core types
 
-All of the following live in `io.github.dfa1.typesafe.model`.
+All of the following live in `io.github.dfa1.typesafe.core`.
 
 ### `Question` (sealed interface)
 
@@ -120,7 +120,7 @@ explicitly via `Builder.httpTransport(...)`.
 
 ## Client
 
-All of the following live in `io.github.dfa1.typesafe`.
+Also in `io.github.dfa1.typesafe.core`.
 
 ### `ApiToken`
 

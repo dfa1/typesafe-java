@@ -21,9 +21,9 @@ inside `TypesafeClient`, `@JsonTypeInfo`/`@JsonSubTypes` on the DTOs) and to
 
 Split into five Maven modules:
 
-- **core** — `TypesafeClient`, `ApiToken`, `TypesafeException` (`io.github.dfa1.typesafe`); the
-  wire DTOs `Answer`, `Question`, `EvaluateRequest`/`EvaluateResponse`, `Usage`, `RequestId`
-  (`io.github.dfa1.typesafe.model`); and two SPIs:
+- **core** — `TypesafeClient`, `ApiToken`, `TypesafeException`, and the wire DTOs `Answer`,
+  `Question`, `EvaluateRequest`/`EvaluateResponse`, `Usage`, `RequestId` — all in
+  `io.github.dfa1.typesafe.core`; plus two SPIs:
   - `JsonCodec` (`io.github.dfa1.typesafe.json`) — `writeValueAsBytes`/`readValue`.
   - `HttpTransport` (`io.github.dfa1.typesafe.transport`) — `post`/`postAsync`, the single HTTP
     call `TypesafeClient` needs.

@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe;
+package io.github.dfa1.typesafe.core;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;

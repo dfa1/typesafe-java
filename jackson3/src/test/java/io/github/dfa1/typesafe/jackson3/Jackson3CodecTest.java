@@ -1,9 +1,9 @@
 package io.github.dfa1.typesafe.jackson3;
 
-import io.github.dfa1.typesafe.model.Answer;
-import io.github.dfa1.typesafe.model.EvaluateRequest;
-import io.github.dfa1.typesafe.model.EvaluateResponse;
-import io.github.dfa1.typesafe.model.Question;
+import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Question;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;

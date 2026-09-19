@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe;
+package io.github.dfa1.typesafe.core;
 
 import java.io.IOException;
 import java.nio.file.Files;

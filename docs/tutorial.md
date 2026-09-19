@@ -51,7 +51,7 @@ echo "your-token-here" > ~/.typesafe.apitoken
 ## 3. Build the client
 
 ```java
-import io.github.dfa1.typesafe.TypesafeClient;
+import io.github.dfa1.typesafe.core.TypesafeClient;
 
 TypesafeClient client = TypesafeClient.withDefaultToken();
 ```
@@ -61,10 +61,10 @@ TypesafeClient client = TypesafeClient.withDefaultToken();
 A `Question.noul` asks the model to score how strongly a statement holds, from 0.0 to 1.0:
 
 ```java
-import io.github.dfa1.typesafe.model.EvaluateRequest;
-import io.github.dfa1.typesafe.model.EvaluateResponse;
-import io.github.dfa1.typesafe.model.Question;
-import io.github.dfa1.typesafe.model.Answer;
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.Answer;
 
 import java.util.Map;
 
