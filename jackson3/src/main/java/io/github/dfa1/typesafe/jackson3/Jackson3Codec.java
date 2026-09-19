@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.PropertyNamingStrategies;
+import tools.jackson.databind.cfg.EnumFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 
@@ -20,6 +21,7 @@ public final class Jackson3Codec implements JsonCodec {
 
     private final ObjectMapper mapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
+            .enable(EnumFeature.WRITE_ENUMS_USING_TO_STRING)
             .addMixIn(Answer.class, AnswerMixIn.class)
             .addMixIn(Question.class, QuestionMixIn.class)
             .addModule(new SimpleModule().addSerializer(State.class, new StateSerializer()))

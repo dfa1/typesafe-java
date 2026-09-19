@@ -62,7 +62,7 @@ discriminator on the wire; each variant serializes as its own raw JSON shape.
 ### `EvaluateRequest`
 
 ```java
-record EvaluateRequest(State state, String model, Map<String, Question> questions)
+record EvaluateRequest(State state, Model model, Map<String, Question> questions)
 ```
 
 `EvaluateRequest.of(State state, Map<String, Question> questions)` builds one with
@@ -79,8 +79,10 @@ Known values for `EvaluateRequest.model()` — see [docs.typesafe.ai/models](htt
 | `Model.PREVIEW` | `jev-preview` | Most recent release, official or not. |
 | `Model.JEV_1_13_0` | `jev-1.13.0` | TypeSafe's flagship System One model. |
 
-`model.id()` returns the wire value. `EvaluateResponse.model()` stays a plain `String`, since a
-response can report a versioned id this enum doesn't (yet) have a constant for.
+`model.id()` returns the wire value; codecs serialize a `Model` by calling its `toString()`
+(which returns `id()`), so the wire value is what's written, not the enum constant name.
+`EvaluateResponse.model()` stays a plain `String`, since a response can report a versioned id
+this enum doesn't (yet) have a constant for.
 
 ### `EvaluateResponse`
 
