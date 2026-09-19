@@ -1,6 +1,7 @@
 package io.github.dfa1.typesafe.cli;
 
 import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.ApiToken;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
@@ -8,6 +9,7 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
+import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -89,7 +91,10 @@ public final class Main {
             System.err.println("request: " + new String(codec.writeValueAsBytes(request), StandardCharsets.UTF_8));
         }
 
-        TypesafeClient client = TypesafeClient.withDefaultToken();
+        TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
+                .jsonCodec(codec)
+                .httpTransport(new JdkHttpTransport())
+                .build();
         EvaluateResponse response = client.evaluate(request);
 
         if (verbose) {
