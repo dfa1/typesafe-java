@@ -4,6 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 
 import org.junit.jupiter.api.Tag;
@@ -45,7 +46,7 @@ class EntitlementTroubleshootingDemoTest {
                 Last successful message: today, other subscribed markets fine
                 """;
 
-        EvaluateRequest request = EvaluateRequest.of(state, Map.of(
+        EvaluateRequest request = EvaluateRequest.of(State.text(state), Map.of(
                 "root_cause", Question.choice(
                         "Given the contract, account status, and delivery log, "
                                 + "what is the most likely reason this client isn't receiving XSWX data?",

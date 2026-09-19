@@ -4,6 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 
 import org.junit.jupiter.api.Tag;
@@ -28,7 +29,7 @@ class GraphqlSlotFillingDemoTest {
 
         String text = "Give me all instruments on US market of type bond";
 
-        EvaluateRequest request = EvaluateRequest.of(text, Map.of(
+        EvaluateRequest request = EvaluateRequest.of(State.text(text), Map.of(
                 "market", Question.choice("Which market is the request about?",
                         Map.of("US", "United States market", "EU", "European market", "ASIA", "Asian markets")),
                 "instrument_type", Question.choice("Which instrument type is the request about?",

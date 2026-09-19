@@ -10,14 +10,14 @@ class EvaluateRequestTest {
 
     @Test
     void defaultsToTheLatestModel() {
-        EvaluateRequest request = EvaluateRequest.of("state", Map.of());
+        EvaluateRequest request = EvaluateRequest.of(State.text("state"), Map.of());
 
         assertEquals("jev-latest", request.model());
     }
 
     @Test
     void picksAnExplicitModel() {
-        EvaluateRequest request = EvaluateRequest.of("state", Model.PREVIEW, Map.of());
+        EvaluateRequest request = EvaluateRequest.of(State.text("state"), Model.PREVIEW, Map.of());
 
         assertEquals("jev-preview", request.model());
     }

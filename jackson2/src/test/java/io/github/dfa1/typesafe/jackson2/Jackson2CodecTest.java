@@ -4,6 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.State;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
@@ -21,7 +22,7 @@ class Jackson2CodecTest {
     @Test
     void serializesEachQuestionTypeWithItsDiscriminator() {
         EvaluateRequest request = EvaluateRequest.of(
-                "Help! My payouts have been failing for 3 days.",
+                State.text("Help! My payouts have been failing for 3 days."),
                 Map.of(
                         "is_urgent", Question.noul("Does this convey urgency?",
                                 Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed")),
@@ -37,6 +38,17 @@ class Jackson2CodecTest {
         assertTrue(json.contains("\"type\":\"choice\""));
         assertTrue(json.contains("\"type\":\"score\""));
         assertTrue(json.contains("\"model\":\"jev-latest\""));
+        assertTrue(json.contains("\"state\":\"Help! My payouts have been failing for 3 days.\""));
+    }
+
+    @Test
+    void serializesEachStateShapeAsItsRawJsonType() {
+        assertEquals("\"hi\"",
+                new String(codec.writeValueAsBytes(State.text("hi")), StandardCharsets.UTF_8));
+        assertEquals("{\"order_id\":\"A-104\"}",
+                new String(codec.writeValueAsBytes(State.fields(Map.of("order_id", "A-104"))), StandardCharsets.UTF_8));
+        assertEquals("[\"hi\",\"there\"]",
+                new String(codec.writeValueAsBytes(State.messages(List.of("hi", "there"))), StandardCharsets.UTF_8));
     }
 
     @Test

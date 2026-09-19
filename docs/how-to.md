@@ -61,6 +61,17 @@ TypesafeClient client = TypesafeClient.builder(token)
         .build();
 ```
 
+## Build a `State`
+
+`EvaluateRequest.of` takes a `State`, one of exactly three shapes
+(see [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)):
+
+```java
+State.text("My card was charged twice.");
+State.fields(Map.of("message", "My card was charged twice.", "order_id", "A-104"));
+State.messages(List.of("Hi", "My customer number is TS1337.", "My card was charged twice."));
+```
+
 ## Pick a specific model
 
 `EvaluateRequest.of(state, questions)` defaults to `Model.LATEST`. Pin a specific one (e.g. to
@@ -78,7 +89,7 @@ See [reference.md#model](reference.md#model) for the full list.
 
 ```java
 EvaluateRequest request = EvaluateRequest.of(
-        "Give me all instruments on US market of type bond",
+        State.text("Give me all instruments on US market of type bond"),
         Map.of("market", Question.choice("Which market is the request about?",
                 Map.of("US", "United States market", "EU", "European market"))));
 

@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiToken`, `TypesafeException` |
 | `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
@@ -47,16 +47,27 @@ One variant per `Question` type, keyed by the same question name in `EvaluateRes
 | `Answer.Choice` | `choice(): String`, `probabilities(): Map<String,Double>`, `confidence(): double` |
 | `Answer.Score` | `score(): double`, `legend(): Map<String,String>`, `probabilities(): Map<String,Double>`, `confidence(): double` |
 
+### `State` (sealed interface)
+
+Exactly the three shapes documented at
+[docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state) — no `type`
+discriminator on the wire; each variant serializes as its own raw JSON shape.
+
+| Factory | Wire shape | Example |
+|---|---|---|
+| `State.text(String value)` | JSON string | `"My card was charged twice."` |
+| `State.fields(Map<String, Object> fields)` | JSON object | `{"order_id": "A-104"}` |
+| `State.messages(List<String> values)` | JSON array | `["Hi", "My card was charged twice."]` |
+
 ### `EvaluateRequest`
 
 ```java
-record EvaluateRequest(Object state, String model, Map<String, Question> questions)
+record EvaluateRequest(State state, String model, Map<String, Question> questions)
 ```
 
-`EvaluateRequest.of(Object state, Map<String, Question> questions)` builds one with
-`model = Model.LATEST`. `EvaluateRequest.of(Object state, Model model, Map<String, Question> questions)`
-picks a specific model. `state` is any JSON-serializable value — a `String`, a `record`, a
-`Map`, etc.
+`EvaluateRequest.of(State state, Map<String, Question> questions)` builds one with
+`model = Model.LATEST`. `EvaluateRequest.of(State state, Model model, Map<String, Question> questions)`
+picks a specific model.
 
 ### `Model`
 

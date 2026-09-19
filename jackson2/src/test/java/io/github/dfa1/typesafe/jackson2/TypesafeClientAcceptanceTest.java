@@ -4,6 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 
 import org.junit.jupiter.api.Tag;
@@ -22,7 +23,7 @@ class TypesafeClientAcceptanceTest {
         TypesafeClient client = TypesafeClient.withDefaultToken();
 
         EvaluateRequest request = EvaluateRequest.of(
-                "Help! My payouts have been failing for 3 days.",
+                State.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
@@ -44,7 +45,7 @@ class TypesafeClientAcceptanceTest {
         TypesafeClient client = TypesafeClient.withDefaultToken();
 
         EvaluateRequest request = EvaluateRequest.of(
-                "Help! My payouts have been failing for 3 days.",
+                State.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 

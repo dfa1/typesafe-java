@@ -11,7 +11,7 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
 ```
 core      — TypesafeClient, ApiToken, TypesafeException, and the wire DTOs (Answer, Question,
-            EvaluateRequest/EvaluateResponse, Usage, RequestId), all in
+            State, EvaluateRequest/EvaluateResponse, Usage, RequestId, Model), all in
             io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
             HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
             JSON or HTTP library — TypesafeClient talks to HttpTransport/JsonCodec, never to a
@@ -23,7 +23,8 @@ jdk-http-client — HttpTransport backed by java.net.http (artifact
             ServiceLoader at Builder.build() time (or an explicit
             Builder.httpTransport(...) override).
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
-            discriminator for Answer/Question via private Jackson mixins (addMixIn),
+            discriminator for Answer/Question via private Jackson mixins (addMixIn); State
+            (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
 bom       — dependency-management POM listing core/jdk-http-client/jackson2/jackson3.

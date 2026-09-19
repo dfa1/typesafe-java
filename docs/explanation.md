@@ -49,6 +49,23 @@ original reason for a separate `client` module (keeping `core` free of `java.net
 to version and depend on, with `core` exactly as dependency-free as before. See
 [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 
+## Why `State` is a sealed interface, not `Object`
+
+`EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `JsonCodec` can
+serialize." But [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)
+documents `state` as exactly three shapes: a string, a JSON object, or an array of text values —
+not open-ended JSON. `Object` was strictly looser than the real API contract: a caller could pass
+a `List<Integer>` or a custom record and it would compile, then fail (or silently misbehave)
+against the actual API. `State` (`Text`/`Fields`/`Messages`) makes the three valid shapes a
+compile-time fact, the same way `Answer`/`Question` already do for their own domains.
+
+Unlike `Answer`/`Question`, `state` has no `type` discriminator on the wire — the API tells the
+three shapes apart by their raw JSON type (string vs. object vs. array), not a tag field. So each
+codec's `State` handling is a serializer that writes the variant's raw value directly
+(`gen.writeString(...)` / `gen.writeObject(...)`/`writePOJO(...)`), not a `type`-keyed mixin like
+`Answer`/`Question` use. There's also no deserializer: `state` only ever appears on
+`EvaluateRequest`, which this client only ever writes, never reads back.
+
 ## Why retries are bounded and exponential
 
 `evaluate`/`evaluateAsync` retry `429` (rate limited) and `529` (upstream overloaded) up to 5
