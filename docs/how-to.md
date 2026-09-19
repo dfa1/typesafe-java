@@ -234,6 +234,17 @@ java -jar cli/target/typesafe-java-cli-*.jar \
         --min "urgent=0.5" || echo "not urgent enough"
 ```
 
+Repeatable `--print <name>` prints just that answer's value (one per line) instead of the full
+response — `choice` for `Choice`, the numeric value for `Noul`/`Score`:
+
+```bash
+java -jar cli/target/typesafe-java-cli-*.jar \
+        --state "My card was charged twice." \
+        --choice "category=What kind of issue is this?|billing,shipping,other" \
+        --print category
+# billing
+```
+
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/

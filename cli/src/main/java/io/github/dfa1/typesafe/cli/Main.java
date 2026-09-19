@@ -27,10 +27,11 @@ public final class Main {
             + "[--noul [<name>=]<instructions>]... "
             + "[--choice [<name>=]<instructions>|<option1,option2,...>]... "
             + "[--score [<name>=]<instructions>|<level1,level2,...>]... "
-            + "[--min <name>=<threshold>]... "
+            + "[--min <name>=<threshold>]... [--print <name>]... "
             + "[--verbose] [--timing] | --version "
             + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
-            + "--min compares a noul/score answer's value, exits 1 if any is below its threshold)";
+            + "--min compares a noul/score answer's value, exits 1 if any is below its threshold; "
+            + "--print prints just that answer's value instead of the full response)";
 
     private Main() {
     }
@@ -45,6 +46,7 @@ public final class Main {
         Model model = Model.LATEST;
         Map<String, Question> questions = new LinkedHashMap<>();
         List<String> minSpecs = new ArrayList<>();
+        List<String> printNames = new ArrayList<>();
         boolean verbose = false;
         boolean timing = false;
 
@@ -58,6 +60,7 @@ public final class Main {
                     case "--state" -> state = args[++i];
                     case "--model" -> model = modelById(args[++i]);
                     case "--min" -> minSpecs.add(args[++i]);
+                    case "--print" -> printNames.add(args[++i]);
                     case "--noul", "--choice", "--score" -> {
                         String value = args[++i];
                         int eq = value.indexOf('=');
@@ -95,9 +98,13 @@ public final class Main {
         if (timing) {
             System.err.println("time: " + response.metadata().upstreamServiceTime());
         }
-        System.out.println(new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
-
         try {
+            if (printNames.isEmpty()) {
+                System.out.println(new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
+            } else {
+                printNames.forEach(name -> System.out.println(answerValue(response, name)));
+            }
+
             List<String> failures = minFailures(response, minSpecs);
             if (!failures.isEmpty()) {
                 failures.forEach(f -> System.err.println("--min failed: " + f));
@@ -106,6 +113,15 @@ public final class Main {
         } catch (RuntimeException e) {
             fail(e.getMessage());
         }
+    }
+
+    private static String answerValue(EvaluateResponse response, String name) {
+        return switch (response.answers().get(name)) {
+            case Answer.Noul n -> String.valueOf(n.noul());
+            case Answer.Choice c -> c.choice();
+            case Answer.Score s -> String.valueOf(s.score());
+            case null -> throw new IllegalArgumentException("No such answer: " + name);
+        };
     }
 
     private static List<String> minFailures(EvaluateResponse response, List<String> minSpecs) {
