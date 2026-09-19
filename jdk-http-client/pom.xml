@@ -9,10 +9,10 @@
     <version>0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>typesafe-client</artifactId>
+  <artifactId>typesafe-jdk-http-client</artifactId>
   <packaging>jar</packaging>
 
-  <name>TypeSafe Client</name>
+  <name>TypeSafe JDK HTTP Client</name>
 
   <dependencies>
     <dependency>

@@ -106,7 +106,7 @@ TypesafeClient client = TypesafeClient.builder(token).httpClient(http).build();
 
 ## Reuse the DTOs outside the HTTP client
 
-`typesafe-core` has no dependency on `typesafe-client` or on any HTTP library. If you only need
+`typesafe-core` has no dependency on `typesafe-jdk-http-client` or on any HTTP library. If you only need
 to (de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
 them on a Kafka topic — depend on `typesafe-core` plus a codec module directly:
 

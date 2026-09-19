@@ -30,7 +30,7 @@
     <!-- test-only: exercises the codec end-to-end through TypesafeClient -->
     <dependency>
       <groupId>ai.typesafe</groupId>
-      <artifactId>typesafe-client</artifactId>
+      <artifactId>typesafe-jdk-http-client</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

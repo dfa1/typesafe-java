@@ -16,19 +16,20 @@ core      — ai.typesafe wire DTOs, no Jackson dependency at all: Answer, Quest
             standalone by anything that needs the same payloads (e.g. a Kafka
             producer/consumer), independent of the HTTP client and of which Jackson
             major version the caller uses.
-client    — TypesafeClient, ApiToken, TypesafeException. Depends only on core.
-            Resolves a JsonCodec via ServiceLoader at Builder.build() time (or an
-            explicit Builder.jsonCodec(...) override).
+jdk-http-client — TypesafeClient, ApiToken, TypesafeException (artifact
+            typesafe-jdk-http-client). Depends only on core. Resolves a JsonCodec via
+            ServiceLoader at Builder.build() time (or an explicit
+            Builder.jsonCodec(...) override).
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn),
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-bom       — dependency-management POM listing core/client/jackson2/jackson3.
+bom       — dependency-management POM listing core/jdk-http-client/jackson2/jackson3.
 ```
 
-Dependency rule: `client → core`, `jackson2 → core`, `jackson3 → core`. Neither codec
-module depends on `client` in `main` scope — `jackson2` depends on `client` in `test`
-scope only, to run the live-API demo/acceptance tests end-to-end. See
+Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`. Neither
+codec module depends on `jdk-http-client` in `main` scope — `jackson2` depends on it in
+`test` scope only, to run the live-API demo/acceptance tests end-to-end. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why.
 
 ## Commands
@@ -53,9 +54,9 @@ mvn test -pl jackson2 -am -DexcludedGroups=
 - **`core` has zero Jackson dependency and the DTOs carry zero Jackson annotations.**
   Polymorphism (`Answer`/`Question`'s `type` discriminator) is wired up entirely inside
   each codec module via mixins, not on the DTOs. Adding a third JSON library means
-  adding one more codec module; `core`/`client` don't change.
+  adding one more codec module; `core`/`jdk-http-client` don't change.
 - **`JsonCodec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
-  consumer that depends on `client` but forgets a codec module gets a clear
+  consumer that depends on `jdk-http-client` but forgets a codec module gets a clear
   `IllegalStateException` from `Builder.build()`, not a `NoClassDefFoundError`.
 - **Small public API.** Don't expose internals — when in doubt, leave it out or make it
   package-private.

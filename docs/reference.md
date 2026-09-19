@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | Module | Depends on | Contains |
 |---|---|---|
 | `typesafe-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec` |
-| `typesafe-client` | `core` | `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-jdk-http-client` | `core` | `TypesafeClient`, `ApiToken`, `TypesafeException` |
 | `typesafe-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-bom` | — | dependency management for the four above |

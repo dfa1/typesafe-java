@@ -29,7 +29,7 @@ your project already uses):
 <dependencies>
   <dependency>
     <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-client</artifactId>
+    <artifactId>typesafe-jdk-http-client</artifactId>
   </dependency>
   <dependency>
     <groupId>ai.typesafe</groupId>

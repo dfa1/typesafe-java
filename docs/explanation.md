@@ -25,8 +25,8 @@ decision record.
 
 ## Why `JsonCodec` is resolved via `ServiceLoader`, not a compile dependency
 
-`client` cannot declare a compile dependency on `jackson2` or `jackson3` — either choice would
-undo the whole point of splitting them out. `ServiceLoader` lets `client` stay codec-agnostic
+`jdk-http-client` cannot declare a compile dependency on `jackson2` or `jackson3` — either choice
+would undo the whole point of splitting them out. `ServiceLoader` lets it stay codec-agnostic
 while still getting a codec automatically the moment one codec module is on the classpath, the
 same pattern the JDK itself uses for `java.sql.Driver` or `java.nio.file.spi.FileSystemProvider`.
 The tradeoff: a missing codec module fails at `TypesafeClient.Builder.build()` time with a

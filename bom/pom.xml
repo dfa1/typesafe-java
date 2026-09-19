@@ -24,7 +24,7 @@
 
       <dependency>
         <groupId>ai.typesafe</groupId>
-        <artifactId>typesafe-client</artifactId>
+        <artifactId>typesafe-jdk-http-client</artifactId>
         <version>${project.version}</version>
       </dependency>
 
