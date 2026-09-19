@@ -1,0 +1,44 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>ai.typesafe</groupId>
+    <artifactId>typesafe-parent</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>typesafe-jackson2</artifactId>
+  <packaging>jar</packaging>
+
+  <name>TypeSafe Jackson 2 Codec</name>
+
+  <dependencies>
+    <dependency>
+      <groupId>ai.typesafe</groupId>
+      <artifactId>typesafe-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson2.version}</version>
+    </dependency>
+
+    <!-- test-only: exercises the codec end-to-end through TypesafeClient -->
+    <dependency>
+      <groupId>ai.typesafe</groupId>
+      <artifactId>typesafe-client</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>
