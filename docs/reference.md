@@ -171,9 +171,9 @@ EvaluateResponse evaluate(EvaluateRequest request) throws IOException, Interrupt
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
 ```
 
-Endpoint: `https://api.typesafe.ai/v1/systemone`. Retries `429`/`529` up to 5 times with
-exponential backoff starting at 500ms; any other non-`200` status (or a retry-exhausted `429`/
-`529`) throws `TypesafeException`.
+Default endpoint: `https://api.typesafe.ai/v1/systemone`. Retries `429`/`529` up to 5 times
+(default) with exponential backoff starting at 500ms (default); any other non-`200` status (or
+a retry-exhausted `429`/`529`) throws `TypesafeException`.
 
 #### `TypesafeClient.Builder`
 
@@ -181,6 +181,9 @@ exponential backoff starting at 500ms; any other non-`200` status (or a retry-ex
 |---|---|
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
+| `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
+| `maxRetries(int)` | `5` |
+| `initialBackoff(Duration)` | `500ms` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
 
 ### `TypesafeException`

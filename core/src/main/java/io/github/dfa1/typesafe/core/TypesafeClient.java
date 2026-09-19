@@ -16,18 +16,25 @@ import java.util.concurrent.TimeUnit;
 
 public final class TypesafeClient {
 
-    private static final URI ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
-    private static final int MAX_RETRIES = 5;
-    private static final Duration INITIAL_BACKOFF = Duration.ofMillis(500);
+    private static final URI DEFAULT_ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
+    private static final int DEFAULT_MAX_RETRIES = 5;
+    private static final Duration DEFAULT_INITIAL_BACKOFF = Duration.ofMillis(500);
 
     private final HttpTransport transport;
     private final JsonCodec jsonCodec;
     private final ApiToken apiToken;
+    private final URI endpoint;
+    private final int maxRetries;
+    private final Duration initialBackoff;
 
-    private TypesafeClient(ApiToken apiToken, HttpTransport transport, JsonCodec jsonCodec) {
+    private TypesafeClient(ApiToken apiToken, HttpTransport transport, JsonCodec jsonCodec,
+                            URI endpoint, int maxRetries, Duration initialBackoff) {
         this.apiToken = apiToken;
         this.transport = transport;
         this.jsonCodec = jsonCodec;
+        this.endpoint = endpoint;
+        this.maxRetries = maxRetries;
+        this.initialBackoff = initialBackoff;
     }
 
     public static Builder builder(ApiToken apiToken) {
@@ -42,6 +49,9 @@ public final class TypesafeClient {
         private final ApiToken apiToken;
         private HttpTransport transport;
         private JsonCodec jsonCodec;
+        private URI endpoint = DEFAULT_ENDPOINT;
+        private int maxRetries = DEFAULT_MAX_RETRIES;
+        private Duration initialBackoff = DEFAULT_INITIAL_BACKOFF;
 
         private Builder(ApiToken apiToken) {
             this.apiToken = apiToken;
@@ -57,10 +67,25 @@ public final class TypesafeClient {
             return this;
         }
 
+        public Builder endpoint(URI endpoint) {
+            this.endpoint = endpoint;
+            return this;
+        }
+
+        public Builder maxRetries(int maxRetries) {
+            this.maxRetries = maxRetries;
+            return this;
+        }
+
+        public Builder initialBackoff(Duration initialBackoff) {
+            this.initialBackoff = initialBackoff;
+            return this;
+        }
+
         public TypesafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return new TypesafeClient(apiToken, resolvedTransport, resolvedCodec);
+            return new TypesafeClient(apiToken, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
         }
 
         private static HttpTransport loadDefaultHttpTransport() {
@@ -83,14 +108,14 @@ public final class TypesafeClient {
         byte[] body = jsonCodec.writeValueAsBytes(request);
 
         for (int attempt = 0; ; attempt++) {
-            HttpTransportResponse response = transport.post(ENDPOINT, headers, body);
+            HttpTransportResponse response = transport.post(endpoint, headers, body);
             int status = response.statusCode();
 
             if (status == 200) {
                 return toEvaluateResponse(response);
             }
-            if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
-                Thread.sleep(INITIAL_BACKOFF.multipliedBy(1L << attempt).toMillis());
+            if ((status == 429 || status == 529) && attempt < maxRetries) {
+                Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
                 continue;
             }
             throw new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8));
@@ -109,7 +134,7 @@ public final class TypesafeClient {
     }
 
     private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, byte[] body, int attempt) {
-        return transport.postAsync(ENDPOINT, headers, body)
+        return transport.postAsync(endpoint, headers, body)
                 .thenCompose(response -> {
                     int status = response.statusCode();
 
@@ -117,11 +142,11 @@ public final class TypesafeClient {
                         try {
                             return CompletableFuture.completedFuture(toEvaluateResponse(response));
                         } catch (RuntimeException e) {
-                            return CompletableFuture.<EvaluateResponse>failedFuture(e);
+                            return CompletableFuture.failedFuture(e);
                         }
                     }
-                    if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
-                        Duration backoff = INITIAL_BACKOFF.multipliedBy(1L << attempt);
+                    if ((status == 429 || status == 529) && attempt < maxRetries) {
+                        Duration backoff = initialBackoff.multipliedBy(1L << attempt);
                         return CompletableFuture
                                 .supplyAsync(() -> null,
                                         CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))

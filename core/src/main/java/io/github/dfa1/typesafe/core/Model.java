@@ -1,7 +1,8 @@
 package io.github.dfa1.typesafe.core;
 
 /**
- * Known values for {@link EvaluateRequest#model()}. See
+ * Which model should process an {@link EvaluateRequest}. See
+ * <a href="https://docs.typesafe.ai/api">docs.typesafe.ai/api</a> and, for the full list,
  * <a href="https://docs.typesafe.ai/models">docs.typesafe.ai/models</a>.
  */
 public enum Model {

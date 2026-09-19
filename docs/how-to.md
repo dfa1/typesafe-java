@@ -146,6 +146,42 @@ HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).
 TypesafeClient client = TypesafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
+## Configure the endpoint or retry policy
+
+```java
+TypesafeClient client = TypesafeClient.builder(token)
+        .endpoint(URI.create("https://staging.typesafe.ai/v1/systemone"))
+        .maxRetries(2)
+        .initialBackoff(Duration.ofMillis(100))
+        .build();
+```
+
+## Test code that uses `TypesafeClient` without hitting the real API
+
+`TypesafeClient` only ever talks to `HttpTransport`/`JsonCodec`, so a test can mock both and
+verify the calls it makes:
+
+```java
+@Mock HttpTransport httpTransport;
+@Mock JsonCodec jsonCodec;
+
+TypesafeClient client = TypesafeClient.builder(token)
+        .httpTransport(httpTransport)
+        .jsonCodec(jsonCodec)
+        .build();
+
+given(jsonCodec.writeValueAsBytes(request)).willReturn(requestBytes);
+given(httpTransport.post(any(), any(), eq(requestBytes)))
+        .willReturn(new HttpTransportResponse(200, Map.of(), responseBytes));
+given(jsonCodec.readValue(responseBytes, EvaluateResponse.class)).willReturn(decodedResponse);
+
+client.evaluate(request);
+
+then(httpTransport).should().post(any(), any(), eq(requestBytes));
+```
+
+See `TypesafeClientTest` in `core` for a complete example.
+
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 
 `typesafe-java-core` has zero runtime dependencies — `TypesafeClient` talks to `HttpTransport`/

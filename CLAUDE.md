@@ -66,16 +66,20 @@ mvn test -pl jackson2 -am -DexcludedGroups=
 
 ## Testing
 
-JUnit 5 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`).
+JUnit 5 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`) +
+Mockito (BDDMockito: static-import only `given`/`then`, e.g. `given(mock.m()).willReturn(v)` /
+`then(mock).should().m()` — never `willReturn`/`willThrow`/`verify` unqualified).
 Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
-`ObjectMapper` during the initial split. Every test has `// Given` / `// When` / `// Then`
-comments marking its three phases (omit `// Given` when there's nothing to arrange).
-The pre-built instance a test invokes behavior on is named `sut` (e.g. a `Jackson2Codec`
-field, or an object constructed in `// Given` that `// When` calls a method on); the value
-produced by the operation under test in `// When` is named `result`. A static factory
-call with nothing further invoked on it just produces `result` — there's no separate `sut`.
+`ObjectMapper` during the initial split. `TypesafeClientTest` mocks `HttpTransport`/`JsonCodec`
+to verify `TypesafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
+has `// Given` / `// When` / `// Then` comments marking its three phases (omit `// Given` when
+there's nothing to arrange). The pre-built instance a test invokes behavior on is named `sut`
+(e.g. a `Jackson2Codec` field, or an object constructed in `// Given` that `// When` calls a
+method on); the value produced by the operation under test in `// When` is named `result`. A
+static factory call with nothing further invoked on it just produces `result` — there's no
+separate `sut`.
 
 ## Documentation is part of every change
 

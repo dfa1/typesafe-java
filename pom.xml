@@ -30,6 +30,10 @@
     <jackson3.version>3.0.0</jackson3.version>
     <junit.version>5.10.2</junit.version>
     <assertj.version>3.27.7</assertj.version>
+    <mockito.version>5.23.0</mockito.version>
+    <!-- byte-buddy-agent version must match what mockito-core pulls in transitively.
+         Update this when bumping mockito.version (run: mvn dependency:tree -pl core | grep byte-buddy-agent). -->
+    <bytebuddy.version>1.18.13</bytebuddy.version>
     <excludedGroups>acceptance</excludedGroups>
   </properties>
 
@@ -48,8 +52,27 @@
         <version>${assertj.version}</version>
         <scope>test</scope>
       </dependency>
+
+      <dependency>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-junit-jupiter</artifactId>
+        <version>${mockito.version}</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <!-- byte-buddy-agent declared here so every module has it in its dependency tree, which
+       allows maven-dependency-plugin:properties to resolve
+       ${net.bytebuddy:byte-buddy-agent:jar} for the surefire -javaagent arg. -->
+  <dependencies>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <version>${bytebuddy.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
@@ -58,6 +81,17 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
+          <configuration>
+            <!-- net.bytebuddy:byte-buddy-agent:jar is resolved to an absolute path by
+                 maven-dependency-plugin:properties (declared in build/plugins); loading it as
+                 a javaagent suppresses the Mockito inline-mock-maker self-attach warning. -->
+            <argLine>-javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-dependency-plugin</artifactId>
+          <version>3.8.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -91,6 +125,20 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- Resolves ${net.bytebuddy:byte-buddy-agent:jar} so surefire can load it
+                 as a javaagent — eliminates the Mockito inline-mock-maker self-attach warning. -->
+            <id>locate-byte-buddy-agent</id>
+            <goals>
+              <goal>properties</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
     </plugins>
   </build>

@@ -75,6 +75,13 @@ status — including a `429`/`529` that outlasts the retry budget — surfaces i
 be able to tell "this request permanently failed" from "this request is still in flight,"
 and an unbounded retry loop against a struggling upstream only makes the overload worse.
 
+## Why the endpoint, retry count, and backoff are configurable
+
+They started as `private static final` constants. Making them `Builder` options costs three
+setters and three fields, and buys two things: pointing at a staging endpoint without an
+environment-specific subclass, and fast unit tests — `TypesafeClientTest` doesn't need to wait
+out a real 500ms+ backoff because nothing forces it to use the production default.
+
 ## Why `evaluateAsync` isn't just `evaluate` wrapped in `supplyAsync`
 
 A naive `CompletableFuture.supplyAsync(() -> evaluate(request))` would burn one thread per
