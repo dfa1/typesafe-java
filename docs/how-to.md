@@ -203,5 +203,5 @@ JsonCodec combination and are excluded from a routine build. Opt in once you hav
 `~/.typesafe.apitoken` in place:
 
 ```bash
-mvn test -pl acceptance -am -DexcludedGroups=
+./mvnw test -pl acceptance -am -DexcludedGroups=
 ```

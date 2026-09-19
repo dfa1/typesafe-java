@@ -50,18 +50,18 @@ exist at all.
 ## Commands
 
 ```bash
-mvn clean install                 # build + unit tests, all modules
-mvn test -pl jackson2             # one module
-mvn test -pl jackson2 -Dtest=Jackson2CodecTest
+./mvnw clean install                 # build + unit tests, all modules
+./mvnw test -pl jackson2             # one module
+./mvnw test -pl jackson2 -Dtest=Jackson2CodecTest
 ```
 
 Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
 combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at
-`~/.typesafe.apitoken`. Excluded from a routine `mvn test` via the `excludedGroups=acceptance`
+`~/.typesafe.apitoken`. Excluded from a routine `./mvnw test` via the `excludedGroups=acceptance`
 property (surefire). Opt in with:
 
 ```bash
-mvn test -pl acceptance -am -DexcludedGroups=
+./mvnw test -pl acceptance -am -DexcludedGroups=
 ```
 
 ## Design decisions
