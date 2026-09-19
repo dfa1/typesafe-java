@@ -4,12 +4,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-parent</artifactId>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
     <version>0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>typesafe-bom</artifactId>
+  <artifactId>typesafe-java-bom</artifactId>
   <packaging>pom</packaging>
 
   <name>TypeSafe BOM</name>
@@ -17,26 +17,26 @@
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>ai.typesafe</groupId>
-        <artifactId>typesafe-core</artifactId>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-core</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
-        <groupId>ai.typesafe</groupId>
-        <artifactId>typesafe-jdk-http-client</artifactId>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-jdk-http-client</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
-        <groupId>ai.typesafe</groupId>
-        <artifactId>typesafe-jackson2</artifactId>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-jackson2</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
-        <groupId>ai.typesafe</groupId>
-        <artifactId>typesafe-jackson3</artifactId>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-jackson3</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

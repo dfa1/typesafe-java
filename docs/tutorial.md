@@ -17,8 +17,8 @@ your project already uses):
 <dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>ai.typesafe</groupId>
-      <artifactId>typesafe-bom</artifactId>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-bom</artifactId>
       <version>0.1-SNAPSHOT</version>
       <type>pom</type>
       <scope>import</scope>
@@ -28,12 +28,12 @@ your project already uses):
 
 <dependencies>
   <dependency>
-    <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-jdk-http-client</artifactId>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java-jdk-http-client</artifactId>
   </dependency>
   <dependency>
-    <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-jackson2</artifactId>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java-jackson2</artifactId>
   </dependency>
 </dependencies>
 ```
@@ -50,7 +50,7 @@ echo "your-token-here" > ~/.typesafe.apitoken
 ## 3. Build the client
 
 ```java
-import ai.typesafe.TypesafeClient;
+import io.github.dfa1.typesafe.TypesafeClient;
 
 TypesafeClient client = TypesafeClient.withDefaultToken();
 ```
@@ -60,10 +60,10 @@ TypesafeClient client = TypesafeClient.withDefaultToken();
 A `Question.noul` asks the model to score how strongly a statement holds, from 0.0 to 1.0:
 
 ```java
-import ai.typesafe.EvaluateRequest;
-import ai.typesafe.EvaluateResponse;
-import ai.typesafe.Question;
-import ai.typesafe.Answer;
+import io.github.dfa1.typesafe.EvaluateRequest;
+import io.github.dfa1.typesafe.EvaluateResponse;
+import io.github.dfa1.typesafe.Question;
+import io.github.dfa1.typesafe.Answer;
 
 import java.util.Map;
 

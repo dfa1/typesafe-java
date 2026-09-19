@@ -11,7 +11,7 @@ Jackson 2's `ObjectMapper`. That meant every consumer of the client was also a f
 Jackson 2, and the DTOs themselves couldn't be reused (e.g. to serialize the same payloads onto a
 Kafka topic) without dragging in `java.net.http`-specific code too.
 
-Splitting the DTOs into `typesafe-core` with zero Jackson dependency, and moving the `type`
+Splitting the DTOs into `typesafe-java-core` with zero Jackson dependency, and moving the `type`
 discriminator logic into private mixins inside `jackson2`/`jackson3` (`ObjectMapper.addMixIn` /
 `JsonMapper.Builder.addMixIn`), means:
 

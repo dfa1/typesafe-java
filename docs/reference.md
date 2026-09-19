@@ -12,11 +12,11 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec` |
-| `typesafe-jdk-http-client` | `core` | `TypesafeClient`, `ApiToken`, `TypesafeException` |
-| `typesafe-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
-| `typesafe-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-bom` | — | dependency management for the four above |
+| `typesafe-java-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec` |
+| `typesafe-java-jdk-http-client` | `core` | `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
+| `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
+| `typesafe-java-bom` | — | dependency management for the four above |
 
 ## Core types
 
@@ -75,7 +75,7 @@ record RequestId(String value)
 ## JsonCodec SPI
 
 ```java
-package ai.typesafe.json;
+package io.github.dfa1.typesafe.json;
 
 public interface JsonCodec {
     byte[] writeValueAsBytes(Object value);
@@ -85,7 +85,7 @@ public interface JsonCodec {
 
 Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `ServiceLoader.load(JsonCodec.class)` and registered through
-`META-INF/services/ai.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
+`META-INF/services/io.github.dfa1.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 
 ## Client

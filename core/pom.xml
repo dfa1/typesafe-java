@@ -4,12 +4,12 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-parent</artifactId>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
     <version>0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>typesafe-core</artifactId>
+  <artifactId>typesafe-java-core</artifactId>
   <packaging>jar</packaging>
 
   <name>TypeSafe Core</name>

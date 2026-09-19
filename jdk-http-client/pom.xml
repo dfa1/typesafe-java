@@ -4,20 +4,20 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>ai.typesafe</groupId>
-    <artifactId>typesafe-parent</artifactId>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
     <version>0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>typesafe-jdk-http-client</artifactId>
+  <artifactId>typesafe-java-jdk-http-client</artifactId>
   <packaging>jar</packaging>
 
   <name>TypeSafe JDK HTTP Client</name>
 
   <dependencies>
     <dependency>
-      <groupId>ai.typesafe</groupId>
-      <artifactId>typesafe-core</artifactId>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 

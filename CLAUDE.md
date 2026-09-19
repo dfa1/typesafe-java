@@ -10,14 +10,14 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — ai.typesafe wire DTOs, no Jackson dependency at all: Answer, Question,
+core      — io.github.dfa1.typesafe wire DTOs, no Jackson dependency at all: Answer, Question,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, and the JsonCodec SPI
-            (ai.typesafe.json). DTOs carry no serialization annotations — reusable
+            (io.github.dfa1.typesafe.json). DTOs carry no serialization annotations — reusable
             standalone by anything that needs the same payloads (e.g. a Kafka
             producer/consumer), independent of the HTTP client and of which Jackson
             major version the caller uses.
 jdk-http-client — TypesafeClient, ApiToken, TypesafeException (artifact
-            typesafe-jdk-http-client). Depends only on core. Resolves a JsonCodec via
+            typesafe-java-jdk-http-client). Depends only on core. Resolves a JsonCodec via
             ServiceLoader at Builder.build() time (or an explicit
             Builder.jsonCodec(...) override).
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`

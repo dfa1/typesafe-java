@@ -28,9 +28,9 @@ TypesafeClient client = TypesafeClient.builder(token).build();
 `ServiceLoader` from whatever codec module is on your classpath. Add exactly one of:
 
 ```xml
-<dependency><groupId>ai.typesafe</groupId><artifactId>typesafe-jackson2</artifactId></dependency>
+<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jackson2</artifactId></dependency>
 <!-- or -->
-<dependency><groupId>ai.typesafe</groupId><artifactId>typesafe-jackson3</artifactId></dependency>
+<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jackson3</artifactId></dependency>
 ```
 
 If neither is present, `TypesafeClient.Builder.build()` throws `IllegalStateException` with a
@@ -106,9 +106,9 @@ TypesafeClient client = TypesafeClient.builder(token).httpClient(http).build();
 
 ## Reuse the DTOs outside the HTTP client
 
-`typesafe-core` has no dependency on `typesafe-jdk-http-client` or on any HTTP library. If you only need
+`typesafe-java-core` has no dependency on `typesafe-java-jdk-http-client` or on any HTTP library. If you only need
 to (de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
-them on a Kafka topic — depend on `typesafe-core` plus a codec module directly:
+them on a Kafka topic — depend on `typesafe-java-core` plus a codec module directly:
 
 ```java
 JsonCodec codec = new Jackson2Codec();
