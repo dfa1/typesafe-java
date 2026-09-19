@@ -10,6 +10,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 public final class TypesafeClient {
 
@@ -55,23 +57,14 @@ public final class TypesafeClient {
     }
 
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
-        HttpRequest httpRequest = HttpRequest.newBuilder(ENDPOINT)
-                .header("Authorization", apiToken.toHttpHeaderValue())
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofByteArray(mapper.writeValueAsBytes(request)))
-                .build();
+        HttpRequest httpRequest = buildHttpRequest(request);
 
         for (int attempt = 0; ; attempt++) {
             HttpResponse<byte[]> response = http.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
             int status = response.statusCode();
 
             if (status == 200) {
-                EvaluateResponse body = mapper.readValue(response.body(), EvaluateResponse.class);
-                EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
-                        response.headers().firstValue("x-typesafe-request-id").map(RequestId::new).orElse(null),
-                        response.headers().firstValueAsLong("x-envoy-upstream-service-time")
-                                .stream().mapToObj(Duration::ofMillis).findFirst().orElse(null));
-                return new EvaluateResponse(body.model(), body.answers(), body.usage(), metadata);
+                return toEvaluateResponse(response);
             }
             if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
                 Thread.sleep(INITIAL_BACKOFF.multipliedBy(1L << attempt));
@@ -79,5 +72,56 @@ public final class TypesafeClient {
             }
             throw new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8));
         }
+    }
+
+    public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
+        HttpRequest httpRequest;
+        try {
+            httpRequest = buildHttpRequest(request);
+        } catch (IOException e) {
+            return CompletableFuture.failedFuture(e);
+        }
+        return evaluateAsync(httpRequest, 0);
+    }
+
+    private CompletableFuture<EvaluateResponse> evaluateAsync(HttpRequest httpRequest, int attempt) {
+        return http.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray())
+                .thenCompose(response -> {
+                    int status = response.statusCode();
+
+                    if (status == 200) {
+                        try {
+                            return CompletableFuture.completedFuture(toEvaluateResponse(response));
+                        } catch (IOException e) {
+                            return CompletableFuture.<EvaluateResponse>failedFuture(e);
+                        }
+                    }
+                    if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
+                        Duration backoff = INITIAL_BACKOFF.multipliedBy(1L << attempt);
+                        return CompletableFuture
+                                .supplyAsync(() -> null,
+                                        CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
+                                .thenCompose(ignored -> evaluateAsync(httpRequest, attempt + 1));
+                    }
+                    return CompletableFuture.failedFuture(
+                            new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8)));
+                });
+    }
+
+    private HttpRequest buildHttpRequest(EvaluateRequest request) throws IOException {
+        return HttpRequest.newBuilder(ENDPOINT)
+                .header("Authorization", apiToken.toHttpHeaderValue())
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofByteArray(mapper.writeValueAsBytes(request)))
+                .build();
+    }
+
+    private EvaluateResponse toEvaluateResponse(HttpResponse<byte[]> response) throws IOException {
+        EvaluateResponse body = mapper.readValue(response.body(), EvaluateResponse.class);
+        EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
+                response.headers().firstValue("x-typesafe-request-id").map(RequestId::new).orElse(null),
+                response.headers().firstValueAsLong("x-envoy-upstream-service-time")
+                        .stream().mapToObj(Duration::ofMillis).findFirst().orElse(null));
+        return new EvaluateResponse(body.model(), body.answers(), body.usage(), metadata);
     }
 }

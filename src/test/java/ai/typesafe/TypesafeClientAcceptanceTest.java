@@ -32,4 +32,21 @@ class TypesafeClientAcceptanceTest {
         assertTrue(response.metadata().requestId().value().startsWith("req_"));
         assertTrue(response.metadata().upstreamServiceTime().toMillis() > 0);
     }
+
+    @Test
+    void evaluatesAsyncAgainstTheLiveApi() throws Exception {
+        TypesafeClient client = TypesafeClient.withDefaultToken();
+
+        EvaluateRequest request = EvaluateRequest.of(
+                "Help! My payouts have been failing for 3 days.",
+                Map.of("is_urgent", Question.noul("Does this convey urgency?",
+                        Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
+
+        EvaluateResponse response = client.evaluateAsync(request).get();
+
+        Answer answer = response.answers().get("is_urgent");
+        assertInstanceOf(Answer.Noul.class, answer);
+        double noul = ((Answer.Noul) answer).noul();
+        assertTrue(noul >= 0.0 && noul <= 1.0);
+    }
 }
