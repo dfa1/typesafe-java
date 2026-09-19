@@ -27,7 +27,8 @@
       <version>${jackson2.version}</version>
     </dependency>
 
-    <!-- test-only: exercises the codec end-to-end through TypesafeClient -->
+    <!-- test-only: a concrete HttpTransport, so the acceptance/demo tests can exercise
+         TypesafeClient (already on the classpath via typesafe-java-core) end-to-end -->
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-jdk-http-client</artifactId>

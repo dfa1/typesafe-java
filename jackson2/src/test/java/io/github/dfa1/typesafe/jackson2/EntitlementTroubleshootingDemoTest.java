@@ -1,9 +1,9 @@
 package io.github.dfa1.typesafe.jackson2;
 
-import io.github.dfa1.typesafe.Answer;
-import io.github.dfa1.typesafe.EvaluateRequest;
-import io.github.dfa1.typesafe.EvaluateResponse;
-import io.github.dfa1.typesafe.Question;
+import io.github.dfa1.typesafe.model.Answer;
+import io.github.dfa1.typesafe.model.EvaluateRequest;
+import io.github.dfa1.typesafe.model.EvaluateResponse;
+import io.github.dfa1.typesafe.model.Question;
 import io.github.dfa1.typesafe.TypesafeClient;
 
 import org.junit.jupiter.api.Tag;

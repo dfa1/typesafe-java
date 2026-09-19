@@ -14,8 +14,18 @@
 
   <name>TypeSafe Core</name>
   <description>
-    DTOs and JSON codec SPI shared by the TypeSafe HTTP client and by any other
-    integration (e.g. Kafka producers/consumers) that needs to (de)serialize
-    TypeSafe payloads without pulling in the HTTP client.
+    TypesafeClient, ApiToken, TypesafeException, the wire DTOs, and the JsonCodec/HttpTransport
+    SPIs. Zero dependency on any particular JSON or HTTP library — plug in
+    typesafe-java-jackson2/typesafe-java-jackson3 and typesafe-java-jdk-http-client (or your
+    own implementations). The DTOs and JsonCodec SPI alone are also reusable by any other
+    integration (e.g. a Kafka producer/consumer) that needs to (de)serialize TypeSafe payloads.
   </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
 </project>

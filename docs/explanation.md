@@ -23,16 +23,31 @@ discriminator logic into private mixins inside `jackson2`/`jackson3` (`ObjectMap
 See [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full
 decision record.
 
-## Why `JsonCodec` is resolved via `ServiceLoader`, not a compile dependency
+## Why `JsonCodec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
 
-`jdk-http-client` cannot declare a compile dependency on `jackson2` or `jackson3` — either choice
-would undo the whole point of splitting them out. `ServiceLoader` lets it stay codec-agnostic
-while still getting a codec automatically the moment one codec module is on the classpath, the
-same pattern the JDK itself uses for `java.sql.Driver` or `java.nio.file.spi.FileSystemProvider`.
-The tradeoff: a missing codec module fails at `TypesafeClient.Builder.build()` time with a
-runtime `IllegalStateException`, not at compile time — deliberately, since a compile-time check
-here would mean picking one codec as "the real dependency," which is exactly what this design
-avoids.
+`core` cannot declare a compile dependency on `jackson2`/`jackson3` or on `jdk-http-client` —
+any of those choices would undo the whole point of splitting them out. `ServiceLoader` lets
+`TypesafeClient` stay agnostic to both while still getting real implementations automatically
+the moment one codec module and one transport module are on the classpath, the same pattern the
+JDK itself uses for `java.sql.Driver` or `java.nio.file.spi.FileSystemProvider`. The tradeoff: a
+missing codec or transport module fails at `TypesafeClient.Builder.build()` time with a runtime
+`IllegalStateException`, not at compile time — deliberately, since a compile-time check here
+would mean picking one codec/transport as "the real dependency," which is exactly what this
+design avoids.
+
+## Why `HttpTransport` exists (and why `client` isn't a separate module)
+
+`TypesafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
+`HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
+mocked transport for tests can implement one interface (`post`/`postAsync`) instead of forking
+the retry/backoff logic.
+
+Once that abstraction exists, `TypesafeClient` itself has no HTTP-library dependency any more —
+its only import from `java.net` is `URI`, which every JDK module already has. That removed the
+original reason for a separate `client` module (keeping `core` free of `java.net.http`), so
+`TypesafeClient`/`ApiToken`/`TypesafeException` live in `core` next to the DTOs: one fewer module
+to version and depend on, with `core` exactly as dependency-free as before. See
+[ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 
 ## Why retries are bounded and exponential
 
@@ -47,6 +62,10 @@ and an unbounded retry loop against a struggling upstream only makes the overloa
 
 A naive `CompletableFuture.supplyAsync(() -> evaluate(request))` would burn one thread per
 in-flight request, blocked on `Thread.sleep` during backoff. `evaluateAsync` instead chains off
-`HttpClient.sendAsync` and schedules retries via `CompletableFuture.delayedExecutor`, so a
+`HttpTransport.postAsync` and schedules retries via `CompletableFuture.delayedExecutor`, so a
 backoff wait never blocks a thread — the same retry policy, without the thread cost, which
-matters once callers are firing many requests concurrently.
+matters once callers are firing many requests concurrently. This only holds if the
+`HttpTransport` implementation's `postAsync` is itself genuinely non-blocking (`JdkHttpTransport`
+is, since it delegates to `HttpClient.sendAsync`); a transport backed by a blocking-only HTTP
+library has no non-blocking send to chain off and has to fall back to a thread-per-call
+`postAsync`.

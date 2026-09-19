@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe;
+package io.github.dfa1.typesafe.model;
 
 import java.util.Map;
 

@@ -10,16 +10,18 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — io.github.dfa1.typesafe wire DTOs, no Jackson dependency at all: Answer, Question,
-            EvaluateRequest/EvaluateResponse, Usage, RequestId, and the JsonCodec SPI
-            (io.github.dfa1.typesafe.json). DTOs carry no serialization annotations — reusable
-            standalone by anything that needs the same payloads (e.g. a Kafka
-            producer/consumer), independent of the HTTP client and of which Jackson
-            major version the caller uses.
-jdk-http-client — TypesafeClient, ApiToken, TypesafeException (artifact
-            typesafe-java-jdk-http-client). Depends only on core. Resolves a JsonCodec via
+core      — TypesafeClient, ApiToken, TypesafeException (io.github.dfa1.typesafe); the wire
+            DTOs Answer, Question, EvaluateRequest/EvaluateResponse, Usage, RequestId
+            (io.github.dfa1.typesafe.model); and the JsonCodec (io.github.dfa1.typesafe.json)
+            + HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
+            JSON or HTTP library — TypesafeClient talks to HttpTransport/JsonCodec, never to a
+            concrete library directly, so it's reusable (e.g. by a Kafka producer/consumer
+            that only needs the model + JsonCodec) without pulling anything extra in.
+jdk-http-client — HttpTransport backed by java.net.http (artifact
+            typesafe-java-jdk-http-client, class JdkHttpTransport, package
+            io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via
             ServiceLoader at Builder.build() time (or an explicit
-            Builder.jsonCodec(...) override).
+            Builder.httpTransport(...) override).
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn),
             registered through META-INF/services.

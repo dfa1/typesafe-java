@@ -43,6 +43,24 @@ TypesafeClient client = TypesafeClient.builder(token)
         .build();
 ```
 
+## Choose an HTTP transport
+
+Likewise, `TypesafeClient` doesn't depend on any HTTP library directly — it resolves an
+`HttpTransport` via `ServiceLoader`. Add:
+
+```xml
+<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jdk-http-client</artifactId></dependency>
+```
+
+If it's missing, `build()` throws `IllegalStateException`. To wire one explicitly, or to use
+your own `HttpTransport` (e.g. backed by Apache HttpClient or OkHttp):
+
+```java
+TypesafeClient client = TypesafeClient.builder(token)
+        .httpTransport(new JdkHttpTransport())
+        .build();
+```
+
 ## Ask a Choice question
 
 `Question.choice` picks the best-matching option out of a labeled set:
@@ -99,16 +117,20 @@ try {
 
 ## Use a custom `HttpClient`
 
+`JdkHttpTransport` takes an `HttpClient`, so any JDK `HttpClient` configuration goes through it:
+
 ```java
 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-TypesafeClient client = TypesafeClient.builder(token).httpClient(http).build();
+TypesafeClient client = TypesafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
-## Reuse the DTOs outside the HTTP client
+## Reuse the DTOs without pulling in an HTTP or JSON library
 
-`typesafe-java-core` has no dependency on `typesafe-java-jdk-http-client` or on any HTTP library. If you only need
-to (de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
-them on a Kafka topic — depend on `typesafe-java-core` plus a codec module directly:
+`typesafe-java-core` has zero runtime dependencies — `TypesafeClient` talks to `HttpTransport`/
+`JsonCodec`, never to a concrete HTTP or JSON library directly. If you only need to
+(de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
+them on a Kafka topic — depend on `typesafe-java-core` plus a codec module, and ignore
+`TypesafeClient` entirely:
 
 ```java
 JsonCodec codec = new Jackson2Codec();

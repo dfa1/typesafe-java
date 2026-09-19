@@ -9,10 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- `TypesafeClient`: JDK 21 `HttpClient`-based client for the TypeSafe API, evaluating `Noul`/`Choice`/`Score` questions against a state, with exponential-backoff retry on `429`/`529`.
+- `TypesafeClient`: client for the TypeSafe API, evaluating `Noul`/`Choice`/`Score` questions against a state, with exponential-backoff retry on `429`/`529`.
 - `TypesafeClient.evaluateAsync`: `CompletableFuture`-based async variant of `evaluate`, sharing the same retry logic.
 - `EvaluateResponse.Metadata`: captures the `x-typesafe-request-id` and `x-envoy-upstream-service-time` response headers alongside the parsed body.
-- Split the single module into `core` (DTOs + `JsonCodec` SPI, no Jackson dependency), `jdk-http-client` (`TypesafeClient`/`ApiToken`/`TypesafeException`), `jackson2`/`jackson3` (pluggable codec implementations, resolved via `ServiceLoader`), and `bom`. See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md).
+- `HttpTransport` SPI (`io.github.dfa1.typesafe.transport`): decouples `TypesafeClient` from any concrete HTTP library, mirroring `JsonCodec`. `typesafe-java-jdk-http-client` supplies `JdkHttpTransport` (`java.net.http`); implement `HttpTransport` yourself for Apache HttpClient, OkHttp, etc.
+- Split into Maven modules: `core` (DTOs in `io.github.dfa1.typesafe.model`, `TypesafeClient`/`ApiToken`/`TypesafeException`, and the `JsonCodec`/`HttpTransport` SPIs — no dependency on any JSON or HTTP library), `jdk-http-client`/`jackson2`/`jackson3` (pluggable implementations, resolved via `ServiceLoader`), and `bom`. See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md).
 - `checkstyle.xml`, wired to the `validate` phase.
 - `CLAUDE.md` and Diataxis-structured docs (`docs/tutorial.md`, `docs/how-to.md`, `docs/reference.md`, `docs/explanation.md`).
 - MIT license.

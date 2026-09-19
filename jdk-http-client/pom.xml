@@ -12,7 +12,7 @@
   <artifactId>typesafe-java-jdk-http-client</artifactId>
   <packaging>jar</packaging>
 
-  <name>TypeSafe JDK HTTP Client</name>
+  <name>TypeSafe JDK HTTP Transport</name>
 
   <dependencies>
     <dependency>

@@ -1,14 +1,18 @@
 package io.github.dfa1.typesafe;
 
 import io.github.dfa1.typesafe.json.JsonCodec;
+import io.github.dfa1.typesafe.model.EvaluateRequest;
+import io.github.dfa1.typesafe.model.EvaluateResponse;
+import io.github.dfa1.typesafe.model.RequestId;
+import io.github.dfa1.typesafe.transport.HttpTransport;
+import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -19,13 +23,13 @@ public final class TypesafeClient {
     private static final int MAX_RETRIES = 5;
     private static final Duration INITIAL_BACKOFF = Duration.ofMillis(500);
 
-    private final HttpClient http;
+    private final HttpTransport transport;
     private final JsonCodec jsonCodec;
     private final ApiToken apiToken;
 
-    private TypesafeClient(ApiToken apiToken, HttpClient http, JsonCodec jsonCodec) {
+    private TypesafeClient(ApiToken apiToken, HttpTransport transport, JsonCodec jsonCodec) {
         this.apiToken = apiToken;
-        this.http = http;
+        this.transport = transport;
         this.jsonCodec = jsonCodec;
     }
 
@@ -39,15 +43,15 @@ public final class TypesafeClient {
 
     public static final class Builder {
         private final ApiToken apiToken;
-        private HttpClient http = HttpClient.newHttpClient();
+        private HttpTransport transport;
         private JsonCodec jsonCodec;
 
         private Builder(ApiToken apiToken) {
             this.apiToken = apiToken;
         }
 
-        public Builder httpClient(HttpClient http) {
-            this.http = http;
+        public Builder httpTransport(HttpTransport transport) {
+            this.transport = transport;
             return this;
         }
 
@@ -57,30 +61,39 @@ public final class TypesafeClient {
         }
 
         public TypesafeClient build() {
-            JsonCodec codec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return new TypesafeClient(apiToken, http, codec);
+            HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
+            JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
+            return new TypesafeClient(apiToken, resolvedTransport, resolvedCodec);
+        }
+
+        private static HttpTransport loadDefaultHttpTransport() {
+            return ServiceLoader.load(HttpTransport.class).findFirst()
+                    .orElseThrow(() -> new IllegalStateException(
+                            "No HttpTransport found on the classpath. Add typesafe-java-jdk-http-client "
+                                    + "as a dependency, or call Builder.httpTransport(...)."));
         }
 
         private static JsonCodec loadDefaultJsonCodec() {
             return ServiceLoader.load(JsonCodec.class).findFirst()
                     .orElseThrow(() -> new IllegalStateException(
-                            "No JsonCodec found on the classpath. Add typesafe-jackson2 or "
-                                    + "typesafe-jackson3 as a dependency, or call Builder.jsonCodec(...)."));
+                            "No JsonCodec found on the classpath. Add typesafe-java-jackson2 or "
+                                    + "typesafe-java-jackson3 as a dependency, or call Builder.jsonCodec(...)."));
         }
     }
 
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
-        HttpRequest httpRequest = buildHttpRequest(request);
+        Map<String, String> headers = requestHeaders();
+        byte[] body = jsonCodec.writeValueAsBytes(request);
 
         for (int attempt = 0; ; attempt++) {
-            HttpResponse<byte[]> response = http.send(httpRequest, HttpResponse.BodyHandlers.ofByteArray());
+            HttpTransportResponse response = transport.post(ENDPOINT, headers, body);
             int status = response.statusCode();
 
             if (status == 200) {
                 return toEvaluateResponse(response);
             }
             if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
-                Thread.sleep(INITIAL_BACKOFF.multipliedBy(1L << attempt));
+                Thread.sleep(INITIAL_BACKOFF.multipliedBy(1L << attempt).toMillis());
                 continue;
             }
             throw new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8));
@@ -88,17 +101,18 @@ public final class TypesafeClient {
     }
 
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
-        HttpRequest httpRequest;
+        Map<String, String> headers = requestHeaders();
+        byte[] body;
         try {
-            httpRequest = buildHttpRequest(request);
+            body = jsonCodec.writeValueAsBytes(request);
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
-        return evaluateAsync(httpRequest, 0);
+        return evaluateAsync(headers, body, 0);
     }
 
-    private CompletableFuture<EvaluateResponse> evaluateAsync(HttpRequest httpRequest, int attempt) {
-        return http.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofByteArray())
+    private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, byte[] body, int attempt) {
+        return transport.postAsync(ENDPOINT, headers, body)
                 .thenCompose(response -> {
                     int status = response.statusCode();
 
@@ -114,27 +128,26 @@ public final class TypesafeClient {
                         return CompletableFuture
                                 .supplyAsync(() -> null,
                                         CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
-                                .thenCompose(ignored -> evaluateAsync(httpRequest, attempt + 1));
+                                .thenCompose(ignored -> evaluateAsync(headers, body, attempt + 1));
                     }
                     return CompletableFuture.failedFuture(
                             new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8)));
                 });
     }
 
-    private HttpRequest buildHttpRequest(EvaluateRequest request) {
-        return HttpRequest.newBuilder(ENDPOINT)
-                .header("Authorization", apiToken.toHttpHeaderValue())
-                .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofByteArray(jsonCodec.writeValueAsBytes(request)))
-                .build();
+    private Map<String, String> requestHeaders() {
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("Authorization", apiToken.toHttpHeaderValue());
+        headers.put("Content-Type", "application/json");
+        return headers;
     }
 
-    private EvaluateResponse toEvaluateResponse(HttpResponse<byte[]> response) {
+    private EvaluateResponse toEvaluateResponse(HttpTransportResponse response) {
         EvaluateResponse body = jsonCodec.readValue(response.body(), EvaluateResponse.class);
         EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
-                response.headers().firstValue("x-typesafe-request-id").map(RequestId::new).orElse(null),
-                response.headers().firstValueAsLong("x-envoy-upstream-service-time")
-                        .stream().mapToObj(Duration::ofMillis).findFirst().orElse(null));
+                response.header("x-typesafe-request-id").map(RequestId::new).orElse(null),
+                response.header("x-envoy-upstream-service-time")
+                        .map(Long::parseLong).map(Duration::ofMillis).orElse(null));
         return new EvaluateResponse(body.model(), body.answers(), body.usage(), metadata);
     }
 }

@@ -10,8 +10,9 @@ a support message is.
 
 ## 1. Add the dependencies
 
-Import the BOM, then add the client plus one JSON codec (Jackson 2 or Jackson 3 — pick whichever
-your project already uses):
+Import the BOM, then add an HTTP transport (the JDK one, unless you have your own) plus one JSON
+codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Both pull in
+`typesafe-java-core`, which holds `TypesafeClient` itself, transitively:
 
 ```xml
 <dependencyManagement>
@@ -60,10 +61,10 @@ TypesafeClient client = TypesafeClient.withDefaultToken();
 A `Question.noul` asks the model to score how strongly a statement holds, from 0.0 to 1.0:
 
 ```java
-import io.github.dfa1.typesafe.EvaluateRequest;
-import io.github.dfa1.typesafe.EvaluateResponse;
-import io.github.dfa1.typesafe.Question;
-import io.github.dfa1.typesafe.Answer;
+import io.github.dfa1.typesafe.model.EvaluateRequest;
+import io.github.dfa1.typesafe.model.EvaluateResponse;
+import io.github.dfa1.typesafe.model.Question;
+import io.github.dfa1.typesafe.model.Answer;
 
 import java.util.Map;
 

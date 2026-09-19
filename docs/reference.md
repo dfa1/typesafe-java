@@ -6,19 +6,26 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 - [Module layout](#module-layout)
 - [Core types](#core-types)
 - [JsonCodec SPI](#jsoncodec-spi)
+- [HttpTransport SPI](#httptransport-spi)
 - [Client](#client)
 
 ## Module layout
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec` |
-| `typesafe-java-jdk-http-client` | `core` | `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-bom` | — | dependency management for the four above |
 
+`core` has zero runtime dependency on any HTTP or JSON library — `TypesafeClient` talks to
+`HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
+alongside the DTOs without pulling anything extra in.
+
 ## Core types
+
+All of the following live in `io.github.dfa1.typesafe.model`.
 
 ### `Question` (sealed interface)
 
@@ -88,7 +95,32 @@ Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `META-INF/services/io.github.dfa1.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 
+## HttpTransport SPI
+
+```java
+package io.github.dfa1.typesafe.transport;
+
+public interface HttpTransport {
+    HttpTransportResponse post(URI uri, Map<String, String> headers, byte[] body)
+            throws IOException, InterruptedException;
+    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, byte[] body);
+}
+
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, byte[] body) {
+    Optional<String> header(String name);   // case-insensitive lookup
+}
+```
+
+The single HTTP call `TypesafeClient` needs (a JSON POST), abstracted away from any particular
+HTTP library. `JdkHttpTransport` (in `typesafe-java-jdk-http-client`) is discovered via
+`ServiceLoader.load(HttpTransport.class)` through
+`META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
+yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it
+explicitly via `Builder.httpTransport(...)`.
+
 ## Client
+
+All of the following live in `io.github.dfa1.typesafe`.
 
 ### `ApiToken`
 
@@ -120,9 +152,9 @@ exponential backoff starting at 500ms; any other non-`200` status (or a retry-ex
 
 | Method | Default |
 |---|---|
-| `httpClient(HttpClient)` | `HttpClient.newHttpClient()` |
+| `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
-| `build()` | throws `IllegalStateException` if no `JsonCodec` is set or discoverable |
+| `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
 
 ### `TypesafeException`
 
