@@ -22,6 +22,7 @@
     <module>jackson3</module>
     <module>bom</module>
     <module>acceptance</module>
+    <module>cli</module>
   </modules>
 
   <properties>

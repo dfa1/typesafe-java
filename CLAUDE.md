@@ -39,11 +39,19 @@ acceptance — live-API tests only; not published. `AbstractTypesafeClientAccept
             versions (2.17.2 vs 2.20); acceptance/pom.xml pins the newer one explicitly, or
             Maven's mediation picks the older one and jackson3 fails at runtime with
             `NoSuchFieldError` on a field only the newer annotations jar has.
+cli       — command-line entry point (`Main`), not published as a library artifact; built as
+            an executable uber-jar (maven-shade-plugin) over jdk-http-client + jackson3.
+            Flat flags: `--state <text>` (the only `State` shape it supports — plain text),
+            repeatable `--noul`/`--choice`/`--score <name>=<instructions>[|opt1,opt2,...]`,
+            optional `--model <id>`, `--verbose`/`--timing` (request id / response time to
+            stderr), `--version` (prints the jar's `Implementation-Version` manifest entry,
+            set by the shade plugin, and exits without calling the API). Prints the
+            `EvaluateResponse` as JSON to stdout.
 ```
 
 Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`,
-`acceptance → core, jdk-http-client, jackson2, jackson3` (test scope only — nothing
-production depends on `acceptance`). See
+`acceptance → core, jdk-http-client, jackson2, jackson3` (test scope only), `cli → core,
+jdk-http-client, jackson3` — nothing production depends on `acceptance` or `cli`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 

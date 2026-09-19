@@ -2,3 +2,4 @@ target/
 .typesafe.apitoken
 .idea/
 *.iml
+dependency-reduced-pom.xml

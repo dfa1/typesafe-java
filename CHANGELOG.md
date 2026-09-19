@@ -8,3 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 First version — no released API yet, so nothing to describe changes against.
+
+- Added `cli` module: an executable uber-jar for ad hoc checks against the API from a
+  terminal, without writing Java. `--verbose`/`--timing` print the request id / response
+  time to stderr; `--version` prints the jar's version and exits without calling the API.
+  Not published as a library artifact.

@@ -196,6 +196,30 @@ byte[] bytes = codec.writeValueAsBytes(request);
 EvaluateResponse response = codec.readValue(bytes, EvaluateResponse.class);
 ```
 
+## Run a quick check from the command line
+
+The `cli` module builds an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
+ad hoc checks against the real API, without writing any Java:
+
+```bash
+./mvnw -pl cli -am package -DskipTests
+java -jar cli/target/typesafe-java-cli-*.jar \
+        --state "My card was charged twice." \
+        --noul "urgent=Is this urgent?" \
+        --choice "category=What kind of issue is this?|billing,shipping,other" \
+        --score "severity=How severe is this?|low,medium,high"
+```
+
+Each `--noul`/`--choice`/`--score` is `<name>=<instructions>`, with `--choice`/`--score` taking
+a `|`-separated, comma-list of options/levels after the instructions. `--model <id>` (e.g.
+`jev-preview`) overrides the default `Model.LATEST`. Reads the token from
+`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
+it locally.
+
+Add `--verbose` to print the response's request id, `--timing` to print how long the API took
+(both go to stderr, so stdout stays clean JSON), or run with `--version` alone to print the
+jar's version and exit without calling the API.
+
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/
