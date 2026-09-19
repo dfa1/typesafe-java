@@ -22,10 +22,11 @@ import java.util.Map;
 public final class Main {
 
     private static final String USAGE = "Usage: typesafe --state <text> [--model <id>] "
-            + "[--noul <name>=<instructions>]... "
-            + "[--choice <name>=<instructions>|<option1,option2,...>]... "
-            + "[--score <name>=<instructions>|<level1,level2,...>]... "
-            + "[--verbose] [--timing] | --version";
+            + "[--noul [<name>=]<instructions>]... "
+            + "[--choice [<name>=]<instructions>|<option1,option2,...>]... "
+            + "[--score [<name>=]<instructions>|<level1,level2,...>]... "
+            + "[--verbose] [--timing] | --version "
+            + "(name defaults to noul/choice/score, so name it explicitly if you use more than one)";
 
     private Main() {
     }
@@ -54,10 +55,9 @@ public final class Main {
                     case "--noul", "--choice", "--score" -> {
                         String value = args[++i];
                         int eq = value.indexOf('=');
-                        if (eq < 0) {
-                            fail(flag + " must be <name>=<instructions>, got: " + value);
-                        }
-                        questions.put(value.substring(0, eq), question(flag, value.substring(eq + 1)));
+                        String name = eq >= 0 ? value.substring(0, eq) : flag.substring(2);
+                        String rest = eq >= 0 ? value.substring(eq + 1) : value;
+                        questions.put(name, question(flag, rest));
                     }
                     default -> fail("Unknown flag: " + flag);
                 }

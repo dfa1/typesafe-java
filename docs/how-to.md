@@ -210,8 +210,11 @@ java -jar cli/target/typesafe-java-cli-*.jar \
         --score "severity=How severe is this?|low,medium,high"
 ```
 
-Each `--noul`/`--choice`/`--score` is `<name>=<instructions>`, with `--choice`/`--score` taking
-a `|`-separated, comma-list of options/levels after the instructions. `--model <id>` (e.g.
+Each `--noul`/`--choice`/`--score` is `[<name>=]<instructions>`, with `--choice`/`--score`
+taking a `|`-separated, comma-list of options/levels after the instructions. The `name=` prefix
+is optional — for a single question, `--noul "Is this urgent?"` is enough (the answer comes
+back keyed `noul`); name it explicitly if you're asking more than one question of the same
+type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
 `jev-preview`) overrides the default `Model.LATEST`. Reads the token from
 `~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
 it locally.
