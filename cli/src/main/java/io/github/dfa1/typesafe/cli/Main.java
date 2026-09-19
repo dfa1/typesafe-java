@@ -98,6 +98,7 @@ public final class Main {
         EvaluateResponse response = client.evaluate(request);
 
         if (verbose) {
+            System.err.println("response: " + new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
             System.err.println("request-id: " + response.metadata().requestId());
         }
         if (timing) {

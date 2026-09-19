@@ -219,8 +219,9 @@ type, since unnamed ones of the same type overwrite each other. `--model <id>` (
 `~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
 it locally.
 
-Add `--verbose` to print the outgoing request JSON and the response's request id, `--timing` to
-print how long the API took (all go to stderr, so stdout stays clean JSON), or run with
+Add `--verbose` to print the outgoing request JSON, the full response JSON, and the response's
+request id, `--timing` to print how long the API took (all go to stderr, so stdout stays clean
+— useful alongside `--print`, which otherwise only shows the one value you asked for). Run with
 `--version` alone to print the jar's version and exit without calling the API.
 
 For scripting/CI, repeatable `--min <name>=<threshold>` gates on a `noul`/`score` answer's
