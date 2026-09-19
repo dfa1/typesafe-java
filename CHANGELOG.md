@@ -19,3 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `checkstyle.xml`, wired to the `validate` phase.
 - `CLAUDE.md` and Diataxis-structured docs (`docs/tutorial.md`, `docs/how-to.md`, `docs/reference.md`, `docs/explanation.md`).
 - MIT license.
+
+### Changed
+
+- Tests use AssertJ (`assertThat(...)`) instead of JUnit's `Assertions`, with a `// Given` / `// When` / `// Then` structure and `sut`/`result` naming, per `CLAUDE.md`.

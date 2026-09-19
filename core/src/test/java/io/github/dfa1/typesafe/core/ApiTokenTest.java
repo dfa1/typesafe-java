@@ -7,32 +7,40 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 class ApiTokenTest {
 
     @Test
     void loadsAndTrimsTokenFromFile(@TempDir Path dir) throws IOException {
+        // Given
         Path file = dir.resolve(".typesafe.apitoken");
         Files.writeString(file, "apikey_dummy_test_value\n");
 
-        ApiToken token = ApiToken.fromFile(file);
+        // When
+        ApiToken result = ApiToken.fromFile(file);
 
-        assertEquals("apikey_dummy_test_value", token.value());
-        assertEquals("Bearer apikey_dummy_test_value", token.toHttpHeaderValue());
+        // Then
+        assertThat(result.value()).isEqualTo("apikey_dummy_test_value");
+        assertThat(result.toHttpHeaderValue()).isEqualTo("Bearer apikey_dummy_test_value");
     }
 
     @Test
     void toStringNeverLeaksTheValue() {
-        ApiToken token = new ApiToken("apikey_dummy_test_value");
+        // Given
+        ApiToken sut = new ApiToken("apikey_dummy_test_value");
 
-        assertFalse(token.toString().contains("apikey_dummy_test_value"));
+        // When
+        String result = sut.toString();
+
+        // Then
+        assertThat(result).doesNotContain("apikey_dummy_test_value");
     }
 
     @Test
     void rejectsBlankToken() {
-        assertThrows(IllegalArgumentException.class, () -> new ApiToken("  "));
+        // When / Then
+        assertThatIllegalArgumentException().isThrownBy(() -> new ApiToken("  "));
     }
 }

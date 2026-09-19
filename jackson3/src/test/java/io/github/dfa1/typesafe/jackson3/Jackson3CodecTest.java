@@ -11,16 +11,15 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class Jackson3CodecTest {
 
-    private final Jackson3Codec codec = new Jackson3Codec();
+    private final Jackson3Codec sut = new Jackson3Codec();
 
     @Test
     void serializesEachQuestionTypeWithItsDiscriminator() {
+        // Given
         EvaluateRequest request = EvaluateRequest.of(
                 State.text("Help! My payouts have been failing for 3 days."),
                 Map.of(
@@ -32,27 +31,32 @@ class Jackson3CodecTest {
                                 List.of("Calm", "Frustrated", "Very angry"))
                 ));
 
-        String json = new String(codec.writeValueAsBytes(request), StandardCharsets.UTF_8);
+        // When
+        String result = new String(sut.writeValueAsBytes(request), StandardCharsets.UTF_8);
 
-        assertTrue(json.contains("\"type\":\"noul\""));
-        assertTrue(json.contains("\"type\":\"choice\""));
-        assertTrue(json.contains("\"type\":\"score\""));
-        assertTrue(json.contains("\"model\":\"jev-latest\""));
-        assertTrue(json.contains("\"state\":\"Help! My payouts have been failing for 3 days.\""));
+        // Then
+        assertThat(result)
+                .contains("\"type\":\"noul\"")
+                .contains("\"type\":\"choice\"")
+                .contains("\"type\":\"score\"")
+                .contains("\"model\":\"jev-latest\"")
+                .contains("\"state\":\"Help! My payouts have been failing for 3 days.\"");
     }
 
     @Test
     void serializesEachStateShapeAsItsRawJsonType() {
-        assertEquals("\"hi\"",
-                new String(codec.writeValueAsBytes(State.text("hi")), StandardCharsets.UTF_8));
-        assertEquals("{\"order_id\":\"A-104\"}",
-                new String(codec.writeValueAsBytes(State.fields(Map.of("order_id", "A-104"))), StandardCharsets.UTF_8));
-        assertEquals("[\"hi\",\"there\"]",
-                new String(codec.writeValueAsBytes(State.messages(List.of("hi", "there"))), StandardCharsets.UTF_8));
+        // When / Then
+        assertThat(new String(sut.writeValueAsBytes(State.text("hi")), StandardCharsets.UTF_8))
+                .isEqualTo("\"hi\"");
+        assertThat(new String(sut.writeValueAsBytes(State.fields(Map.of("order_id", "A-104"))), StandardCharsets.UTF_8))
+                .isEqualTo("{\"order_id\":\"A-104\"}");
+        assertThat(new String(sut.writeValueAsBytes(State.messages(List.of("hi", "there"))), StandardCharsets.UTF_8))
+                .isEqualTo("[\"hi\",\"there\"]");
     }
 
     @Test
     void deserializesEachAnswerTypeFromItsDiscriminator() {
+        // Given
         String json = """
                 {
                   "model": "jev-latest",
@@ -68,14 +72,16 @@ class Jackson3CodecTest {
                 }
                 """;
 
-        EvaluateResponse response = codec.readValue(json.getBytes(StandardCharsets.UTF_8), EvaluateResponse.class);
+        // When
+        EvaluateResponse result = sut.readValue(json.getBytes(StandardCharsets.UTF_8), EvaluateResponse.class);
 
-        assertEquals(312, response.usage().inputTokens());
-        assertInstanceOf(Answer.Noul.class, response.answers().get("is_urgent"));
-        assertEquals(0.92, ((Answer.Noul) response.answers().get("is_urgent")).noul());
-        assertInstanceOf(Answer.Choice.class, response.answers().get("department"));
-        assertEquals("technical", ((Answer.Choice) response.answers().get("department")).choice());
-        assertInstanceOf(Answer.Score.class, response.answers().get("frustration"));
-        assertEquals(1.6, ((Answer.Score) response.answers().get("frustration")).score());
+        // Then
+        assertThat(result.usage().inputTokens()).isEqualTo(312);
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class,
+                noul -> assertThat(noul.noul()).isEqualTo(0.92));
+        assertThat(result.answers().get("department")).isInstanceOfSatisfying(Answer.Choice.class,
+                choice -> assertThat(choice.choice()).isEqualTo("technical"));
+        assertThat(result.answers().get("frustration")).isInstanceOfSatisfying(Answer.Score.class,
+                score -> assertThat(score.score()).isEqualTo(1.6));
     }
 }

@@ -4,21 +4,25 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EvaluateRequestTest {
 
     @Test
     void defaultsToTheLatestModel() {
-        EvaluateRequest request = EvaluateRequest.of(State.text("state"), Map.of());
+        // When
+        EvaluateRequest result = EvaluateRequest.of(State.text("state"), Map.of());
 
-        assertEquals(Model.LATEST, request.model());
+        // Then
+        assertThat(result.model()).isEqualTo(Model.LATEST);
     }
 
     @Test
     void picksAnExplicitModel() {
-        EvaluateRequest request = EvaluateRequest.of(State.text("state"), Model.PREVIEW, Map.of());
+        // When
+        EvaluateRequest result = EvaluateRequest.of(State.text("state"), Model.PREVIEW, Map.of());
 
-        assertEquals(Model.PREVIEW, request.model());
+        // Then
+        assertThat(result.model()).isEqualTo(Model.PREVIEW);
     }
 }

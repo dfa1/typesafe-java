@@ -14,7 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Demo: turn a human-language instrument request into a GraphQL query by
@@ -25,29 +25,31 @@ class GraphqlSlotFillingDemoTest {
 
     @Test
     void fillsGraphqlFilterSlotsFromHumanText() throws Exception {
-        TypesafeClient client = TypesafeClient.withDefaultToken();
-
-        String text = "Give me all instruments on US market of type bond";
-
-        EvaluateRequest request = EvaluateRequest.of(State.text(text), Map.of(
-                "market", Question.choice("Which market is the request about?",
-                        Map.of("US", "United States market", "EU", "European market", "ASIA", "Asian markets")),
-                "instrument_type", Question.choice("Which instrument type is the request about?",
-                        Map.of("bond", "Bonds", "equity", "Equities", "fx", "FX instruments"))));
+        // Given
+        TypesafeClient sut = TypesafeClient.withDefaultToken();
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("Give me all instruments on US market of type bond"),
+                Map.of(
+                        "market", Question.choice("Which market is the request about?",
+                                Map.of("US", "United States market", "EU", "European market", "ASIA", "Asian markets")),
+                        "instrument_type", Question.choice("Which instrument type is the request about?",
+                                Map.of("bond", "Bonds", "equity", "Equities", "fx", "FX instruments"))));
 
         for (int i = 1; i <= 10; i++) {
+            // When
             Instant start = Instant.now();
-            EvaluateResponse response = client.evaluate(request);
+            EvaluateResponse result = sut.evaluate(request);
             Duration endToEnd = Duration.between(start, Instant.now());
 
-            Answer.Choice market = (Answer.Choice) response.answers().get("market");
-            Answer.Choice instrumentType = (Answer.Choice) response.answers().get("instrument_type");
+            // Then
+            Answer.Choice market = (Answer.Choice) result.answers().get("market");
+            Answer.Choice instrumentType = (Answer.Choice) result.answers().get("instrument_type");
 
             System.out.printf("run %2d: model = %4d ms, end-to-end = %4d ms%n",
-                    i, response.metadata().upstreamServiceTime().toMillis(), endToEnd.toMillis());
+                    i, result.metadata().upstreamServiceTime().toMillis(), endToEnd.toMillis());
 
-            assertTrue(market.choice().equals("US"));
-            assertTrue(instrumentType.choice().equals("bond"));
+            assertThat(market.choice()).isEqualTo("US");
+            assertThat(instrumentType.choice()).isEqualTo("bond");
         }
     }
 }

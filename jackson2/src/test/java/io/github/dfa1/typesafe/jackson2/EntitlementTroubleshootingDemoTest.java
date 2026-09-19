@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Demo: a support agent gets "why am I not receiving data from a market?"
@@ -26,7 +26,8 @@ class EntitlementTroubleshootingDemoTest {
 
     @Test
     void diagnosesWhyMarketDataIsMissing() throws Exception {
-        TypesafeClient client = TypesafeClient.withDefaultToken();
+        // Given
+        TypesafeClient sut = TypesafeClient.withDefaultToken();
 
         String state = """
                 CLIENT COMPLAINT:
@@ -63,10 +64,12 @@ class EntitlementTroubleshootingDemoTest {
                                 "yes", "Needs entitlement specialist review",
                                 "no", "Support can resolve directly with the client"))));
 
-        EvaluateResponse response = client.evaluate(request);
+        // When
+        EvaluateResponse result = sut.evaluate(request);
 
-        Answer.Choice rootCause = (Answer.Choice) response.answers().get("root_cause");
-        Answer.Choice escalation = (Answer.Choice) response.answers().get("needs_specialist_escalation");
+        // Then
+        Answer.Choice rootCause = (Answer.Choice) result.answers().get("root_cause");
+        Answer.Choice escalation = (Answer.Choice) result.answers().get("needs_specialist_escalation");
 
         System.out.println("root cause: " + rootCause.choice()
                 + " (confidence " + rootCause.confidence() + ")");
@@ -74,6 +77,6 @@ class EntitlementTroubleshootingDemoTest {
         System.out.println("needs escalation: " + escalation.choice()
                 + " (confidence " + escalation.confidence() + ")");
 
-        assertTrue(rootCause.choice().equals("market_license_missing"));
+        assertThat(rootCause.choice()).isEqualTo("market_license_missing");
     }
 }

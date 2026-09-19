@@ -12,48 +12,48 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Tag("acceptance")
 class TypesafeClientAcceptanceTest {
 
     @Test
     void evaluatesANoulQuestionAgainstTheLiveApi() throws Exception {
-        TypesafeClient client = TypesafeClient.withDefaultToken();
-
+        // Given
+        TypesafeClient sut = TypesafeClient.withDefaultToken();
         EvaluateRequest request = EvaluateRequest.of(
                 State.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
-        EvaluateResponse response = client.evaluate(request);
+        // When
+        EvaluateResponse result = sut.evaluate(request);
 
-        assertTrue(response.model().startsWith("jev-"));
-        Answer answer = response.answers().get("is_urgent");
-        assertInstanceOf(Answer.Noul.class, answer);
-        double noul = ((Answer.Noul) answer).noul();
-        System.out.println("is_urgent noul score = " + noul);
-        assertTrue(noul >= 0.0 && noul <= 1.0);
-        assertTrue(response.usage().inputTokens() > 0);
-        assertTrue(response.metadata().requestId().value().startsWith("req_"));
-        assertTrue(response.metadata().upstreamServiceTime().toMillis() > 0);
+        // Then
+        assertThat(result.model()).startsWith("jev-");
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class, answer -> {
+            System.out.println("is_urgent noul score = " + answer.noul());
+            assertThat(answer.noul()).isBetween(0.0, 1.0);
+        });
+        assertThat(result.usage().inputTokens()).isPositive();
+        assertThat(result.metadata().requestId().value()).startsWith("req_");
+        assertThat(result.metadata().upstreamServiceTime().toMillis()).isPositive();
     }
 
     @Test
     void evaluatesAsyncAgainstTheLiveApi() throws Exception {
-        TypesafeClient client = TypesafeClient.withDefaultToken();
-
+        // Given
+        TypesafeClient sut = TypesafeClient.withDefaultToken();
         EvaluateRequest request = EvaluateRequest.of(
                 State.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
-        EvaluateResponse response = client.evaluateAsync(request).get();
+        // When
+        EvaluateResponse result = sut.evaluateAsync(request).get();
 
-        Answer answer = response.answers().get("is_urgent");
-        assertInstanceOf(Answer.Noul.class, answer);
-        double noul = ((Answer.Noul) answer).noul();
-        assertTrue(noul >= 0.0 && noul <= 1.0);
+        // Then
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class,
+                answer -> assertThat(answer.noul()).isBetween(0.0, 1.0));
     }
 }
