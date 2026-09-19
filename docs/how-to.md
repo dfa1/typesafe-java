@@ -219,9 +219,9 @@ type, since unnamed ones of the same type overwrite each other. `--model <id>` (
 `~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
 it locally.
 
-Add `--verbose` to print the response's request id, `--timing` to print how long the API took
-(both go to stderr, so stdout stays clean JSON), or run with `--version` alone to print the
-jar's version and exit without calling the API.
+Add `--verbose` to print the outgoing request JSON and the response's request id, `--timing` to
+print how long the API took (all go to stderr, so stdout stays clean JSON), or run with
+`--version` alone to print the jar's version and exit without calling the API.
 
 ## Run the acceptance tests against the live API
 

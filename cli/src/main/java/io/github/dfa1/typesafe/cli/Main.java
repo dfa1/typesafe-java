@@ -73,8 +73,15 @@ public final class Main {
             fail("At least one --noul/--choice/--score question is required");
         }
 
+        Jackson3Codec codec = new Jackson3Codec();
+        EvaluateRequest request = EvaluateRequest.of(State.text(state), model, questions);
+
+        if (verbose) {
+            System.err.println("request: " + new String(codec.writeValueAsBytes(request), StandardCharsets.UTF_8));
+        }
+
         TypesafeClient client = TypesafeClient.withDefaultToken();
-        EvaluateResponse response = client.evaluate(EvaluateRequest.of(State.text(state), model, questions));
+        EvaluateResponse response = client.evaluate(request);
 
         if (verbose) {
             System.err.println("request-id: " + response.metadata().requestId());
@@ -82,7 +89,7 @@ public final class Main {
         if (timing) {
             System.err.println("time: " + response.metadata().upstreamServiceTime());
         }
-        System.out.println(new String(new Jackson3Codec().writeValueAsBytes(response), StandardCharsets.UTF_8));
+        System.out.println(new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
     }
 
     private static Question question(String flag, String rest) {
