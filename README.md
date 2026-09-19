@@ -4,7 +4,8 @@ Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (an
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
 ```java
-TypesafeClient client = TypesafeClient.withDefaultToken();
+ApiToken token = ApiToken.fromDefaultFile(); // reads ~/.typesafe.apitoken
+TypesafeClient client = TypesafeClient.builder(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
         State.text("Help! My payouts have been failing for 3 days."),
