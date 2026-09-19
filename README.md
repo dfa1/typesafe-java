@@ -44,6 +44,22 @@ answer.noul(); // e.g. 0.92
 Save a token to `~/.typesafe.apitoken` and you're set — see the [tutorial](docs/tutorial.md)
 for the full walkthrough.
 
+## Try it from the command line
+
+No Java required — the `cli` module builds a self-contained jar:
+
+```bash
+./mvnw -pl cli -am package -DskipTests
+java -jar cli/target/typesafe-java-cli-*.jar \
+        --state "My card was charged twice." \
+        --noul "urgent=Is this urgent?" \
+        --min "urgent=0.5" || echo "not urgent enough"
+```
+
+Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met — handy as a shell or
+CI gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the full
+flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
+
 ## Modules
 
 | Module | Contains |
