@@ -46,7 +46,7 @@ for the full walkthrough.
 
 ## Try it from the command line
 
-No Java required — the `cli` module builds a self-contained jar:
+No Java coding required — the `cli` module builds a self-contained jar:
 
 ```bash
 ./mvnw -pl cli -am package -DskipTests
