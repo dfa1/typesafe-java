@@ -66,7 +66,12 @@ public final class TypesafeClient {
             int status = response.statusCode();
 
             if (status == 200) {
-                return mapper.readValue(response.body(), EvaluateResponse.class);
+                EvaluateResponse body = mapper.readValue(response.body(), EvaluateResponse.class);
+                EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
+                        response.headers().firstValue("x-typesafe-request-id").map(RequestId::new).orElse(null),
+                        response.headers().firstValueAsLong("x-envoy-upstream-service-time")
+                                .stream().mapToObj(Duration::ofMillis).findFirst().orElse(null));
+                return new EvaluateResponse(body.model(), body.answers(), body.usage(), metadata);
             }
             if ((status == 429 || status == 529) && attempt < MAX_RETRIES) {
                 Thread.sleep(INITIAL_BACKOFF.multipliedBy(1L << attempt));
