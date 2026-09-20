@@ -12,7 +12,8 @@ a support message is.
 
 Import the BOM, then add an HTTP transport (the JDK one, unless you have your own) plus one JSON
 codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Both pull in
-`typesafe-java-core`, which holds `TypesafeClient` itself, transitively:
+`typesafe-java-core`, which holds `TypesafeClient` itself, transitively (see the
+[Maven Central badge](../README.md) for the latest version):
 
 ```xml
 <dependencyManagement>
@@ -20,7 +21,7 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.1.0</version>
+      <version>0.3.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>

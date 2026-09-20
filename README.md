@@ -58,7 +58,7 @@ full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
 
 ## Install
 
-Maven, via the BOM:
+Maven, via the BOM (see the Maven Central badge above for the latest version):
 
 ```xml
 <dependencyManagement>
@@ -66,7 +66,7 @@ Maven, via the BOM:
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.1.0</version>
+      <version>0.3.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -84,8 +84,6 @@ Maven, via the BOM:
   </dependency>
 </dependencies>
 ```
-
-Available on Maven Central as of `0.1.0`.
 
 ## Modules
 
