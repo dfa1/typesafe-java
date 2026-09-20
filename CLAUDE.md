@@ -58,10 +58,17 @@ exist at all.
 ## Commands
 
 ```bash
-./mvnw clean install                 # build + unit tests, all modules
-./mvnw test -pl jackson2             # one module
-./mvnw test -pl jackson2 -Dtest=Jackson2CodecTest
+./mvnw clean verify                                                              # build + unit tests, all modules
+./mvnw test -pl jackson2 -am                                                     # one module (+ its dependencies)
+./mvnw test -pl jackson2 -am -Dtest=Jackson2CodecTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
+
+No step here uses `install` — a routine build has no reason to write into `~/.m2/repository`.
+`-am` ("also make") rebuilds a module's dependencies within the same reactor run instead of
+resolving them from the local repo, so a single-module command works right after a fresh clone.
+`-Dsurefire.failIfNoSpecifiedTests=false` is only needed alongside a `-Dtest=` filter + `-am`:
+without it, surefire errors on the upstream modules `-am` rebuilds that don't contain the
+named test class.
 
 Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
 combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at

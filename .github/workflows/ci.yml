@@ -15,4 +15,4 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - run: ./mvnw -B clean install
+      - run: ./mvnw -B clean verify

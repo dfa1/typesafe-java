@@ -87,7 +87,7 @@ this way.
 ## Build
 
 ```bash
-./mvnw clean install                               # build + unit tests, all modules
+./mvnw clean verify                                # build + unit tests, all modules
 ./mvnw test -pl acceptance -am -DexcludedGroups=    # + live-API acceptance tests, needs ~/.typesafe.apitoken
 ```
 
