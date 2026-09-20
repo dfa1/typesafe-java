@@ -101,7 +101,7 @@ public final class TypesafeClient {
 
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
         Map<String, String> headers = requestHeaders();
-        byte[] body = jsonCodec.writeValueAsBytes(request);
+        String body = new String(jsonCodec.writeValueAsBytes(request), StandardCharsets.UTF_8);
 
         for (int attempt = 0; ; attempt++) {
             HttpTransportResponse response = transport.post(endpoint, headers, body);
@@ -114,22 +114,22 @@ public final class TypesafeClient {
                 Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
                 continue;
             }
-            throw new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8));
+            throw new TypesafeException(status, response.body());
         }
     }
 
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
         Map<String, String> headers = requestHeaders();
-        byte[] body;
+        String body;
         try {
-            body = jsonCodec.writeValueAsBytes(request);
+            body = new String(jsonCodec.writeValueAsBytes(request), StandardCharsets.UTF_8);
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
         return evaluateAsync(headers, body, 0);
     }
 
-    private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, byte[] body, int attempt) {
+    private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, String body, int attempt) {
         return transport.postAsync(endpoint, headers, body)
                 .thenCompose(response -> {
                     int status = response.statusCode();
@@ -148,8 +148,7 @@ public final class TypesafeClient {
                                         CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
                                 .thenCompose(ignored -> evaluateAsync(headers, body, attempt + 1));
                     }
-                    return CompletableFuture.failedFuture(
-                            new TypesafeException(status, new String(response.body(), StandardCharsets.UTF_8)));
+                    return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
                 });
     }
 
@@ -161,7 +160,7 @@ public final class TypesafeClient {
     }
 
     private EvaluateResponse toEvaluateResponse(HttpTransportResponse response) {
-        EvaluateResponse body = jsonCodec.readValue(response.body(), EvaluateResponse.class);
+        EvaluateResponse body = jsonCodec.readValue(response.body().getBytes(StandardCharsets.UTF_8), EvaluateResponse.class);
         EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
                 response.header("x-typesafe-request-id").map(RequestId::new).orElse(null),
                 response.header("x-envoy-upstream-service-time")

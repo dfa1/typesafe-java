@@ -17,3 +17,8 @@ First version — no released API yet, so nothing to describe changes against.
   than "the default token *file*". Use `TypesafeClient.builder(ApiToken.fromDefaultFile()).build()`.
 - Added `ApiToken.fromEnv()`: reads the `TYPESAFE_API_TOKEN` environment variable, aligning
   the env-var case with the existing `fromFile`/`fromDefaultFile` factory methods. (#5)
+- Changed `HttpTransport.post`/`postAsync` and `HttpTransportResponse.body` from `byte[]` to
+  `String`: this SPI only ever carries JSON, which is UTF-8 by construction, so there's no
+  charset for this layer to guess at. `JsonCodec` is unaffected — still `byte[]`-based, since
+  it's reused standalone (e.g. a Kafka producer/consumer). `HttpTransportResponse` also now
+  copies `headers` defensively (`Map.copyOf`).

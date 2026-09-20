@@ -13,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface HttpTransport {
 
-    HttpTransportResponse post(URI uri, Map<String, String> headers, byte[] body)
+    HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException;
 
-    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, byte[] body);
+    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
 }

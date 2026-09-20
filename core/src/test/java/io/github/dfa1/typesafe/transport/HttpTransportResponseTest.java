@@ -2,48 +2,46 @@ package io.github.dfa1.typesafe.transport;
 
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class HttpTransportResponseTest {
 
     @Test
-    void equalsAndHashCodeConsiderBodyContentNotArrayIdentity() {
+    void headerLooksUpCaseInsensitively() {
         // Given
-        HttpTransportResponse sut = new HttpTransportResponse(
-                200, Map.of("x", "y"), "body".getBytes(StandardCharsets.UTF_8));
-        HttpTransportResponse other = new HttpTransportResponse(
-                200, Map.of("x", "y"), "body".getBytes(StandardCharsets.UTF_8));
-
-        // When / Then
-        assertThat(sut).isEqualTo(other);
-        assertThat(sut).hasSameHashCodeAs(other);
-    }
-
-    @Test
-    void notEqualWhenBodyContentDiffers() {
-        // Given
-        HttpTransportResponse sut = new HttpTransportResponse(
-                200, Map.of(), "one".getBytes(StandardCharsets.UTF_8));
-        HttpTransportResponse other = new HttpTransportResponse(
-                200, Map.of(), "two".getBytes(StandardCharsets.UTF_8));
-
-        // When / Then
-        assertThat(sut).isNotEqualTo(other);
-    }
-
-    @Test
-    void toStringDoesNotDumpRawArrayReference() {
-        // Given
-        HttpTransportResponse sut = new HttpTransportResponse(
-                200, Map.of(), "body".getBytes(StandardCharsets.UTF_8));
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-Request-Id", "abc"), "body");
 
         // When
-        String result = sut.toString();
+        var result = sut.header("x-request-id");
 
         // Then
-        assertThat(result).contains("4 bytes").doesNotContain("[B@");
+        assertThat(result).contains("abc");
+    }
+
+    @Test
+    void copiesHeadersDefensivelySoLaterMutationIsNotVisible() {
+        // Given
+        Map<String, String> headers = new HashMap<>(Map.of("X-A", "1"));
+        HttpTransportResponse sut = new HttpTransportResponse(200, headers, "body");
+
+        // When
+        headers.put("X-A", "mutated");
+
+        // Then
+        assertThat(sut.headers()).containsEntry("X-A", "1");
+    }
+
+    @Test
+    void headersAreImmutable() {
+        // Given
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-A", "1"), "body");
+
+        // When / Then
+        assertThatThrownBy(() -> sut.headers().put("X-B", "2"))
+                .isInstanceOf(UnsupportedOperationException.class);
     }
 }

@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -25,25 +26,26 @@ public final class JdkHttpTransport implements HttpTransport {
     }
 
     @Override
-    public HttpTransportResponse post(URI uri, Map<String, String> headers, byte[] body)
+    public HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException {
-        HttpResponse<byte[]> response = http.send(toRequest(uri, headers, body), HttpResponse.BodyHandlers.ofByteArray());
+        HttpResponse<String> response = http.send(toRequest(uri, headers, body), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
         return toTransportResponse(response);
     }
 
     @Override
-    public CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, byte[] body) {
-        return http.sendAsync(toRequest(uri, headers, body), HttpResponse.BodyHandlers.ofByteArray())
+    public CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body) {
+        return http.sendAsync(toRequest(uri, headers, body), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
                 .thenApply(JdkHttpTransport::toTransportResponse);
     }
 
-    private static HttpRequest toRequest(URI uri, Map<String, String> headers, byte[] body) {
-        HttpRequest.Builder builder = HttpRequest.newBuilder(uri).POST(HttpRequest.BodyPublishers.ofByteArray(body));
+    private static HttpRequest toRequest(URI uri, Map<String, String> headers, String body) {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
+                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
         headers.forEach(builder::header);
         return builder.build();
     }
 
-    private static HttpTransportResponse toTransportResponse(HttpResponse<byte[]> response) {
+    private static HttpTransportResponse toTransportResponse(HttpResponse<String> response) {
         Map<String, String> headers = new LinkedHashMap<>();
         response.headers().map().forEach((name, values) -> headers.put(name, values.get(0)));
         return new HttpTransportResponse(response.statusCode(), headers, response.body());

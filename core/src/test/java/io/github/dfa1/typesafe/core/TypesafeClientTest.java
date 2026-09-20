@@ -42,12 +42,14 @@ class TypesafeClientTest {
                 "Authorization", "Bearer secret",
                 "Content-Type", "application/json");
         byte[] requestBytes = "{\"request\":true}".getBytes(StandardCharsets.UTF_8);
-        byte[] responseBytes = "{\"response\":true}".getBytes(StandardCharsets.UTF_8);
+        String requestBody = new String(requestBytes, StandardCharsets.UTF_8);
+        String responseBody = "{\"response\":true}";
+        byte[] responseBytes = responseBody.getBytes(StandardCharsets.UTF_8);
         EvaluateResponse decodedResponse = new EvaluateResponse("jev-latest", Map.of(), new Usage(10, 5), null);
 
         given(jsonCodec.writeValueAsBytes(request)).willReturn(requestBytes);
-        given(httpTransport.post(ENDPOINT, expectedHeaders, requestBytes))
-                .willReturn(new HttpTransportResponse(200, Map.of(), responseBytes));
+        given(httpTransport.post(ENDPOINT, expectedHeaders, requestBody))
+                .willReturn(new HttpTransportResponse(200, Map.of(), responseBody));
         given(jsonCodec.readValue(responseBytes, EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
@@ -55,7 +57,7 @@ class TypesafeClientTest {
 
         // Then
         then(jsonCodec).should().writeValueAsBytes(request);
-        then(httpTransport).should().post(ENDPOINT, expectedHeaders, requestBytes);
+        then(httpTransport).should().post(ENDPOINT, expectedHeaders, requestBody);
         then(jsonCodec).should().readValue(responseBytes, EvaluateResponse.class);
         assertThat(result.model()).isEqualTo("jev-latest");
         assertThat(result.usage().inputTokens()).isEqualTo(10);

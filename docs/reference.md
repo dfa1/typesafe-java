@@ -128,15 +128,22 @@ Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 package io.github.dfa1.typesafe.transport;
 
 public interface HttpTransport {
-    HttpTransportResponse post(URI uri, Map<String, String> headers, byte[] body)
+    HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException;
-    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, byte[] body);
+    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
 }
 
-public record HttpTransportResponse(int statusCode, Map<String, String> headers, byte[] body) {
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
     Optional<String> header(String name);   // case-insensitive lookup
 }
 ```
+
+Bodies are `String`, not `byte[]`: `TypesafeClient` only ever sends/receives JSON over this SPI,
+and JSON text is UTF-8 by construction (RFC 8259), so there's no charset this layer needs to
+guess at. `JsonCodec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
+consumer, where messages are raw bytes); `TypesafeClient` converts once at the boundary between
+the two SPIs. `HttpTransportResponse` copies `headers` defensively (`Map.copyOf`) so a caller
+that mutates the map it passed in afterward can't reach back into an already-returned response.
 
 The single HTTP call `TypesafeClient` needs (a JSON POST), abstracted away from any particular
 HTTP library. `JdkHttpTransport` (in `typesafe-java-jdk-http-client`) is discovered via
