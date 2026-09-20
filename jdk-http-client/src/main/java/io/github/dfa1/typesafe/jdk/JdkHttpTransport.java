@@ -18,6 +18,9 @@ public final class JdkHttpTransport implements HttpTransport {
     /** Applied to every request unless overridden via the {@code (HttpClient, Duration)} constructor. */
     public static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(10);
 
+    private static final HttpResponse.BodyHandler<String> BODY_HANDLER =
+            HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8);
+
     private final HttpClient http;
     private final Duration timeout;
 
@@ -42,14 +45,14 @@ public final class JdkHttpTransport implements HttpTransport {
     public CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
-        return http.sendAsync(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+        return http.sendAsync(request(builder, headers), BODY_HANDLER)
                 .thenApply(JdkHttpTransport::toTransportResponse);
     }
 
     @Override
     public CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri).GET();
-        return http.sendAsync(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+        return http.sendAsync(request(builder, headers), BODY_HANDLER)
                 .thenApply(JdkHttpTransport::toTransportResponse);
     }
 
