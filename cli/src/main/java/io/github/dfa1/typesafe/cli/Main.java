@@ -23,6 +23,7 @@ import java.util.Map;
  * against any number of {@code --noul}/{@code --choice}/{@code --score} questions and prints
  * the {@link EvaluateResponse} as JSON.
  */
+@SuppressWarnings("java:S106") // System.out/err are this CLI's actual output, not application logging
 public final class Main {
 
     private static final String USAGE = "Usage: typesafe --state <text> [--model <id>] "
