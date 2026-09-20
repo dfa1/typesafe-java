@@ -247,11 +247,26 @@ class MainTest {
     }
 
     @Test
-    void runPrintsTheFullResponseAsJsonWhenNoPrintNamesAreGiven() throws Exception {
+    void runPrintsNothingToStdoutByDefault() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).isEmpty();
+    }
+
+    @Test
+    void runPrintsTheFullResponseAsJsonToStdoutWhenVerbose() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -267,6 +282,21 @@ class MainTest {
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).isEqualToNormalizingNewlines("0.5\n");
+    }
+
+    @Test
+    void runPrintsOnlyTheRequestedAnswersEvenWhenVerboseIsAlsoGiven() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), true, false);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);

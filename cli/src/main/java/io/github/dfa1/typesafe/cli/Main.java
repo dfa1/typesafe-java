@@ -21,8 +21,9 @@ import java.util.Map;
 
 /**
  * Command-line entry point, built as an uber-jar. Evaluates a single string {@code --state}
- * against any number of {@code --noul}/{@code --choice}/{@code --score} questions and prints
- * the {@link EvaluateResponse} as JSON.
+ * against any number of {@code --noul}/{@code --choice}/{@code --score} questions. Prints
+ * nothing to stdout by default — pass {@code --print <name>} for specific answers, or
+ * {@code --verbose} for the full {@link EvaluateResponse} as JSON.
  */
 @SuppressWarnings("java:S106") // System.out/err are this CLI's actual output, not application logging
 public final class Main {
@@ -35,7 +36,8 @@ public final class Main {
             + "[--verbose] [--timing] | --version "
             + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
             + "--min compares a noul/score answer's value, exits 1 if any is below its threshold; "
-            + "--print prints just that answer's value instead of the full response)";
+            + "--print prints just that answer's value; without --print, stdout is silent unless "
+            + "--verbose, which prints the full response as JSON)";
 
     private Main() {
     }
@@ -87,10 +89,10 @@ public final class Main {
             err.println("time: " + response.metadata().upstreamServiceTime());
         }
         try {
-            if (parsed.printNames().isEmpty()) {
-                out.println(codec.writeValueAsString(response));
-            } else {
+            if (!parsed.printNames().isEmpty()) {
                 parsed.printNames().forEach(name -> out.println(answerValue(response, name)));
+            } else if (parsed.verbose()) {
+                out.println(codec.writeValueAsString(response));
             }
 
             List<String> failures = minFailures(response, parsed.minSpecs());

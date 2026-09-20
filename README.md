@@ -54,8 +54,9 @@ java -jar typesafe-java-cli-*-all.jar \
         --min "urgent=0.5" || echo "not urgent enough"
 ```
 
-Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met, so it doubles as a
-pass/fail gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
+Exits `1` if `--min`'s threshold isn't met, so it doubles as a pass/fail gate — stdout stays
+silent by default; add `--print urgent` for the value or `--verbose` for the full response as
+JSON. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
 full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
 
 ## Install

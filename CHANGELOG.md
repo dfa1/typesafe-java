@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `RequestId` now serializes/deserializes as its bare `value` string (e.g. `"req_..."`) instead
   of a wrapping `{"value": "req_..."}` object, matching how `Model` is already handled.
+- `cli`: stdout is now silent by default instead of always printing the full `EvaluateResponse`
+  as JSON — use `--print <name>` for a specific answer or `--verbose` for the full response.
+  `--min`-only invocations (a pass/fail gate) no longer print anything on stdout either way.
 
 ## [0.3.0] - 2026-09-20
 

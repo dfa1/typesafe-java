@@ -311,7 +311,8 @@ java -jar typesafe-java-cli-*-all.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --choice "category=What kind of issue is this?|billing,shipping,other" \
-        --score "severity=How severe is this?|low,medium,high"
+        --score "severity=How severe is this?|low,medium,high" \
+        --verbose
 ```
 
 Each `--noul`/`--choice`/`--score` is `[<name>=]<instructions>`, with `--choice`/`--score`
@@ -320,17 +321,17 @@ is optional — for a single question, `--noul "Is this urgent?"` is enough (the
 back keyed `noul`); name it explicitly if you're asking more than one question of the same
 type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
 `jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
-alias, any other id is pinned directly. Reads the token from
-`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON.
+alias, any other id is pinned directly. Reads the token from `~/.typesafe.apitoken`.
 
-Add `--verbose` to print the outgoing request JSON, the full response JSON, and the response's
-request id, `--timing` to print how long the API took (all go to stderr, so stdout stays clean
-— useful alongside `--print`, which otherwise only shows the one value you asked for). Run with
+Stdout is silent by default — reach for `--print`/`--verbose` below to see anything. `--verbose`
+prints the full `EvaluateResponse` as JSON to stdout, plus the outgoing request JSON and the
+response's request id to stderr; `--timing` prints how long the API took, to stderr. Run with
 `--version` alone to print the jar's version and exit without calling the API.
 
 For scripting/CI, repeatable `--min <name>=<threshold>` gates on a `noul`/`score` answer's
-value: the JSON is still printed either way, but the process exits `1` if any named answer
-comes back below its threshold (with a `--min failed: ...` line on stderr per failure).
+value, exiting `1` if any named answer comes back below its threshold (with a
+`--min failed: ...` line on stderr per failure) — no need for `--print`/`--verbose` if all you
+want is the exit code:
 
 ```bash
 java -jar cli/target/typesafe-java-cli-*-all.jar \
