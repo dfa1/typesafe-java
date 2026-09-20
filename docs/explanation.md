@@ -39,8 +39,8 @@ design avoids.
 
 `TypesafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
 `HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
-mocked transport for tests can implement one interface (`post`/`postAsync`) instead of forking
-the retry/backoff logic.
+mocked transport for tests can implement one interface (`post`/`get`, both already
+`CompletableFuture`-returning) instead of forking the retry/backoff logic.
 
 Once that abstraction exists, `TypesafeClient` itself has no HTTP-library dependency any more —
 its only import from `java.net` is `URI`, which every JDK module already has. That removed the
@@ -68,9 +68,9 @@ codec's `State` handling is a serializer that writes the variant's raw value dir
 
 ## Why retries are bounded and exponential
 
-`evaluate`/`evaluateAsync` retry `429` (rate limited) and `529` (upstream overloaded) up to 5
-times, doubling the backoff from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other
-status — including a `429`/`529` that outlasts the retry budget — surfaces immediately as
+`evaluate`/`evaluateAsync` retry `408`, `429`, and any `5xx` up to 5 times, doubling the backoff
+from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other status — including a retryable
+one that outlasts the retry budget — surfaces immediately as
 `TypesafeException` rather than being swallowed or retried indefinitely: a caller should always
 be able to tell "this request permanently failed" from "this request is still in flight,"
 and an unbounded retry loop against a struggling upstream only makes the overload worse.
@@ -86,10 +86,9 @@ out a real 500ms+ backoff because nothing forces it to use the production defaul
 
 A naive `CompletableFuture.supplyAsync(() -> evaluate(request))` would burn one thread per
 in-flight request, blocked on `Thread.sleep` during backoff. `evaluateAsync` instead chains off
-`HttpTransport.postAsync` and schedules retries via `CompletableFuture.delayedExecutor`, so a
-backoff wait never blocks a thread — the same retry policy, without the thread cost, which
+`HttpTransport.post`'s returned future and schedules retries via `CompletableFuture.delayedExecutor`,
+so a backoff wait never blocks a thread — the same retry policy, without the thread cost, which
 matters once callers are firing many requests concurrently. This only holds if the
-`HttpTransport` implementation's `postAsync` is itself genuinely non-blocking (`JdkHttpTransport`
-is, since it delegates to `HttpClient.sendAsync`); a transport backed by a blocking-only HTTP
-library has no non-blocking send to chain off and has to fall back to a thread-per-call
-`postAsync`.
+`HttpTransport` implementation's `post` is itself genuinely non-blocking (`JdkHttpTransport` is,
+since it delegates to `HttpClient.sendAsync`); a transport backed by a blocking-only HTTP library
+has no non-blocking send to chain off and has to fall back to a thread-per-call `post`.

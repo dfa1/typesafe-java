@@ -63,7 +63,7 @@ Maven, via the BOM:
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.1-SNAPSHOT</version>
+      <version>0.1.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -82,8 +82,7 @@ Maven, via the BOM:
 </dependencies>
 ```
 
-Not yet on Maven Central — build `0.1-SNAPSHOT` from source (`./mvnw install`) until the first
-release ships.
+Available on Maven Central as of `0.1.0`.
 
 ## Modules
 
@@ -100,6 +99,8 @@ See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for wh
 this way.
 
 ## Docs
+
+Structured by [Diataxis](https://diataxis.fr/):
 
 - [Tutorial](docs/tutorial.md) — your first evaluation, end to end
 - [How-to](docs/how-to.md) — task-oriented recipes: codecs, transports, testing, the CLI, ...

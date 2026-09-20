@@ -186,8 +186,8 @@ try {
 }
 ```
 
-`429` and `529` are retried automatically with exponential backoff (5 attempts, starting at
-500ms) before `TypesafeException` is thrown.
+`408`, `429`, and any `5xx` are retried automatically with exponential backoff (5 attempts,
+starting at 500ms) before `TypesafeException` is thrown.
 
 ## Use a custom `HttpClient`
 
