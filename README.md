@@ -65,6 +65,23 @@ Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met — han
 CI gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the full
 flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
 
+## See it in action
+
+The `demo` module triages five sample support tickets — urgency, category, and frustration,
+one API call each — and prints a short report:
+
+```bash
+./mvnw -pl demo -am package -DskipTests
+java -jar demo/target/typesafe-java-demo-*.jar
+```
+
+```
+1. My card was charged twice for the same order. This is the third tim...
+   Urgent:      86%
+   Category:    billing (100% confidence)
+   Frustration: Furious (2.6/3)
+```
+
 ## Modules
 
 | Module | Contains |
@@ -74,6 +91,7 @@ flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `bom` | dependency management for the modules above |
 | `cli` | executable uber-jar for ad hoc checks from a terminal — not published |
+| `demo` | runnable support-ticket triage showcase — not published |
 | `acceptance` | live-API tests only — not published |
 
 See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why it's split

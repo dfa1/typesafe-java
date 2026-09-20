@@ -47,11 +47,16 @@ cli       — command-line entry point (`Main`), not published as a library arti
             stderr), `--version` (prints the jar's `Implementation-Version` manifest entry,
             set by the shade plugin, and exits without calling the API). Prints the
             `EvaluateResponse` as JSON to stdout.
+demo      — `SupportTicketTriage`, a runnable showcase; not published. Same shape as `cli`
+            (executable uber-jar over jdk-http-client + jackson3), but no flags — five
+            hardcoded sample tickets, each triaged in one call (`Noul` urgency, `Choice`
+            category, `Score` frustration) and printed as a short report.
 ```
 
 Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`,
 `acceptance → core, jdk-http-client, jackson2, jackson3` (test scope only), `cli → core,
-jdk-http-client, jackson3` — nothing production depends on `acceptance` or `cli`. See
+jdk-http-client, jackson3`, `demo → core, jdk-http-client, jackson3` — nothing production
+depends on `acceptance`, `cli`, or `demo`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 
