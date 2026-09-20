@@ -40,10 +40,11 @@ acceptance — live-API tests only; not published. `AbstractTypesafeClientAccept
             versions (2.17.2 vs 2.20); acceptance/pom.xml pins the newer one explicitly, or
             Maven's mediation picks the older one and jackson3 fails at runtime with
             `NoSuchFieldError` on a field only the newer annotations jar has.
-cli       — command-line entry point (`Main`), not published as a library artifact; built as
-            an executable uber-jar (maven-shade-plugin) over client-jdk + jackson3.
-            Flat flags: `--state <text>` (the only `State` shape it supports — plain text),
-            repeatable `--noul`/`--choice`/`--score <name>=<instructions>[|opt1,opt2,...]`,
+cli       — command-line entry point (`Main`), published as an executable uber-jar
+            (maven-shade-plugin) over client-jdk + jackson3 — meant for `java -jar`, not as a
+            compile dependency. Flat flags: `--state <text>` (the only `State` shape it
+            supports — plain text), repeatable
+            `--noul`/`--choice`/`--score <name>=<instructions>[|opt1,opt2,...]`,
             optional `--model <id>`, `--verbose`/`--timing` (request id / response time to
             stderr), `--version` (prints the jar's `Implementation-Version` manifest entry,
             set by the shade plugin, and exits without calling the API). Prints the
@@ -52,7 +53,8 @@ cli       — command-line entry point (`Main`), not published as a library arti
 
 Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`,
 `acceptance → core, client-jdk, jackson2, jackson3` (test scope only), `cli → core,
-client-jdk, jackson3` — nothing production depends on `acceptance` or `cli`. See
+client-jdk, jackson3` — nothing production depends on `acceptance` or `cli` (`cli` is
+published, but as a standalone uber-jar, not a dependency for other modules). See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 
@@ -134,7 +136,9 @@ git push && git push --tags          # GitHub Actions deploys the tag to Maven C
 
 `release:prepare` bumps every module to `<version>` (`autoVersionSubmodules=true`), tags it
 `v<version>`, then bumps to `<next>-SNAPSHOT` — two local commits, nothing pushed
-(`pushChanges=false`) until the explicit `git push` above. `cli`/`acceptance` opt out of
-publishing (`maven.deploy.skip`/`skipPublishing` in their poms) — not published as library
-artifacts. `CHANGELOG.md` needs a `## [<version>] - <date>` section *before* tagging: the
-`publish` workflow extracts that section verbatim as the GitHub release notes.
+(`pushChanges=false`) until the explicit `git push` above. `acceptance` opts out of publishing
+(`maven.deploy.skip`/`skipPublishing` in its pom) — it only exists to run its own tests. `cli`
+*is* published to Maven Central as an uber-jar (not meant as a compile dependency — `java -jar`
+only) and is also attached to the GitHub release for download without a Maven client.
+`CHANGELOG.md` needs a `## [<version>] - <date>` section *before* tagging: the `publish`
+workflow extracts that section verbatim as the GitHub release notes.

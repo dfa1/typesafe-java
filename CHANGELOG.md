@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `cli`'s uber-jar is now published to Maven Central as `typesafe-java-cli`, in addition to
+  being attached to each GitHub release. Still meant for `java -jar`, not as a compile
+  dependency.
+
 ## [0.2.0] - 2026-09-20
 
 - `cli`'s uber-jar is now attached to each GitHub release, so it's downloadable without

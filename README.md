@@ -33,7 +33,8 @@ for the full walkthrough.
 
 No Java coding required — the `cli` module is a self-contained jar, handy for wiring a check
 into a Jenkins job, a shell script, or any other CI pipeline without writing a line of Java.
-Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest),
+Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest) or
+[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli),
 or build it from source:
 
 ```bash
@@ -51,8 +52,8 @@ java -jar typesafe-java-cli-*.jar \
 
 Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met, so it doubles as a
 pass/fail gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
-full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Not published to Maven
-Central — it's an uber-jar, not a library dependency.
+full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Published to Maven
+Central as an uber-jar (`java -jar`, not a compile dependency).
 
 ## Install
 
@@ -93,7 +94,7 @@ Available on Maven Central as of `0.1.0`.
 | `client-jdk` | `HttpTransport` backed by `java.net.http` |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `bom` | dependency management for the modules above |
-| `cli` | executable uber-jar for ad hoc checks from a terminal — not published |
+| `cli` | executable uber-jar for ad hoc checks from a terminal — `java -jar`, not a library dependency |
 | `acceptance` | live-API tests only — not published |
 
 See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why it's split

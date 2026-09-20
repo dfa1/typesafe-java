@@ -318,8 +318,8 @@ back keyed `noul`); name it explicitly if you're asking more than one question o
 type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
 `jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
 alias, any other id is pinned directly. Reads the token from
-`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
-it locally.
+`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Published to Maven Central as
+`typesafe-java-cli`, or build it locally.
 
 Add `--verbose` to print the outgoing request JSON, the full response JSON, and the response's
 request id, `--timing` to print how long the API took (all go to stderr, so stdout stays clean
