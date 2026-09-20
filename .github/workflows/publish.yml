@@ -40,10 +40,13 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
-          # cli is also published to Maven Central above (as an uber-jar), but is attached
-          # here too so it's downloadable without a Maven client.
+          # cli's runnable uber-jar is published to Maven Central above under the "all"
+          # classifier (its main artifact is a plain, non-executable jar), signed there by
+          # maven-gpg-plugin; both the jar and its .asc are attached here too so the jar is
+          # downloadable and verifiable without a Maven client.
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes "$NOTES" \
             --verify-tag \
-            "cli/target/typesafe-java-cli-$VERSION.jar"
+            "cli/target/typesafe-java-cli-$VERSION-all.jar" \
+            "cli/target/typesafe-java-cli-$VERSION-all.jar.asc"

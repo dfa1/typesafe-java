@@ -12,8 +12,11 @@
 
   <name>TypeSafe CLI</name>
   <description>
-    Command-line entry point over the JDK HttpTransport and Jackson 3 JsonCodec, published as
-    an executable uber-jar (java -jar) rather than a normal library dependency.
+    Command-line entry point over the JDK HttpTransport and Jackson 3 JsonCodec. The plain
+    artifact is a normal (non-executable) jar of just this module's own classes; the
+    executable uber-jar for `java -jar` is published separately under the `all` classifier
+    (typesafe-java-cli-VERSION-all.jar), so a plain dependency on typesafe-java-cli never
+    pulls in unrelocated, bundled copies of its dependencies.
   </description>
 
   <dependencies>
@@ -67,6 +70,8 @@
               <goal>shade</goal>
             </goals>
             <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>all</shadedClassifierName>
               <transformers>
                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                   <mainClass>io.github.dfa1.typesafe.cli.Main</mainClass>

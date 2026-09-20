@@ -31,11 +31,12 @@ for the full walkthrough.
 
 ### From the command line
 
-No Java coding required — the `cli` module is a self-contained jar, handy for wiring a check
-into a Jenkins job, a shell script, or any other CI pipeline without writing a line of Java.
-Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest) or
-[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli),
-or build it from source:
+No Java coding required — the `cli` module builds a self-contained uber-jar, handy for wiring a
+check into a Jenkins job, a shell script, or any other CI pipeline without writing a line of
+Java. Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest)
+or [Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli)
+(under the `all` classifier — the plain artifact is just this module's own classes, not
+runnable on its own), or build it from source:
 
 ```bash
 ./mvnw -pl cli -am package -DskipTests
@@ -44,7 +45,7 @@ or build it from source:
 Either way, run it the same way:
 
 ```bash
-java -jar typesafe-java-cli-*.jar \
+java -jar typesafe-java-cli-*-all.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --min "urgent=0.5" || echo "not urgent enough"
@@ -52,8 +53,7 @@ java -jar typesafe-java-cli-*.jar \
 
 Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met, so it doubles as a
 pass/fail gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
-full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Published to Maven
-Central as an uber-jar (`java -jar`, not a compile dependency).
+full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
 
 ## Install
 
@@ -94,7 +94,7 @@ Available on Maven Central as of `0.1.0`.
 | `client-jdk` | `HttpTransport` backed by `java.net.http` |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `bom` | dependency management for the modules above |
-| `cli` | executable uber-jar for ad hoc checks from a terminal — `java -jar`, not a library dependency |
+| `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |
 
 See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why it's split

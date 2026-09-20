@@ -7,9 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- `cli`'s uber-jar is now published to Maven Central as `typesafe-java-cli`, in addition to
-  being attached to each GitHub release. Still meant for `java -jar`, not as a compile
-  dependency.
+- `cli`'s runnable uber-jar is now published to Maven Central under the `all` classifier
+  (`typesafe-java-cli-VERSION-all.jar`), GPG-signed like every other artifact; the plain
+  `typesafe-java-cli` artifact stays a normal, non-executable jar so a mistaken plain
+  dependency on it doesn't pull in unrelocated, bundled copies of its dependencies. The `all`
+  jar and its signature are also attached to each GitHub release, so it's downloadable and
+  verifiable without a Maven client.
 
 ## [0.2.0] - 2026-09-20
 

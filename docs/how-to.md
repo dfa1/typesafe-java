@@ -298,13 +298,16 @@ is `String`-based too.)
 
 ## Run a quick check from the command line
 
-The `cli` module is an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
-ad hoc checks against the real API, without writing any Java. Download it from the
-[latest release](https://github.com/dfa1/typesafe-java/releases/latest), or build it:
-`./mvnw -pl cli -am package -DskipTests` (jar lands in `cli/target/`).
+The `cli` module builds an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
+ad hoc checks against the real API, without writing any Java — published under the `all`
+classifier (`typesafe-java-cli-VERSION-all.jar`; the plain artifact is just this module's own
+classes, not runnable). Download it from the
+[latest release](https://github.com/dfa1/typesafe-java/releases/latest) or
+[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli),
+or build it: `./mvnw -pl cli -am package -DskipTests` (jar lands in `cli/target/`).
 
 ```bash
-java -jar typesafe-java-cli-*.jar \
+java -jar typesafe-java-cli-*-all.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --choice "category=What kind of issue is this?|billing,shipping,other" \
@@ -318,8 +321,7 @@ back keyed `noul`); name it explicitly if you're asking more than one question o
 type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
 `jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
 alias, any other id is pinned directly. Reads the token from
-`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Published to Maven Central as
-`typesafe-java-cli`, or build it locally.
+`~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON.
 
 Add `--verbose` to print the outgoing request JSON, the full response JSON, and the response's
 request id, `--timing` to print how long the API took (all go to stderr, so stdout stays clean
@@ -331,7 +333,7 @@ value: the JSON is still printed either way, but the process exits `1` if any na
 comes back below its threshold (with a `--min failed: ...` line on stderr per failure).
 
 ```bash
-java -jar cli/target/typesafe-java-cli-*.jar \
+java -jar cli/target/typesafe-java-cli-*-all.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --min "urgent=0.5" || echo "not urgent enough"
@@ -341,7 +343,7 @@ Repeatable `--print <name>` prints just that answer's value (one per line) inste
 response — `choice` for `Choice`, the numeric value for `Noul`/`Score`:
 
 ```bash
-java -jar cli/target/typesafe-java-cli-*.jar \
+java -jar cli/target/typesafe-java-cli-*-all.jar \
         --state "My card was charged twice." \
         --choice "category=What kind of issue is this?|billing,shipping,other" \
         --print category
