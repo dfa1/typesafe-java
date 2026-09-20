@@ -7,6 +7,7 @@ import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -23,6 +24,7 @@ public final class TypesafeClient implements AutoCloseable {
     private final JsonCodec jsonCodec;
     private final ApiKey apiKey;
     private final URI endpoint;
+    private final URI modelsEndpoint;
     private final int maxRetries;
     private final Duration initialBackoff;
 
@@ -32,6 +34,7 @@ public final class TypesafeClient implements AutoCloseable {
         this.transport = transport;
         this.jsonCodec = jsonCodec;
         this.endpoint = endpoint;
+        this.modelsEndpoint = URI.create(endpoint.getScheme() + "://" + endpoint.getAuthority() + "/v1/models");
         this.maxRetries = maxRetries;
         this.initialBackoff = initialBackoff;
     }
@@ -101,20 +104,8 @@ public final class TypesafeClient implements AutoCloseable {
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
         Map<String, String> headers = requestHeaders();
         String body = jsonCodec.writeValueAsString(request);
-
-        for (int attempt = 0; ; attempt++) {
-            HttpTransportResponse response = transport.post(endpoint, headers, body);
-            int status = response.statusCode();
-
-            if (status == 200) {
-                return toEvaluateResponse(response);
-            }
-            if ((status == 429 || status == 529) && attempt < maxRetries) {
-                Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
-                continue;
-            }
-            throw new TypesafeException(status, response.body());
-        }
+        HttpTransportResponse response = sendWithRetry(() -> transport.post(endpoint, headers, body));
+        return toEvaluateResponse(response);
     }
 
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
@@ -149,6 +140,37 @@ public final class TypesafeClient implements AutoCloseable {
                     }
                     return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
                 });
+    }
+
+    /** Lists the models available to the account. */
+    public List<Model> listModels() throws IOException, InterruptedException {
+        Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
+        HttpTransportResponse response = sendWithRetry(() -> transport.get(modelsEndpoint, headers));
+        return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
+    }
+
+    private HttpTransportResponse sendWithRetry(HttpCall call) throws IOException, InterruptedException {
+        for (int attempt = 0; ; attempt++) {
+            HttpTransportResponse response = call.send();
+            int status = response.statusCode();
+
+            if (status == 200) {
+                return response;
+            }
+            if ((status == 429 || status == 529) && attempt < maxRetries) {
+                Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
+                continue;
+            }
+            throw new TypesafeException(status, response.body());
+        }
+    }
+
+    @FunctionalInterface
+    private interface HttpCall {
+        HttpTransportResponse send() throws IOException, InterruptedException;
+    }
+
+    record ModelsResponse(List<Model> models) {
     }
 
     /** Closes the underlying {@link HttpTransport}, releasing any resources it holds. */

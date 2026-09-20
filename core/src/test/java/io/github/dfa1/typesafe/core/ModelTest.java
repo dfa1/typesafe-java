@@ -7,20 +7,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ModelTest {
 
     @Test
-    void idReturnsTheWireValue() {
+    void idReturnsTheName() {
+        // Given
+        Model sut = new Model("jev-1.13.0", "TypeSafe's flagship System One model.", "2026-01-01");
+
         // When
-        String result = Model.PREVIEW.id();
+        String result = sut.id();
 
         // Then
-        assertThat(result).isEqualTo("jev-preview");
-    }
-
-    @Test
-    void toStringReturnsTheWireValue() {
-        // When
-        String result = Model.PREVIEW.toString();
-
-        // Then
-        assertThat(result).isEqualTo("jev-preview");
+        assertThat(result).isEqualTo("jev-1.13.0");
     }
 }

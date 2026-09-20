@@ -1,14 +1,15 @@
 package io.github.dfa1.typesafe.jackson3;
 
 import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import tools.jackson.databind.ObjectMapper;
 import tools.jackson.databind.PropertyNamingStrategies;
-import tools.jackson.databind.cfg.EnumFeature;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 
@@ -21,10 +22,12 @@ public final class Jackson3Codec implements JsonCodec {
 
     private final ObjectMapper mapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-            .enable(EnumFeature.WRITE_ENUMS_USING_TO_STRING)
             .addMixIn(Answer.class, AnswerMixIn.class)
             .addMixIn(Question.class, QuestionMixIn.class)
-            .addModule(new SimpleModule().addSerializer(State.class, new StateSerializer()))
+            .addModule(new SimpleModule()
+                    .addSerializer(State.class, new StateSerializer())
+                    .addSerializer(RequestModel.class, new RequestModelSerializer())
+                    .addDeserializer(Model.class, new ModelDeserializer()))
             .build();
 
     @Override

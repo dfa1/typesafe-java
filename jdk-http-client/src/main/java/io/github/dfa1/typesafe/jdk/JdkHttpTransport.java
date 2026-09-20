@@ -39,6 +39,14 @@ public final class JdkHttpTransport implements HttpTransport {
     }
 
     @Override
+    public HttpTransportResponse get(URI uri, Map<String, String> headers) throws IOException, InterruptedException {
+        HttpRequest.Builder builder = HttpRequest.newBuilder(uri).GET();
+        headers.forEach(builder::header);
+        HttpResponse<String> response = http.send(builder.build(), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+        return toTransportResponse(response);
+    }
+
+    @Override
     public void close() {
         http.close();
     }

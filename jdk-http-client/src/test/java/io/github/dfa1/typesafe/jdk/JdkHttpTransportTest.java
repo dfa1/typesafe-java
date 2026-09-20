@@ -84,6 +84,30 @@ class JdkHttpTransportTest {
     }
 
     @Test
+    void getSendsAHeadedGetAndMapsTheResponse() throws Exception {
+        // Given
+        JdkHttpTransport sut = new JdkHttpTransport(httpClient);
+        given(httpResponse.statusCode()).willReturn(200);
+        given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
+        given(httpResponse.body()).willReturn("{\"models\":[]}");
+        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+
+        // When
+        HttpTransportResponse result = sut.get(ENDPOINT, Map.of("Authorization", "Bearer secret"));
+
+        // Then
+        assertThat(result.statusCode()).isEqualTo(200);
+        assertThat(result.body()).isEqualTo("{\"models\":[]}");
+
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        then(httpClient).should().send(captor.capture(), any());
+        HttpRequest sent = captor.getValue();
+        assertThat(sent.uri()).isEqualTo(ENDPOINT);
+        assertThat(sent.method()).isEqualTo("GET");
+        assertThat(sent.headers().firstValue("Authorization")).contains("Bearer secret");
+    }
+
+    @Test
     void closeClosesTheUnderlyingHttpClient() {
         // Given
         JdkHttpTransport sut = new JdkHttpTransport(httpClient);

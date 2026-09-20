@@ -6,9 +6,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Sends the single HTTP call TypesafeClient needs (a JSON POST) without tying it to a
- * particular HTTP library. Implementations are discovered via {@link java.util.ServiceLoader}
- * (see typesafe-java-jdk-http-client) or wired explicitly via
+ * Sends the HTTP calls TypesafeClient needs (a JSON POST for evaluate, a GET for listing
+ * models) without tying it to a particular HTTP library. Implementations are discovered via
+ * {@link java.util.ServiceLoader} (see typesafe-java-jdk-http-client) or wired explicitly via
  * {@code TypesafeClient.Builder#httpTransport}.
  */
 public interface HttpTransport extends AutoCloseable {
@@ -17,6 +17,8 @@ public interface HttpTransport extends AutoCloseable {
             throws IOException, InterruptedException;
 
     CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
+
+    HttpTransportResponse get(URI uri, Map<String, String> headers) throws IOException, InterruptedException;
 
     /** Releases any resources held by this transport. A no-op unless overridden. */
     @Override

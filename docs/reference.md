@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `RequestModel`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
 | `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
@@ -63,11 +63,12 @@ discriminator on the wire; each variant serializes as its own raw JSON shape.
 ### `EvaluateRequest`
 
 ```java
-record EvaluateRequest(State state, Model model, Map<String, Question> questions)
+record EvaluateRequest(State state, RequestModel model, Map<String, Question> questions)
 ```
 
 `EvaluateRequest.of(State state, Map<String, Question> questions)` builds one with
-`model = Model.LATEST`. `EvaluateRequest.of(State state, Model model, Map<String, Question> questions)`
+`model = RequestModel.Alias.LATEST`.
+`EvaluateRequest.of(State state, RequestModel model, Map<String, Question> questions)`
 picks a specific model.
 
 `EvaluateRequest.builder()` is the fluent alternative to `of(...)` plus hand-building the
@@ -83,31 +84,47 @@ EvaluateRequest request = EvaluateRequest.builder()
 ```
 
 `state(String)` is sugar for `state(State.text(...))`; `state(State)` accepts any shape.
-`model(Model)` defaults to `Model.LATEST` when omitted. Each question method (`noul`, `noul`
-with a criteria map, `choice`, `score`) takes the question's name first, then the same
-arguments as the matching `Question` factory. Reusing a name throws `IllegalArgumentException`
-— each question key must be unique, since a second call with the same name would otherwise
-silently overwrite the first in the underlying map.
+`model(RequestModel)` defaults to `RequestModel.Alias.LATEST` when omitted. Each question method
+(`noul`, `noul` with a criteria map, `choice`, `score`) takes the question's name first, then the
+same arguments as the matching `Question` factory. Reusing a name throws
+`IllegalArgumentException` — each question key must be unique, since a second call with the same
+name would otherwise silently overwrite the first in the underlying map.
 
-### `Model`
+### `RequestModel` (sealed interface)
 
-Known values for `EvaluateRequest.model()` — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
+```java
+sealed interface RequestModel permits Model, RequestModel.Alias {
+    String id();
+}
+```
+
+An `EvaluateRequest`'s model: either a concrete `Model` (see below), or a symbolic alias the
+server resolves — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
 
 | Constant | Wire value | Meaning |
 |---|---|---|
-| `Model.LATEST` | `jev-latest` | Most recent stable, official release. The default. |
-| `Model.PREVIEW` | `jev-preview` | Most recent release, official or not. |
-| `Model.JEV_1_13_0` | `jev-1.13.0` | TypeSafe's flagship System One model. |
+| `RequestModel.Alias.LATEST` | `jev-latest` | Most recent stable, official release. The default. |
+| `RequestModel.Alias.PREVIEW` | `jev-preview` | Most recent release, official or not. |
 
-`model.id()` returns the wire value; codecs serialize a `Model` by calling its `toString()`
-(which returns `id()`), so the wire value is what's written, not the enum constant name.
-`EvaluateResponse.model()` stays a plain `String`, since a response can report a versioned id
-this enum doesn't (yet) have a constant for.
+Codecs serialize any `RequestModel` (whichever variant) as its `id()` string — no `type`
+discriminator on the wire, since a request's `model` field is always a plain string.
+
+### `Model`
+
+```java
+record Model(String name, String description, String releaseDate) implements RequestModel
+```
+
+A concrete, versioned model — what `TypesafeClient.listModels()` returns, and what
+`EvaluateResponse.model()` reports back (with `description`/`releaseDate` left `null`, since the
+evaluate response only reports the id). `id()` returns `name()`. Also usable directly as an
+`EvaluateRequest`'s model to pin a specific id, e.g. `new Model("jev-1.13.0", null, null)` —
+`description`/`releaseDate` are irrelevant there, since only `id()` is ever sent.
 
 ### `EvaluateResponse`
 
 ```java
-record EvaluateResponse(String model, Map<String, Answer> answers, Usage usage, Metadata metadata)
+record EvaluateResponse(Model model, Map<String, Answer> answers, Usage usage, Metadata metadata)
 record EvaluateResponse.Metadata(RequestId requestId, Duration upstreamServiceTime)
 ```
 
@@ -154,6 +171,8 @@ public interface HttpTransport extends AutoCloseable {
     HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException;
     CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
+    HttpTransportResponse get(URI uri, Map<String, String> headers)
+            throws IOException, InterruptedException;
     default void close() { }   // no-op unless overridden
 }
 
@@ -169,8 +188,9 @@ consumer, where messages are raw bytes); `TypesafeClient` converts once at the b
 the two SPIs. `HttpTransportResponse` copies `headers` defensively (`Map.copyOf`) so a caller
 that mutates the map it passed in afterward can't reach back into an already-returned response.
 
-The single HTTP call `TypesafeClient` needs (a JSON POST), abstracted away from any particular
-HTTP library. `JdkHttpTransport` (in `typesafe-java-jdk-http-client`) is discovered via
+The HTTP calls `TypesafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
+abstracted away from any particular HTTP library. `JdkHttpTransport` (in
+`typesafe-java-jdk-http-client`) is discovered via
 `ServiceLoader.load(HttpTransport.class)` through
 `META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
 yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it
@@ -203,11 +223,13 @@ static TypesafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
+List<Model> listModels() throws IOException, InterruptedException
 ```
 
-Default endpoint: `https://api.typesafe.ai/v1/systemone`. Retries `429`/`529` up to 5 times
-(default) with exponential backoff starting at 500ms (default); any other non-`200` status (or
-a retry-exhausted `429`/`529`) throws `TypesafeException`.
+Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
+`/v1/models` on the same scheme/authority. Retries `429`/`529` up to 5 times (default) with
+exponential backoff starting at 500ms (default); any other non-`200` status (or a
+retry-exhausted `429`/`529`) throws `TypesafeException`.
 
 `TypesafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
 so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use

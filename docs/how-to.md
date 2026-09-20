@@ -79,14 +79,29 @@ State.messages(List.of("Hi", "My customer number is TS1337.", "My card was charg
 
 ## Pick a specific model
 
-`EvaluateRequest.of(state, questions)` defaults to `Model.LATEST`. Pin a specific one (e.g. to
-test against a preview build, or a specific version) with the three-argument overload:
+`EvaluateRequest.of(state, questions)` defaults to `RequestModel.Alias.LATEST`. Pin a specific
+one with the three-argument overload — either the other symbolic alias:
 
 ```java
-EvaluateRequest request = EvaluateRequest.of(state, Model.PREVIEW, questions);
+EvaluateRequest request = EvaluateRequest.of(state, RequestModel.Alias.PREVIEW, questions);
 ```
 
-See [reference.md#model](reference.md#model) for the full list.
+or a concrete `Model` by id, e.g. one returned by `client.listModels()`:
+
+```java
+EvaluateRequest request = EvaluateRequest.of(state, new Model("jev-1.13.0", null, null), questions);
+```
+
+`description`/`releaseDate` are only used for display — the request only ever sends the id.
+
+## List the available models
+
+```java
+List<Model> models = client.listModels();
+models.forEach(m -> System.out.println(m.name() + ": " + m.description() + " (" + m.releaseDate() + ")"));
+```
+
+See [reference.md#model](reference.md#model) for the full shape.
 
 ## Build a request with the fluent builder
 
@@ -256,7 +271,8 @@ taking a `|`-separated, comma-list of options/levels after the instructions. The
 is optional — for a single question, `--noul "Is this urgent?"` is enough (the answer comes
 back keyed `noul`); name it explicitly if you're asking more than one question of the same
 type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
-`jev-preview`) overrides the default `Model.LATEST`. Reads the token from
+`jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
+alias, any other id is pinned directly. Reads the token from
 `~/.typesafe.apitoken` and prints the `EvaluateResponse` as JSON. Not published — build and run
 it locally.
 

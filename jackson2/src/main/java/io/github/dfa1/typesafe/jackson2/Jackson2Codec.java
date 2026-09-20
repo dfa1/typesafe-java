@@ -1,7 +1,9 @@
 package io.github.dfa1.typesafe.jackson2;
 
 import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -9,7 +11,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
 import java.io.UncheckedIOException;
@@ -23,10 +24,12 @@ public final class Jackson2Codec implements JsonCodec {
 
     private final ObjectMapper mapper = new ObjectMapper()
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
-            .configure(SerializationFeature.WRITE_ENUMS_USING_TO_STRING, true)
             .addMixIn(Answer.class, AnswerMixIn.class)
             .addMixIn(Question.class, QuestionMixIn.class)
-            .registerModule(new SimpleModule().addSerializer(State.class, new StateSerializer()));
+            .registerModule(new SimpleModule()
+                    .addSerializer(State.class, new StateSerializer())
+                    .addSerializer(RequestModel.class, new RequestModelSerializer())
+                    .addDeserializer(Model.class, new ModelDeserializer()));
 
     @Override
     public String writeValueAsString(Object value) {

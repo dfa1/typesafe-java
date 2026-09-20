@@ -3,6 +3,7 @@ package io.github.dfa1.typesafe.jackson2;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
 import org.junit.jupiter.api.Test;
@@ -76,6 +77,7 @@ class Jackson2CodecTest {
         EvaluateResponse result = sut.readValue(json, EvaluateResponse.class);
 
         // Then
+        assertThat(result.model()).isEqualTo(new Model("jev-latest", null, null));
         assertThat(result.usage().inputTokens()).isEqualTo(312);
         assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class,
                 noul -> assertThat(noul.noul()).isEqualTo(0.92));
@@ -83,6 +85,20 @@ class Jackson2CodecTest {
                 choice -> assertThat(choice.choice()).isEqualTo("technical"));
         assertThat(result.answers().get("frustration")).isInstanceOfSatisfying(Answer.Score.class,
                 score -> assertThat(score.score()).isEqualTo(1.6));
+    }
+
+    @Test
+    void deserializesAModelObjectFromTheModelsListingShape() {
+        // Given
+        String json = """
+                {"name": "jev-1.13.0", "description": "System One model.", "release_date": "2026-01-01"}
+                """;
+
+        // When
+        Model result = sut.readValue(json, Model.class);
+
+        // Then
+        assertThat(result).isEqualTo(new Model("jev-1.13.0", "System One model.", "2026-01-01"));
     }
 
     @Test
