@@ -79,29 +79,30 @@ State.messages(List.of("Hi", "My customer number is TS1337.", "My card was charg
 
 ## Pick a specific model
 
-`EvaluateRequest.of(state, questions)` defaults to `RequestModel.Alias.LATEST`. Pin a specific
-one with the three-argument overload — either the other symbolic alias:
+`EvaluateRequest.of(state, questions)` defaults to `Model.LATEST`. Pin a specific one with the
+three-argument overload — either the other constant:
 
 ```java
-EvaluateRequest request = EvaluateRequest.of(state, RequestModel.Alias.PREVIEW, questions);
+EvaluateRequest request = EvaluateRequest.of(state, Model.PREVIEW, questions);
 ```
 
-or a concrete `RequestModel.Pinned` by id, e.g. one returned by `client.listModels()`:
+or any other id directly, e.g. one taken from `client.listModels()`:
 
 ```java
-EvaluateRequest request = EvaluateRequest.of(state, new RequestModel.Pinned("jev-1.13.0", null, null), questions);
+EvaluateRequest request = EvaluateRequest.of(state, new Model("jev-1.13.0"), questions);
 ```
-
-`description`/`releaseDate` are only used for display — the request only ever sends the id.
 
 ## List the available models
 
 ```java
-List<RequestModel.Pinned> models = client.listModels();
+List<ModelDetails> models = client.listModels();
 models.forEach(m -> System.out.println(m.name() + ": " + m.description() + " (" + m.releaseDate() + ")"));
+
+// pin a request to one of them:
+EvaluateRequest request = EvaluateRequest.of(state, models.get(0).model(), questions);
 ```
 
-See [reference.md#requestmodel-sealed-interface](reference.md#requestmodel-sealed-interface) for the full shape.
+See [reference.md#modeldetails](reference.md#modeldetails) for the full shape.
 
 ## Build a request with the fluent builder
 

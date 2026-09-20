@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `RequestModel` (`Pinned`/`Alias`), `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
 | `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
@@ -63,12 +63,11 @@ discriminator on the wire; each variant serializes as its own raw JSON shape.
 ### `EvaluateRequest`
 
 ```java
-record EvaluateRequest(State state, RequestModel model, Map<String, Question> questions)
+record EvaluateRequest(State state, Model model, Map<String, Question> questions)
 ```
 
 `EvaluateRequest.of(State state, Map<String, Question> questions)` builds one with
-`model = RequestModel.Alias.LATEST`.
-`EvaluateRequest.of(State state, RequestModel model, Map<String, Question> questions)`
+`model = Model.LATEST`. `EvaluateRequest.of(State state, Model model, Map<String, Question> questions)`
 picks a specific model.
 
 `EvaluateRequest.builder()` is the fluent alternative to `of(...)` plus hand-building the
@@ -84,45 +83,34 @@ EvaluateRequest request = EvaluateRequest.builder()
 ```
 
 `state(String)` is sugar for `state(State.text(...))`; `state(State)` accepts any shape.
-`model(RequestModel)` defaults to `RequestModel.Alias.LATEST` when omitted. Each question method
-(`noul`, `noul` with a criteria map, `choice`, `score`) takes the question's name first, then the
-same arguments as the matching `Question` factory. Reusing a name throws
-`IllegalArgumentException` — each question key must be unique, since a second call with the same
-name would otherwise silently overwrite the first in the underlying map.
+`model(Model)` defaults to `Model.LATEST` when omitted. Each question method (`noul`, `noul`
+with a criteria map, `choice`, `score`) takes the question's name first, then the same
+arguments as the matching `Question` factory. Reusing a name throws `IllegalArgumentException`
+— each question key must be unique, since a second call with the same name would otherwise
+silently overwrite the first in the underlying map.
 
-### `RequestModel` (sealed interface)
+### `Model`
 
 ```java
-sealed interface RequestModel permits RequestModel.Pinned, RequestModel.Alias {
-    String id();
-
-    record Pinned(String name, String description, String releaseDate) implements RequestModel
-    enum Alias implements RequestModel { LATEST, PREVIEW }
-}
+record Model(String name)
 ```
 
-An `EvaluateRequest`'s model: either a concrete `Pinned` model, or a symbolic `Alias` the server
-resolves — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
+A model, by id — usable as an `EvaluateRequest`'s model, and what `EvaluateResponse.model()`
+reports back — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
 
 | Constant | Wire value | Meaning |
 |---|---|---|
-| `RequestModel.Alias.LATEST` | `jev-latest` | Most recent stable, official release. The default. |
-| `RequestModel.Alias.PREVIEW` | `jev-preview` | Most recent release, official or not. |
+| `Model.LATEST` | `jev-latest` | Most recent stable, official release. The default. |
+| `Model.PREVIEW` | `jev-preview` | Most recent release, official or not. |
 
-Codecs serialize any `RequestModel` (whichever variant) as its `id()` string — no `type`
-discriminator on the wire, since a request's `model` field is always a plain string.
-
-`RequestModel.Pinned` is a concrete, versioned model — what `TypesafeClient.listModels()`
-returns, and what `EvaluateResponse.model()` reports back (with `description`/`releaseDate` left
-`null`, since the evaluate response only reports the id). `id()` returns `name()`. Also usable
-directly as an `EvaluateRequest`'s model to pin a specific id, e.g.
-`new RequestModel.Pinned("jev-1.13.0", null, null)` — `description`/`releaseDate` are irrelevant
-there, since only `id()` is ever sent.
+Any other id is pinned directly, e.g. `new Model("jev-1.13.0")` — including one taken from
+`ModelDetails.model()` (see `TypesafeClient.listModels()` below). Codecs serialize/deserialize a
+`Model` as its bare `name` string — no `type` discriminator, no wrapping object.
 
 ### `EvaluateResponse`
 
 ```java
-record EvaluateResponse(RequestModel.Pinned model, Map<String, Answer> answers, Usage usage, Metadata metadata)
+record EvaluateResponse(Model model, Map<String, Answer> answers, Usage usage, Metadata metadata)
 record EvaluateResponse.Metadata(RequestId requestId, Duration upstreamServiceTime)
 ```
 
@@ -140,6 +128,15 @@ record Usage(int inputTokens, int outputTokens)
 ```java
 record RequestId(String value)
 ```
+
+### `ModelDetails`
+
+```java
+record ModelDetails(String name, String description, String releaseDate)
+```
+
+One entry of `TypesafeClient.listModels()`'s result. `model()` returns this model's id as a
+plain `Model`, usable directly as an `EvaluateRequest`'s model.
 
 ## JsonCodec SPI
 
@@ -221,7 +218,7 @@ static TypesafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
-List<RequestModel.Pinned> listModels() throws IOException, InterruptedException
+List<ModelDetails> listModels() throws IOException, InterruptedException
 ```
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits

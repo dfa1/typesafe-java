@@ -66,7 +66,7 @@ abstract class AbstractTypesafeClientAcceptanceTest {
         EvaluateResponse result = sut.evaluate(request);
 
         // Then
-        assertThat(result.model().id()).startsWith("jev-");
+        assertThat(result.model().name()).startsWith("jev-");
         assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class, answer -> {
             System.out.println("is_urgent noul score = " + answer.noul());
             assertThat(answer.noul()).isBetween(0.0, 1.0);

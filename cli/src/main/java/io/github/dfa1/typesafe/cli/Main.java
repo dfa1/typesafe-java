@@ -4,8 +4,8 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
@@ -104,13 +104,13 @@ public final class Main {
         }
     }
 
-    record ParsedArgs(String state, RequestModel model, Map<String, Question> questions, List<String> minSpecs,
+    record ParsedArgs(String state, Model model, Map<String, Question> questions, List<String> minSpecs,
             List<String> printNames, boolean verbose, boolean timing) {
     }
 
     static ParsedArgs parse(String[] args) {
         String state = null;
-        RequestModel model = RequestModel.Alias.LATEST;
+        Model model = Model.LATEST;
         Map<String, Question> questions = new LinkedHashMap<>();
         List<String> minSpecs = new ArrayList<>();
         List<String> printNames = new ArrayList<>();
@@ -125,7 +125,7 @@ public final class Main {
                     case "--verbose" -> verbose = true;
                     case "--timing" -> timing = true;
                     case "--state" -> state = args[++i];
-                    case "--model" -> model = requestModel(args[++i]);
+                    case "--model" -> model = new Model(args[++i]);
                     case "--min" -> minSpecs.add(args[++i]);
                     case "--print" -> printNames.add(args[++i]);
                     case "--noul", "--choice", "--score" -> {
@@ -195,17 +195,6 @@ public final class Main {
             }
             case "--score" -> Question.score(instructions, options);
             default -> throw new IllegalStateException(flag);
-        };
-    }
-
-    /** {@code jev-latest}/{@code jev-preview} resolve to their {@link RequestModel.Alias}; any
-     *  other id is pinned directly, since the set of valid ids isn't known client-side — see
-     *  {@code TypesafeClient.listModels()}. */
-    static RequestModel requestModel(String id) {
-        return switch (id) {
-            case "jev-latest" -> RequestModel.Alias.LATEST;
-            case "jev-preview" -> RequestModel.Alias.PREVIEW;
-            default -> new RequestModel.Pinned(id, null, null);
         };
     }
 

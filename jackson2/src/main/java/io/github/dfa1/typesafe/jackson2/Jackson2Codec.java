@@ -1,8 +1,8 @@
 package io.github.dfa1.typesafe.jackson2;
 
 import io.github.dfa1.typesafe.core.Answer;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -27,8 +27,8 @@ public final class Jackson2Codec implements JsonCodec {
             .addMixIn(Question.class, QuestionMixIn.class)
             .registerModule(new SimpleModule()
                     .addSerializer(State.class, new StateSerializer())
-                    .addSerializer(RequestModel.class, new RequestModelSerializer())
-                    .addDeserializer(RequestModel.Pinned.class, new PinnedDeserializer()));
+                    .addSerializer(Model.class, new ModelSerializer())
+                    .addDeserializer(Model.class, new ModelDeserializer()));
 
     @Override
     public String writeValueAsString(Object value) {

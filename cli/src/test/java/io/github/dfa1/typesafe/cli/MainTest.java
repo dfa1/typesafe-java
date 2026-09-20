@@ -3,7 +3,7 @@ package io.github.dfa1.typesafe.cli;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.RequestModel;
+import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
@@ -51,7 +51,7 @@ class MainTest {
 
         // Then
         assertThat(result.state()).isEqualTo("My card was charged twice.");
-        assertThat(result.model()).isEqualTo(RequestModel.Alias.PREVIEW);
+        assertThat(result.model()).isEqualTo(Model.PREVIEW);
         assertThat(result.questions()).containsOnlyKeys("urgent", "category", "severity");
         assertThat(result.minSpecs()).containsExactly("urgent=0.5");
         assertThat(result.printNames()).containsExactly("urgent");
@@ -101,19 +101,13 @@ class MainTest {
     }
 
     @Test
-    void requestModelResolvesKnownAliases() {
-        // When / Then
-        assertThat(Main.requestModel("jev-latest")).isEqualTo(RequestModel.Alias.LATEST);
-        assertThat(Main.requestModel("jev-preview")).isEqualTo(RequestModel.Alias.PREVIEW);
-    }
-
-    @Test
-    void requestModelPinsAnyOtherIdAsAModel() {
+    void parsePinsAnyModelIdDirectly() {
         // When
-        RequestModel result = Main.requestModel("jev-1.13.0");
+        Main.ParsedArgs result =
+                Main.parse(new String[] {"--state", "hi", "--model", "jev-1.13.0", "--noul", "Is this urgent?"});
 
         // Then
-        assertThat(result).isEqualTo(new RequestModel.Pinned("jev-1.13.0", null, null));
+        assertThat(result.model()).isEqualTo(new Model("jev-1.13.0"));
     }
 
     @Test
@@ -256,7 +250,7 @@ class MainTest {
     void runPrintsTheFullResponseAsJsonWhenNoPrintNamesAreGiven() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, false);
 
         // When
@@ -271,7 +265,7 @@ class MainTest {
     void runPrintsOnlyTheRequestedAnswersWhenPrintNamesAreGiven() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), false, false);
 
         // When
@@ -286,7 +280,7 @@ class MainTest {
     void runReturns1AndReportsMinFailuresOnStderr() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.2))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of("urgent=0.5"), List.of(), false, false);
 
         // When
@@ -301,7 +295,7 @@ class MainTest {
     void runPrintsRequestAndResponseToStderrWhenVerbose() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false);
 
         // When
@@ -315,7 +309,7 @@ class MainTest {
     void runPrintsTimingToStderrWhenTiming() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, true);
 
         // When
@@ -329,7 +323,7 @@ class MainTest {
     void runReturns1AndPrintsUsageWhenAPrintNameIsUnknown() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
-        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", RequestModel.Alias.LATEST,
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
                 Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("bogus"), false, false);
 
         // When
@@ -360,7 +354,7 @@ class MainTest {
     }
 
     private static EvaluateResponse response(Map<String, Answer> answers) {
-        return new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), answers, new Usage(0, 0),
+        return new EvaluateResponse(Model.LATEST, answers, new Usage(0, 0),
                 new EvaluateResponse.Metadata(null, null));
     }
 }

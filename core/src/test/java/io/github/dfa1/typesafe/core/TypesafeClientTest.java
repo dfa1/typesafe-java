@@ -50,7 +50,7 @@ class TypesafeClientTest {
                 "Content-Type", "application/json");
         String requestBody = "{\"request\":true}";
         String responseBody = "{\"response\":true}";
-        EvaluateResponse decodedResponse = new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), Map.of(), new Usage(10, 5), null);
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(10, 5), null);
 
         given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
         given(httpTransport.post(ENDPOINT, expectedHeaders, requestBody))
@@ -64,7 +64,7 @@ class TypesafeClientTest {
         then(jsonCodec).should().writeValueAsString(request);
         then(httpTransport).should().post(ENDPOINT, expectedHeaders, requestBody);
         then(jsonCodec).should().readValue(responseBody, EvaluateResponse.class);
-        assertThat(result.model()).isEqualTo(new RequestModel.Pinned("jev-latest", null, null));
+        assertThat(result.model()).isEqualTo(Model.LATEST);
         assertThat(result.usage().inputTokens()).isEqualTo(10);
     }
 
@@ -79,7 +79,7 @@ class TypesafeClientTest {
 
         URI modelsEndpoint = URI.create("https://example.test/v1/models");
         Map<String, String> expectedHeaders = Map.of("Authorization", "Bearer secret");
-        List<RequestModel.Pinned> models = List.of(new RequestModel.Pinned("jev-latest", "Most recent stable release.", "2026-01-01"));
+        List<ModelDetails> models = List.of(new ModelDetails("jev-latest", "Most recent stable release.", "2026-01-01"));
 
         given(httpTransport.get(modelsEndpoint, expectedHeaders))
                 .willReturn(new HttpTransportResponse(200, Map.of(), "models-json"));
@@ -87,7 +87,7 @@ class TypesafeClientTest {
                 .willReturn(new TypesafeClient.ModelsResponse(models));
 
         // When
-        List<RequestModel.Pinned> result = sut.listModels();
+        List<ModelDetails> result = sut.listModels();
 
         // Then
         then(httpTransport).should().get(modelsEndpoint, expectedHeaders);
@@ -134,7 +134,7 @@ class TypesafeClientTest {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
-        EvaluateResponse decodedResponse = new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), Map.of(), new Usage(1, 1), null);
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
         given(httpTransport.post(any(), any(), any()))
@@ -146,7 +146,7 @@ class TypesafeClientTest {
         EvaluateResponse result = sut.evaluate(request);
 
         // Then
-        assertThat(result.model()).isEqualTo(new RequestModel.Pinned("jev-latest", null, null));
+        assertThat(result.model()).isEqualTo(Model.LATEST);
         then(httpTransport).should(times(2)).post(any(), any(), any());
     }
 
@@ -172,7 +172,7 @@ class TypesafeClientTest {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
-        EvaluateResponse decodedResponse = new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), Map.of(), new Usage(1, 1), null);
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         Map<String, String> responseHeaders = Map.of(
                 "x-typesafe-request-id", "req_123",
                 "x-envoy-upstream-service-time", "42");
@@ -195,7 +195,7 @@ class TypesafeClientTest {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
-        EvaluateResponse decodedResponse = new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), Map.of(), new Usage(1, 1), null);
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
         given(httpTransport.postAsync(any(), any(), any()))
@@ -207,7 +207,7 @@ class TypesafeClientTest {
         EvaluateResponse result = sut.evaluateAsync(request).get();
 
         // Then
-        assertThat(result.model()).isEqualTo(new RequestModel.Pinned("jev-latest", null, null));
+        assertThat(result.model()).isEqualTo(Model.LATEST);
     }
 
     @Test
@@ -215,7 +215,7 @@ class TypesafeClientTest {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
-        EvaluateResponse decodedResponse = new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), Map.of(), new Usage(1, 1), null);
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
         given(httpTransport.postAsync(any(), any(), any()))
@@ -229,7 +229,7 @@ class TypesafeClientTest {
         EvaluateResponse result = sut.evaluateAsync(request).get();
 
         // Then
-        assertThat(result.model()).isEqualTo(new RequestModel.Pinned("jev-latest", null, null));
+        assertThat(result.model()).isEqualTo(Model.LATEST);
         then(httpTransport).should(times(2)).postAsync(any(), any(), any());
     }
 
