@@ -117,6 +117,10 @@ record EvaluateResponse.Metadata(RequestId requestId, Duration upstreamServiceTi
 `metadata.requestId()` comes from the `x-typesafe-request-id` response header (`null` if absent).
 `metadata.upstreamServiceTime()` comes from `x-envoy-upstream-service-time` (`null` if absent).
 
+`nouls()`/`choices()`/`scores()` each return `answers()` narrowed to just that `Answer`
+subtype's entries, recomputed on every call (not cached) — a convenience over `instanceof`
+filtering the mixed map yourself.
+
 ### `Usage`
 
 ```java

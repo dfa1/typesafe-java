@@ -44,3 +44,5 @@ First version — no released API yet, so nothing to describe changes against.
   `TypesafeClient.listModels()` (`GET /v1/models`) — `HttpTransport` gained a matching
   `get(URI, headers)` method. Lets a caller discover and pin a model this client has no
   constant for, rather than being limited to the three previously hardcoded enum values.
+- Added `EvaluateResponse.nouls()`/`.choices()`/`.scores()`, each `answers()` narrowed to that
+  `Answer` subtype's entries — an alternative to `instanceof`/casting the mixed map yourself.

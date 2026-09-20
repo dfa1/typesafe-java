@@ -138,6 +138,20 @@ market.confidence();      // 0.0–1.0
 market.probabilities();   // per-option probability map
 ```
 
+`response.choices().get("market")` does the same cast for you — see the next section.
+
+## Read only the Noul/Choice/Score answers you asked for
+
+`answers()` mixes every answer type in one map, keyed by question name. If a request only asks
+`Choice` questions (or you only care about the `Choice` ones back), skip the `instanceof`/cast:
+
+```java
+Map<String, Answer.Choice> choices = response.choices();   // also: .nouls(), .scores()
+choices.get("market").choice();
+```
+
+Each is `answers()` narrowed to that subtype, recomputed on every call.
+
 ## Ask a Score question
 
 `Question.score` ranks a statement against an ordered list of labels (e.g. a Likert scale):
