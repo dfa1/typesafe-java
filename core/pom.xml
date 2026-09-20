@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.github.dfa1.typesafe-java</groupId>
     <artifactId>typesafe-java</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0</version>
   </parent>
 
   <artifactId>typesafe-java-core</artifactId>
