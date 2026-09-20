@@ -33,10 +33,11 @@ for the full walkthrough.
 
 No Java coding required — the `cli` module builds a self-contained uber-jar, handy for wiring a
 check into a Jenkins job, a shell script, or any other CI pipeline without writing a line of
-Java. Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest)
-or [Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli)
+Java. Download it from
+[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli)
 (under the `all` classifier — the plain artifact is just this module's own classes, not
-runnable on its own), or build it from source:
+runnable on its own; the [latest release](https://github.com/dfa1/typesafe-java/releases/latest)
+notes link straight to the jar), or build it from source:
 
 ```bash
 ./mvnw -pl cli -am package -DskipTests

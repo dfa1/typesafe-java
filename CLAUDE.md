@@ -144,8 +144,9 @@ git push && git push --tags          # GitHub Actions deploys the tag to Maven C
 (`pushChanges=false`) until the explicit `git push` above. `acceptance` opts out of publishing
 (`maven.deploy.skip`/`skipPublishing` in its pom) — it only exists to run its own tests. `cli`
 *is* published: a plain main jar plus the runnable uber-jar under the `all` classifier (see
-Module structure above); `publish.yml` also attaches the `all` jar and its GPG signature
-(`.asc`, produced by the same release-profile build) to the GitHub release, so it's downloadable
-and verifiable without a Maven client.
-`CHANGELOG.md` needs a `## [<version>] - <date>` section *before* tagging: the `publish`
-workflow extracts that section verbatim as the GitHub release notes.
+Module structure above), GPG-signed like every other artifact. `CHANGELOG.md` needs a
+`## [<version>] - <date>` section *before* tagging: the `publish` workflow extracts that section
+verbatim as the GitHub release notes, then appends a direct link to the `all` jar (and its
+`.asc`) on Maven Central — `waitUntil=published` on the deploy step means it's already live by
+the time the release is created, so `publish.yml` links to it instead of re-uploading the same
+bytes as a release asset.

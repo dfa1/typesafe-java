@@ -301,10 +301,10 @@ is `String`-based too.)
 The `cli` module builds an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
 ad hoc checks against the real API, without writing any Java — published under the `all`
 classifier (`typesafe-java-cli-VERSION-all.jar`; the plain artifact is just this module's own
-classes, not runnable). Download it from the
-[latest release](https://github.com/dfa1/typesafe-java/releases/latest) or
-[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli),
-or build it: `./mvnw -pl cli -am package -DskipTests` (jar lands in `cli/target/`).
+classes, not runnable). Download it from
+[Maven Central](https://central.sonatype.com/artifact/io.github.dfa1.typesafe-java/typesafe-java-cli)
+(the [latest release](https://github.com/dfa1/typesafe-java/releases/latest) notes link straight
+to the jar), or build it: `./mvnw -pl cli -am package -DskipTests` (jar lands in `cli/target/`).
 
 ```bash
 java -jar typesafe-java-cli-*-all.jar \

@@ -41,12 +41,12 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
           # cli's runnable uber-jar is published to Maven Central above under the "all"
-          # classifier (its main artifact is a plain, non-executable jar), signed there by
-          # maven-gpg-plugin; both the jar and its .asc are attached here too so the jar is
-          # downloadable and verifiable without a Maven client.
+          # classifier (its main artifact is a plain, non-executable jar), GPG-signed by
+          # maven-gpg-plugin; waitUntil=published means it's already live by this point, so
+          # link straight to it instead of duplicating the binary as a release asset.
+          JAR_URL="https://repo1.maven.org/maven2/io/github/dfa1/typesafe-java/typesafe-java-cli/$VERSION/typesafe-java-cli-$VERSION-all.jar"
+          NOTES="$(printf "%s\n\n**CLI:** [typesafe-java-cli-%s-all.jar](%s) ([signature](%s.asc)) — \`java -jar\`, not a Maven dependency." "$NOTES" "$VERSION" "$JAR_URL" "$JAR_URL")"
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes "$NOTES" \
-            --verify-tag \
-            "cli/target/typesafe-java-cli-$VERSION-all.jar" \
-            "cli/target/typesafe-java-cli-$VERSION-all.jar.asc"
+            --verify-tag
