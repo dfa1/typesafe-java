@@ -157,6 +157,8 @@ record ApiToken(String value)
 
 - `ApiToken.fromFile(Path)` — reads and trims the file contents.
 - `ApiToken.fromDefaultFile()` — reads `~/.typesafe.apitoken`.
+- `ApiToken.fromEnv()` — reads the `TYPESAFE_API_TOKEN` environment variable; throws
+  `IllegalStateException` if it's not set.
 - `toHttpHeaderValue()` — `"Bearer " + value`.
 - `toString()` never leaks `value`.
 - Constructor throws `IllegalArgumentException` on a blank value.

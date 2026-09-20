@@ -15,3 +15,5 @@ First version — no released API yet, so nothing to describe changes against.
   Not published as a library artifact.
 - Removed `TypesafeClient.withDefaultToken()`: its name read as "a default token" rather
   than "the default token *file*". Use `TypesafeClient.builder(ApiToken.fromDefaultFile()).build()`.
+- Added `ApiToken.fromEnv()`: reads the `TYPESAFE_API_TOKEN` environment variable, aligning
+  the env-var case with the existing `fromFile`/`fromDefaultFile` factory methods. (#5)

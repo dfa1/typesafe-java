@@ -8,6 +8,7 @@ import java.util.Objects;
 public record ApiToken(String value) {
 
     private static final Path DEFAULT_PATH = Path.of(System.getProperty("user.home"), ".typesafe.apitoken");
+    private static final String ENV_VAR = "TYPESAFE_API_TOKEN";
 
     public ApiToken {
         Objects.requireNonNull(value, "value");
@@ -22,6 +23,14 @@ public record ApiToken(String value) {
 
     public static ApiToken fromDefaultFile() throws IOException {
         return fromFile(DEFAULT_PATH);
+    }
+
+    public static ApiToken fromEnv() {
+        String value = System.getenv(ENV_VAR);
+        if (value == null) {
+            throw new IllegalStateException(ENV_VAR + " is not set");
+        }
+        return new ApiToken(value);
     }
 
     public String toHttpHeaderValue() {

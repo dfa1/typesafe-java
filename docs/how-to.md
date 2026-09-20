@@ -18,8 +18,12 @@ TypesafeClient client = TypesafeClient.builder(token).build();
 ApiToken token = ApiToken.fromFile(Path.of("/secrets/typesafe.token"));
 TypesafeClient client = TypesafeClient.builder(token).build();
 
-// 3. An in-memory value (e.g. from an env var or secrets manager)
-ApiToken token = new ApiToken(System.getenv("TYPESAFE_API_TOKEN"));
+// 3. TYPESAFE_API_TOKEN environment variable
+ApiToken token = ApiToken.fromEnv();
+TypesafeClient client = TypesafeClient.builder(token).build();
+
+// 4. Any other in-memory value (e.g. a secrets manager)
+ApiToken token = new ApiToken(secretsManager.getSecret("typesafe-token"));
 TypesafeClient client = TypesafeClient.builder(token).build();
 ```
 

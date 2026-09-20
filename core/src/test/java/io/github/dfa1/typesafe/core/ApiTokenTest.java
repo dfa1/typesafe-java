@@ -9,6 +9,7 @@ import java.nio.file.Path;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 class ApiTokenTest {
 
@@ -42,5 +43,13 @@ class ApiTokenTest {
     void rejectsBlankToken() {
         // When / Then
         assertThatIllegalArgumentException().isThrownBy(() -> new ApiToken("  "));
+    }
+
+    @Test
+    void failsWhenEnvVarNotSet() {
+        // When / Then
+        assertThatIllegalStateException()
+                .isThrownBy(ApiToken::fromEnv)
+                .withMessageContaining("TYPESAFE_API_TOKEN");
     }
 }
