@@ -86,10 +86,10 @@ one with the three-argument overload — either the other symbolic alias:
 EvaluateRequest request = EvaluateRequest.of(state, RequestModel.Alias.PREVIEW, questions);
 ```
 
-or a concrete `Model` by id, e.g. one returned by `client.listModels()`:
+or a concrete `RequestModel.Pinned` by id, e.g. one returned by `client.listModels()`:
 
 ```java
-EvaluateRequest request = EvaluateRequest.of(state, new Model("jev-1.13.0", null, null), questions);
+EvaluateRequest request = EvaluateRequest.of(state, new RequestModel.Pinned("jev-1.13.0", null, null), questions);
 ```
 
 `description`/`releaseDate` are only used for display — the request only ever sends the id.
@@ -97,11 +97,11 @@ EvaluateRequest request = EvaluateRequest.of(state, new Model("jev-1.13.0", null
 ## List the available models
 
 ```java
-List<Model> models = client.listModels();
+List<RequestModel.Pinned> models = client.listModels();
 models.forEach(m -> System.out.println(m.name() + ": " + m.description() + " (" + m.releaseDate() + ")"));
 ```
 
-See [reference.md#model](reference.md#model) for the full shape.
+See [reference.md#requestmodel-sealed-interface](reference.md#requestmodel-sealed-interface) for the full shape.
 
 ## Build a request with the fluent builder
 

@@ -2,7 +2,6 @@ package io.github.dfa1.typesafe.cli;
 
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
-import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.TypesafeClient;
@@ -114,7 +113,7 @@ class MainTest {
         RequestModel result = Main.requestModel("jev-1.13.0");
 
         // Then
-        assertThat(result).isEqualTo(new Model("jev-1.13.0", null, null));
+        assertThat(result).isEqualTo(new RequestModel.Pinned("jev-1.13.0", null, null));
     }
 
     @Test
@@ -361,7 +360,7 @@ class MainTest {
     }
 
     private static EvaluateResponse response(Map<String, Answer> answers) {
-        return new EvaluateResponse(new Model("jev-latest", null, null), answers, new Usage(0, 0),
+        return new EvaluateResponse(new RequestModel.Pinned("jev-latest", null, null), answers, new Usage(0, 0),
                 new EvaluateResponse.Metadata(null, null));
     }
 }

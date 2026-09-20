@@ -36,12 +36,13 @@ First version — no released API yet, so nothing to describe changes against.
 - `TypesafeClient` now implements `AutoCloseable`; `close()` closes the configured
   `HttpTransport`. `HttpTransport` gained a `close()` method (default no-op, so existing
   implementations don't break); `JdkHttpTransport.close()` closes its `HttpClient` (JDK 21+).
-- Split `Model` into `RequestModel` (sealed interface, permitting `Model` and the new
-  `RequestModel.Alias` enum holding `LATEST`/`PREVIEW`) and `Model` (now a plain
-  `record Model(name, description, releaseDate)`). `EvaluateRequest.model` is now a
-  `RequestModel`; `EvaluateResponse.model` is now a `Model` (was `String`), with
-  `description`/`releaseDate` left `null` since the evaluate response only reports the id.
-  Added `TypesafeClient.listModels()` (`GET /v1/models`) to look up the full list, each with
-  its description and release date — `HttpTransport` gained a matching `get(URI, headers)`
-  method. Lets a caller discover and pin a model this client has no constant for, rather than
-  being limited to the three previously hardcoded `Model` enum values.
+- Replaced the old `Model` enum (three hardcoded constants) with `RequestModel`, a sealed
+  interface with two nested variants: `RequestModel.Alias` (`LATEST`/`PREVIEW`, the symbolic
+  values the server resolves) and `RequestModel.Pinned` (a plain
+  `record Pinned(name, description, releaseDate)`, pinning a specific id). `EvaluateRequest.model`
+  is now a `RequestModel`; `EvaluateResponse.model` is now a `RequestModel.Pinned` (was `String`),
+  with `description`/`releaseDate` left `null` since the evaluate response only reports the id.
+  Added `TypesafeClient.listModels()` (`GET /v1/models`) to look up the full list, each with its
+  description and release date — `HttpTransport` gained a matching `get(URI, headers)` method.
+  Lets a caller discover and pin a model this client has no constant for, rather than being
+  limited to the three previously hardcoded enum values.

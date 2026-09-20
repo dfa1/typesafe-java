@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `RequestModel`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `RequestModel` (`Pinned`/`Alias`), `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
 | `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
@@ -93,13 +93,16 @@ name would otherwise silently overwrite the first in the underlying map.
 ### `RequestModel` (sealed interface)
 
 ```java
-sealed interface RequestModel permits Model, RequestModel.Alias {
+sealed interface RequestModel permits RequestModel.Pinned, RequestModel.Alias {
     String id();
+
+    record Pinned(String name, String description, String releaseDate) implements RequestModel
+    enum Alias implements RequestModel { LATEST, PREVIEW }
 }
 ```
 
-An `EvaluateRequest`'s model: either a concrete `Model` (see below), or a symbolic alias the
-server resolves — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
+An `EvaluateRequest`'s model: either a concrete `Pinned` model, or a symbolic `Alias` the server
+resolves — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
 
 | Constant | Wire value | Meaning |
 |---|---|---|
@@ -109,22 +112,17 @@ server resolves — see [docs.typesafe.ai/models](https://docs.typesafe.ai/model
 Codecs serialize any `RequestModel` (whichever variant) as its `id()` string — no `type`
 discriminator on the wire, since a request's `model` field is always a plain string.
 
-### `Model`
-
-```java
-record Model(String name, String description, String releaseDate) implements RequestModel
-```
-
-A concrete, versioned model — what `TypesafeClient.listModels()` returns, and what
-`EvaluateResponse.model()` reports back (with `description`/`releaseDate` left `null`, since the
-evaluate response only reports the id). `id()` returns `name()`. Also usable directly as an
-`EvaluateRequest`'s model to pin a specific id, e.g. `new Model("jev-1.13.0", null, null)` —
-`description`/`releaseDate` are irrelevant there, since only `id()` is ever sent.
+`RequestModel.Pinned` is a concrete, versioned model — what `TypesafeClient.listModels()`
+returns, and what `EvaluateResponse.model()` reports back (with `description`/`releaseDate` left
+`null`, since the evaluate response only reports the id). `id()` returns `name()`. Also usable
+directly as an `EvaluateRequest`'s model to pin a specific id, e.g.
+`new RequestModel.Pinned("jev-1.13.0", null, null)` — `description`/`releaseDate` are irrelevant
+there, since only `id()` is ever sent.
 
 ### `EvaluateResponse`
 
 ```java
-record EvaluateResponse(Model model, Map<String, Answer> answers, Usage usage, Metadata metadata)
+record EvaluateResponse(RequestModel.Pinned model, Map<String, Answer> answers, Usage usage, Metadata metadata)
 record EvaluateResponse.Metadata(RequestId requestId, Duration upstreamServiceTime)
 ```
 
@@ -223,7 +221,7 @@ static TypesafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
-List<Model> listModels() throws IOException, InterruptedException
+List<RequestModel.Pinned> listModels() throws IOException, InterruptedException
 ```
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits

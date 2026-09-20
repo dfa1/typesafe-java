@@ -11,12 +11,13 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
 ```
 core      — TypesafeClient, ApiKey, TypesafeException, and the wire DTOs (Answer, Question,
-            State, EvaluateRequest/EvaluateResponse, Usage, RequestId, RequestModel/Model), all in
-            io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
-            HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
-            JSON or HTTP library — TypesafeClient talks to HttpTransport/JsonCodec, never to a
-            concrete library directly, so the DTOs + JsonCodec alone are reusable (e.g. by a
-            Kafka producer/consumer) without pulling in TypesafeClient's HTTP concerns.
+            State, EvaluateRequest/EvaluateResponse, Usage, RequestId, RequestModel — sealed,
+            Pinned/Alias variants), all in io.github.dfa1.typesafe.core; plus the JsonCodec
+            (io.github.dfa1.typesafe.json) + HttpTransport (io.github.dfa1.typesafe.transport)
+            SPIs. Zero dependency on any JSON or HTTP library — TypesafeClient talks to
+            HttpTransport/JsonCodec, never to a concrete library directly, so the DTOs +
+            JsonCodec alone are reusable (e.g. by a Kafka producer/consumer) without pulling
+            in TypesafeClient's HTTP concerns.
 jdk-http-client — HttpTransport backed by java.net.http (artifact
             typesafe-java-jdk-http-client, class JdkHttpTransport, package
             io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via

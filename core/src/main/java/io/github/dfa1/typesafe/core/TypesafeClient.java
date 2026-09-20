@@ -143,7 +143,7 @@ public final class TypesafeClient implements AutoCloseable {
     }
 
     /** Lists the models available to the account. */
-    public List<Model> listModels() throws IOException, InterruptedException {
+    public List<RequestModel.Pinned> listModels() throws IOException, InterruptedException {
         Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
         HttpTransportResponse response = sendWithRetry(() -> transport.get(modelsEndpoint, headers));
         return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
@@ -170,7 +170,7 @@ public final class TypesafeClient implements AutoCloseable {
         HttpTransportResponse send() throws IOException, InterruptedException;
     }
 
-    record ModelsResponse(List<Model> models) {
+    record ModelsResponse(List<RequestModel.Pinned> models) {
     }
 
     /** Closes the underlying {@link HttpTransport}, releasing any resources it holds. */

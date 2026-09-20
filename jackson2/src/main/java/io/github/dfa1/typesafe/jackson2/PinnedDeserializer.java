@@ -1,6 +1,6 @@
 package io.github.dfa1.typesafe.jackson2;
 
-import io.github.dfa1.typesafe.core.Model;
+import io.github.dfa1.typesafe.core.RequestModel;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
@@ -13,15 +13,15 @@ import java.io.IOException;
  * evaluate response, e.g. {@code "jev-latest"}) or a full object (an entry in {@code /v1/models}'
  * listing, with {@code description}/{@code release_date}).
  */
-final class ModelDeserializer extends JsonDeserializer<Model> {
+final class PinnedDeserializer extends JsonDeserializer<RequestModel.Pinned> {
 
     @Override
-    public Model deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+    public RequestModel.Pinned deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
         JsonNode node = p.getCodec().readTree(p);
         if (node.isTextual()) {
-            return new Model(node.asText(), null, null);
+            return new RequestModel.Pinned(node.asText(), null, null);
         }
-        return new Model(
+        return new RequestModel.Pinned(
                 node.path("name").asText(null),
                 node.path("description").asText(null),
                 node.path("release_date").asText(null));

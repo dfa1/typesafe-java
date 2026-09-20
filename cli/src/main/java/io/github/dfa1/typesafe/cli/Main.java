@@ -4,7 +4,6 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
-import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestModel;
 import io.github.dfa1.typesafe.core.State;
@@ -206,7 +205,7 @@ public final class Main {
         return switch (id) {
             case "jev-latest" -> RequestModel.Alias.LATEST;
             case "jev-preview" -> RequestModel.Alias.PREVIEW;
-            default -> new Model(id, null, null);
+            default -> new RequestModel.Pinned(id, null, null);
         };
     }
 
