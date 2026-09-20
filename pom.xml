@@ -57,6 +57,7 @@
     <!-- byte-buddy-agent version must match what mockito-core pulls in transitively.
          Update this when bumping mockito.version (run: mvn dependency:tree -pl core | grep byte-buddy-agent). -->
     <bytebuddy.version>1.18.13</bytebuddy.version>
+    <junit-pioneer.version>2.3.0</junit-pioneer.version>
     <excludedGroups>acceptance</excludedGroups>
     <!-- coverage -->
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
@@ -94,6 +95,13 @@
         <version>${mockito.version}</version>
         <scope>test</scope>
       </dependency>
+
+      <dependency>
+        <groupId>org.junit-pioneer</groupId>
+        <artifactId>junit-pioneer</artifactId>
+        <version>${junit-pioneer.version}</version>
+        <scope>test</scope>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
@@ -121,8 +129,12 @@
                  when the coverage profile is active (see the argLine property default above).
                  net.bytebuddy:byte-buddy-agent:jar is resolved to an absolute path by
                  maven-dependency-plugin:properties (declared in build/plugins); loading it as
-                 a javaagent suppresses the Mockito inline-mock-maker self-attach warning. -->
-            <argLine>@{argLine} -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
+                 a javaagent suppresses the Mockito inline-mock-maker self-attach warning.
+                 The add-opens flags let junit-pioneer's @SetEnvironmentVariable reflectively
+                 mutate the process environment, blocked by default since Java 17. -->
+            <argLine>@{argLine} -javaagent:${net.bytebuddy:byte-buddy-agent:jar}
+              --add-opens java.base/java.util=ALL-UNNAMED
+              --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
           </configuration>
         </plugin>
         <plugin>

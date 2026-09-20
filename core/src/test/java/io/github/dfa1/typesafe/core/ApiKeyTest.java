@@ -2,13 +2,11 @@ package io.github.dfa1.typesafe.core;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junitpioneer.jupiter.SetEnvironmentVariable;
 
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
@@ -75,31 +73,12 @@ class ApiKeyTest {
     }
 
     @Test
-    void fromEnvReadsTheEnvironmentVariableWhenSet() throws IOException, InterruptedException {
-        // Given: fromEnv() reads the real process environment, which this JVM can't safely
-        // mutate, so exercise the success path in a child process with the var set instead.
-        // Carries over this JVM's own -javaagent (JaCoCo, when the coverage profile is
-        // active) so the child's execution counts toward coverage too.
-        List<String> command = new ArrayList<>();
-        command.add(Path.of(System.getProperty("java.home"), "bin", "java").toString());
-        ManagementFactory.getRuntimeMXBean().getInputArguments().stream()
-                .filter(arg -> arg.startsWith("-javaagent:") && arg.contains("jacoco"))
-                .forEach(command::add);
-        command.add("-cp");
-        command.add(System.getProperty("java.class.path"));
-        command.add(ApiKeyFromEnvProbe.class.getName());
-
-        ProcessBuilder processBuilder = new ProcessBuilder(command);
-        processBuilder.environment().put("TYPESAFE_API_KEY", "apikey_dummy_test_value");
-        processBuilder.redirectErrorStream(true);
-
+    @SetEnvironmentVariable(key = "TYPESAFE_API_KEY", value = "apikey_dummy_test_value")
+    void fromEnvReadsTheEnvironmentVariableWhenSet() {
         // When
-        Process process = processBuilder.start();
-        String output = new String(process.getInputStream().readAllBytes());
-        int exitCode = process.waitFor();
+        ApiKey result = ApiKey.fromEnv();
 
         // Then
-        assertThat(exitCode).isZero();
-        assertThat(output).isEqualTo("apikey_dummy_test_value");
+        assertThat(result.value()).isEqualTo("apikey_dummy_test_value");
     }
 }

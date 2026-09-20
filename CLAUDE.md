@@ -98,7 +98,10 @@ property (surefire). Opt in with:
 
 JUnit 5 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`) +
 Mockito (BDDMockito: static-import only `given`/`then`, e.g. `given(mock.m()).willReturn(v)` /
-`then(mock).should().m()` — never `willReturn`/`willThrow`/`verify` unqualified).
+`then(mock).should().m()` — never `willReturn`/`willThrow`/`verify` unqualified). JUnit Pioneer's
+`@SetEnvironmentVariable` (core only, for `ApiKeyTest`) sets an env var for one test method;
+needs the `--add-opens java.base/java.util`/`java.lang=ALL-UNNAMED` flags on surefire's `argLine`
+in the root pom (Java 17+ blocks the reflection it uses otherwise).
 Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
