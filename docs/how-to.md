@@ -175,14 +175,14 @@ TypesafeClient client = TypesafeClient.builder(token)
         .jsonCodec(jsonCodec)
         .build();
 
-given(jsonCodec.writeValueAsBytes(request)).willReturn(requestBytes);
-given(httpTransport.post(any(), any(), eq(requestBytes)))
-        .willReturn(new HttpTransportResponse(200, Map.of(), responseBytes));
-given(jsonCodec.readValue(responseBytes, EvaluateResponse.class)).willReturn(decodedResponse);
+given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
+given(httpTransport.post(any(), any(), eq(requestBody)))
+        .willReturn(new HttpTransportResponse(200, Map.of(), responseBody));
+given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
 
 client.evaluate(request);
 
-then(httpTransport).should().post(any(), any(), eq(requestBytes));
+then(httpTransport).should().post(any(), any(), eq(requestBody));
 ```
 
 See `TypesafeClientTest` in `core` for a complete example.
@@ -197,9 +197,14 @@ them on a Kafka topic — depend on `typesafe-java-core` plus a codec module, an
 
 ```java
 JsonCodec codec = new Jackson2Codec();
-byte[] bytes = codec.writeValueAsBytes(request);
-EvaluateResponse response = codec.readValue(bytes, EvaluateResponse.class);
+String json = codec.writeValueAsString(request);
+EvaluateResponse response = codec.readValue(json, EvaluateResponse.class);
 ```
+
+(A Kafka producer/consumer using a raw-`byte[]` serializer converts once at that boundary —
+`json.getBytes(UTF_8)` / `new String(bytes, UTF_8)` — the same one-line conversion any
+non-`String`-based transport needs; `TypesafeClient` itself needs none, since `HttpTransport`
+is `String`-based too.)
 
 ## Run a quick check from the command line
 

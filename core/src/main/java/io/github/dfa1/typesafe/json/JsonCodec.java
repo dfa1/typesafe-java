@@ -6,7 +6,7 @@ package io.github.dfa1.typesafe.json;
  */
 public interface JsonCodec {
 
-    byte[] writeValueAsBytes(Object value);
+    String writeValueAsString(Object value);
 
-    <T> T readValue(byte[] content, Class<T> type);
+    <T> T readValue(String content, Class<T> type);
 }

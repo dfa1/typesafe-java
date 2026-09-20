@@ -28,12 +28,12 @@ public final class Jackson3Codec implements JsonCodec {
             .build();
 
     @Override
-    public byte[] writeValueAsBytes(Object value) {
-        return mapper.writeValueAsBytes(value);
+    public String writeValueAsString(Object value) {
+        return mapper.writeValueAsString(value);
     }
 
     @Override
-    public <T> T readValue(byte[] content, Class<T> type) {
+    public <T> T readValue(String content, Class<T> type) {
         return mapper.readValue(content, type);
     }
 

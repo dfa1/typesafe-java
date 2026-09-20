@@ -19,6 +19,11 @@ First version — no released API yet, so nothing to describe changes against.
   the env-var case with the existing `fromFile`/`fromDefaultFile` factory methods. (#5)
 - Changed `HttpTransport.post`/`postAsync` and `HttpTransportResponse.body` from `byte[]` to
   `String`: this SPI only ever carries JSON, which is UTF-8 by construction, so there's no
-  charset for this layer to guess at. `JsonCodec` is unaffected — still `byte[]`-based, since
-  it's reused standalone (e.g. a Kafka producer/consumer). `HttpTransportResponse` also now
-  copies `headers` defensively (`Map.copyOf`).
+  charset for this layer to guess at. `HttpTransportResponse` also now copies `headers`
+  defensively (`Map.copyOf`).
+- Renamed `JsonCodec.writeValueAsBytes`/`readValue(byte[], ...)` to `writeValueAsString`/
+  `readValue(String, ...)`, same reasoning as `HttpTransport` above — every call site in this
+  codebase immediately wrapped the `byte[]` result in `new String(..., UTF_8)` anyway. A
+  caller integrating with a raw-`byte[]` system (e.g. Kafka) converts once at that boundary.
+  `TypesafeClient` now passes a request/response straight through both SPIs with no encode/
+  decode step in between.

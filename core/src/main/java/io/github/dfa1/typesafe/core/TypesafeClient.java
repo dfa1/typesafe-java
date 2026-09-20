@@ -6,7 +6,6 @@ import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -101,7 +100,7 @@ public final class TypesafeClient {
 
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
         Map<String, String> headers = requestHeaders();
-        String body = new String(jsonCodec.writeValueAsBytes(request), StandardCharsets.UTF_8);
+        String body = jsonCodec.writeValueAsString(request);
 
         for (int attempt = 0; ; attempt++) {
             HttpTransportResponse response = transport.post(endpoint, headers, body);
@@ -122,7 +121,7 @@ public final class TypesafeClient {
         Map<String, String> headers = requestHeaders();
         String body;
         try {
-            body = new String(jsonCodec.writeValueAsBytes(request), StandardCharsets.UTF_8);
+            body = jsonCodec.writeValueAsString(request);
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -160,7 +159,7 @@ public final class TypesafeClient {
     }
 
     private EvaluateResponse toEvaluateResponse(HttpTransportResponse response) {
-        EvaluateResponse body = jsonCodec.readValue(response.body().getBytes(StandardCharsets.UTF_8), EvaluateResponse.class);
+        EvaluateResponse body = jsonCodec.readValue(response.body(), EvaluateResponse.class);
         EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
                 response.header("x-typesafe-request-id").map(RequestId::new).orElse(null),
                 response.header("x-envoy-upstream-service-time")

@@ -7,7 +7,6 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
 import org.junit.jupiter.api.Test;
 
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -32,7 +31,7 @@ class Jackson3CodecTest {
                 ));
 
         // When
-        String result = new String(sut.writeValueAsBytes(request), StandardCharsets.UTF_8);
+        String result = sut.writeValueAsString(request);
 
         // Then
         assertThat(result)
@@ -46,11 +45,10 @@ class Jackson3CodecTest {
     @Test
     void serializesEachStateShapeAsItsRawJsonType() {
         // When / Then
-        assertThat(new String(sut.writeValueAsBytes(State.text("hi")), StandardCharsets.UTF_8))
-                .isEqualTo("\"hi\"");
-        assertThat(new String(sut.writeValueAsBytes(State.fields(Map.of("order_id", "A-104"))), StandardCharsets.UTF_8))
+        assertThat(sut.writeValueAsString(State.text("hi"))).isEqualTo("\"hi\"");
+        assertThat(sut.writeValueAsString(State.fields(Map.of("order_id", "A-104"))))
                 .isEqualTo("{\"order_id\":\"A-104\"}");
-        assertThat(new String(sut.writeValueAsBytes(State.messages(List.of("hi", "there"))), StandardCharsets.UTF_8))
+        assertThat(sut.writeValueAsString(State.messages(List.of("hi", "there"))))
                 .isEqualTo("[\"hi\",\"there\"]");
     }
 
@@ -73,7 +71,7 @@ class Jackson3CodecTest {
                 """;
 
         // When
-        EvaluateResponse result = sut.readValue(json.getBytes(StandardCharsets.UTF_8), EvaluateResponse.class);
+        EvaluateResponse result = sut.readValue(json, EvaluateResponse.class);
 
         // Then
         assertThat(result.usage().inputTokens()).isEqualTo(312);

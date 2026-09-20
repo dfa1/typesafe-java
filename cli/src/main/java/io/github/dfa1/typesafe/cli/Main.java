@@ -11,7 +11,6 @@ import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
 
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -89,7 +88,7 @@ public final class Main {
         EvaluateRequest request = EvaluateRequest.of(State.text(state), model, questions);
 
         if (verbose) {
-            System.err.println("request: " + new String(codec.writeValueAsBytes(request), StandardCharsets.UTF_8));
+            System.err.println("request: " + codec.writeValueAsString(request));
         }
 
         TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
@@ -99,7 +98,7 @@ public final class Main {
         EvaluateResponse response = client.evaluate(request);
 
         if (verbose) {
-            System.err.println("response: " + new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
+            System.err.println("response: " + codec.writeValueAsString(response));
             System.err.println("request-id: " + response.metadata().requestId());
         }
         if (timing) {
@@ -107,7 +106,7 @@ public final class Main {
         }
         try {
             if (printNames.isEmpty()) {
-                System.out.println(new String(codec.writeValueAsBytes(response), StandardCharsets.UTF_8));
+                System.out.println(codec.writeValueAsString(response));
             } else {
                 printNames.forEach(name -> System.out.println(answerValue(response, name)));
             }

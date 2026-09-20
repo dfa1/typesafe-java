@@ -12,7 +12,6 @@ import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
-import java.io.IOException;
 import java.io.UncheckedIOException;
 
 /**
@@ -30,19 +29,19 @@ public final class Jackson2Codec implements JsonCodec {
             .registerModule(new SimpleModule().addSerializer(State.class, new StateSerializer()));
 
     @Override
-    public byte[] writeValueAsBytes(Object value) {
+    public String writeValueAsString(Object value) {
         try {
-            return mapper.writeValueAsBytes(value);
+            return mapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public <T> T readValue(byte[] content, Class<T> type) {
+    public <T> T readValue(String content, Class<T> type) {
         try {
             return mapper.readValue(content, type);
-        } catch (IOException e) {
+        } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
     }
