@@ -9,10 +9,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -168,6 +170,82 @@ class TypesafeClientTest {
     }
 
     @Test
+    void evaluateRetriesOnAnyServerErrorStatus() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willReturn(new HttpTransportResponse(503, Map.of(), "unavailable"))
+                .willReturn(new HttpTransportResponse(200, Map.of(), "ok"));
+        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.model()).isEqualTo(Model.LATEST);
+    }
+
+    @Test
+    void evaluateRetriesOnRequestTimeoutStatus() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willReturn(new HttpTransportResponse(408, Map.of(), "request timeout"))
+                .willReturn(new HttpTransportResponse(200, Map.of(), "ok"));
+        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.model()).isEqualTo(Model.LATEST);
+    }
+
+    @Test
+    void evaluateRetriesOnAConnectionFailureThenSucceeds() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willThrow(new IOException("connection reset"))
+                .willReturn(new HttpTransportResponse(200, Map.of(), "ok"));
+        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.model()).isEqualTo(Model.LATEST);
+        then(httpTransport).should(times(2)).post(any(), any(), any());
+    }
+
+    @Test
+    void evaluateThrowsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        IOException connectionFailure = new IOException("connection reset");
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any())).willThrow(connectionFailure);
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(request)).isSameAs(connectionFailure);
+        then(httpTransport).should(times(2)).post(any(), any(), any());
+    }
+
+    @Test
     void evaluatePopulatesMetadataFromResponseHeaders() throws Exception {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
@@ -251,6 +329,45 @@ class TypesafeClientTest {
     }
 
     @Test
+    void evaluateAsyncRetriesOnAConnectionFailureThenSucceeds() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.postAsync(any(), any(), any()))
+                .willReturn(CompletableFuture.failedFuture(new IOException("connection reset")))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
+        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+
+        // When
+        EvaluateResponse result = sut.evaluateAsync(request).get();
+
+        // Then
+        assertThat(result.model()).isEqualTo(Model.LATEST);
+        then(httpTransport).should(times(2)).postAsync(any(), any(), any());
+    }
+
+    @Test
+    void evaluateAsyncFailsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        IOException connectionFailure = new IOException("connection reset");
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.postAsync(any(), any(), any()))
+                .willReturn(CompletableFuture.failedFuture(connectionFailure));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluateAsync(request).get())
+                .isInstanceOf(ExecutionException.class)
+                .cause().isSameAs(connectionFailure);
+        then(httpTransport).should(times(2)).postAsync(any(), any(), any());
+    }
+
+    @Test
     void evaluateAsyncFailsFastWhenEncodingTheRequestThrows() {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);
@@ -304,6 +421,82 @@ class TypesafeClientTest {
         assertThatThrownBy(sut::build)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JsonCodec");
+    }
+
+    @Test
+    void isRetryableStatusAcceptsRequestTimeoutRateLimitAndAnyServerError() {
+        // When / Then
+        assertThat(TypesafeClient.isRetryableStatus(408)).isTrue();
+        assertThat(TypesafeClient.isRetryableStatus(429)).isTrue();
+        assertThat(TypesafeClient.isRetryableStatus(500)).isTrue();
+        assertThat(TypesafeClient.isRetryableStatus(599)).isTrue();
+    }
+
+    @Test
+    void isRetryableStatusRejectsOrdinaryClientErrors() {
+        // When / Then
+        assertThat(TypesafeClient.isRetryableStatus(400)).isFalse();
+        assertThat(TypesafeClient.isRetryableStatus(404)).isFalse();
+    }
+
+    @Test
+    void retryAfterParsesSeconds() {
+        // Given
+        HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "2"), "");
+
+        // When
+        Optional<Duration> result = TypesafeClient.retryAfter(response);
+
+        // Then
+        assertThat(result).contains(Duration.ofSeconds(2));
+    }
+
+    @Test
+    void retryAfterPrefersMillisecondsOverSeconds() {
+        // Given
+        HttpTransportResponse response =
+                new HttpTransportResponse(429, Map.of("retry-after-ms", "250", "retry-after", "5"), "");
+
+        // When
+        Optional<Duration> result = TypesafeClient.retryAfter(response);
+
+        // Then
+        assertThat(result).contains(Duration.ofMillis(250));
+    }
+
+    @Test
+    void retryAfterIsEmptyWhenTheHeaderIsAnHttpDateOrAbsent() {
+        // When / Then
+        assertThat(TypesafeClient.retryAfter(
+                new HttpTransportResponse(429, Map.of("retry-after", "Wed, 21 Oct 2026 07:28:00 GMT"), "")))
+                .isEmpty();
+        assertThat(TypesafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
+    }
+
+    @Test
+    void backoffForUsesTheRetryAfterHeaderWhenPresent() {
+        // Given
+        TypesafeClient sut = clientWith(Duration.ofSeconds(10));
+        HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "1"), "");
+
+        // When
+        Duration result = sut.backoffFor(response, 0);
+
+        // Then
+        assertThat(result).isEqualTo(Duration.ofSeconds(1));
+    }
+
+    @Test
+    void backoffForFallsBackToExponentialWhenNoHeaderIsPresent() {
+        // Given
+        TypesafeClient sut = clientWith(Duration.ofMillis(100));
+        HttpTransportResponse response = new HttpTransportResponse(429, Map.of(), "");
+
+        // When
+        Duration result = sut.backoffFor(response, 2);
+
+        // Then
+        assertThat(result).isEqualTo(Duration.ofMillis(400));
     }
 
     private TypesafeClient clientWith(Duration backoff) {

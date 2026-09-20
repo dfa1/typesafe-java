@@ -10,8 +10,10 @@ import java.time.Duration;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
 public final class TypesafeClient implements AutoCloseable {
@@ -121,25 +123,43 @@ public final class TypesafeClient implements AutoCloseable {
 
     private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, String body, int attempt) {
         return transport.postAsync(endpoint, headers, body)
-                .thenCompose(response -> {
-                    int status = response.statusCode();
+                .handle((response, error) -> error == null
+                        ? handleAsyncResponse(response, headers, body, attempt)
+                        : retryOnConnectionFailure(error, headers, body, attempt))
+                .thenCompose(stage -> stage);
+    }
 
-                    if (status == 200) {
-                        try {
-                            return CompletableFuture.completedFuture(toEvaluateResponse(response));
-                        } catch (RuntimeException e) {
-                            return CompletableFuture.failedFuture(e);
-                        }
-                    }
-                    if ((status == 429 || status == 529) && attempt < maxRetries) {
-                        Duration backoff = initialBackoff.multipliedBy(1L << attempt);
-                        return CompletableFuture
-                                .supplyAsync(() -> null,
-                                        CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
-                                .thenCompose(ignored -> evaluateAsync(headers, body, attempt + 1));
-                    }
-                    return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
-                });
+    private CompletableFuture<EvaluateResponse> handleAsyncResponse(
+            HttpTransportResponse response, Map<String, String> headers, String body, int attempt) {
+        int status = response.statusCode();
+
+        if (status == 200) {
+            try {
+                return CompletableFuture.completedFuture(toEvaluateResponse(response));
+            } catch (RuntimeException e) {
+                return CompletableFuture.failedFuture(e);
+            }
+        }
+        if (isRetryableStatus(status) && attempt < maxRetries) {
+            return delayThenRetry(backoffFor(response, attempt), headers, body, attempt);
+        }
+        return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
+    }
+
+    private CompletableFuture<EvaluateResponse> retryOnConnectionFailure(
+            Throwable error, Map<String, String> headers, String body, int attempt) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+        if (cause instanceof IOException && attempt < maxRetries) {
+            return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), headers, body, attempt);
+        }
+        return CompletableFuture.failedFuture(cause);
+    }
+
+    private CompletableFuture<EvaluateResponse> delayThenRetry(
+            Duration backoff, Map<String, String> headers, String body, int attempt) {
+        return CompletableFuture
+                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
+                .thenCompose(ignored -> evaluateAsync(headers, body, attempt + 1));
     }
 
     /** Lists the models available to the account. */
@@ -151,14 +171,23 @@ public final class TypesafeClient implements AutoCloseable {
 
     private HttpTransportResponse sendWithRetry(HttpCall call) throws IOException, InterruptedException {
         for (int attempt = 0; ; attempt++) {
-            HttpTransportResponse response = call.send();
+            HttpTransportResponse response;
+            try {
+                response = call.send();
+            } catch (IOException e) {
+                if (attempt < maxRetries) {
+                    Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
+                    continue;
+                }
+                throw e;
+            }
             int status = response.statusCode();
 
             if (status == 200) {
                 return response;
             }
-            if ((status == 429 || status == 529) && attempt < maxRetries) {
-                Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
+            if (isRetryableStatus(status) && attempt < maxRetries) {
+                Thread.sleep(backoffFor(response, attempt).toMillis());
                 continue;
             }
             throw new TypesafeException(status, response.body());
@@ -168,6 +197,33 @@ public final class TypesafeClient implements AutoCloseable {
     @FunctionalInterface
     private interface HttpCall {
         HttpTransportResponse send() throws IOException, InterruptedException;
+    }
+
+    /** {@code 408}/{@code 429}/any {@code 5xx}: a client- or server-side hiccup worth retrying,
+     *  as opposed to a request TypeSafe rejected outright (e.g. {@code 400}, {@code 401}). */
+    static boolean isRetryableStatus(int status) {
+        return status == 408 || status == 429 || (status >= 500 && status < 600);
+    }
+
+    /** Honors a {@code retry-after}/{@code retry-after-ms} response header when present, falling
+     *  back to exponential backoff otherwise. Does not parse the HTTP-date form of
+     *  {@code Retry-After}; that form falls back to exponential backoff too. */
+    Duration backoffFor(HttpTransportResponse response, int attempt) {
+        return retryAfter(response).orElseGet(() -> initialBackoff.multipliedBy(1L << attempt));
+    }
+
+    static Optional<Duration> retryAfter(HttpTransportResponse response) {
+        return response.header("retry-after-ms").flatMap(TypesafeClient::parseNonNegativeLong).map(Duration::ofMillis)
+                .or(() -> response.header("retry-after").flatMap(TypesafeClient::parseNonNegativeLong).map(Duration::ofSeconds));
+    }
+
+    private static Optional<Long> parseNonNegativeLong(String value) {
+        try {
+            long parsed = Long.parseLong(value.trim());
+            return parsed >= 0 ? Optional.of(parsed) : Optional.empty();
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
     }
 
     record ModelsResponse(List<ModelDetails> models) {

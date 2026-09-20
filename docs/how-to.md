@@ -191,12 +191,30 @@ try {
 
 ## Use a custom `HttpClient`
 
-`JdkHttpTransport` takes an `HttpClient`, so any JDK `HttpClient` configuration goes through it:
+`JdkHttpTransport` takes an `HttpClient`, so any JDK `HttpClient` configuration goes through it
+— e.g. `connectTimeout`, which only bounds the TCP handshake, not the wait for a response:
 
 ```java
 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
 TypesafeClient client = TypesafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
+
+## Configure the per-request timeout
+
+`JdkHttpTransport` applies a timeout to every request (`10` seconds by default,
+`JdkHttpTransport.DEFAULT_TIMEOUT`) — this is the actual "give up waiting for a response" bound,
+distinct from `HttpClient`'s `connectTimeout` above. Override it with the `(HttpClient, Duration)`
+constructor, or pass `null` to disable it entirely:
+
+```java
+TypesafeClient client = TypesafeClient.builder(token)
+        .httpTransport(new JdkHttpTransport(HttpClient.newHttpClient(), Duration.ofSeconds(30)))
+        .build();
+```
+
+A timed-out request surfaces as an `HttpTimeoutException` (a subtype of `IOException`) from
+`evaluate`/`evaluateAsync`/`listModels` — retried automatically the same as a connection failure,
+up to `maxRetries` (see below).
 
 ## Close the client when you're done with it
 
@@ -221,6 +239,17 @@ TypesafeClient client = TypesafeClient.builder(token)
         .initialBackoff(Duration.ofMillis(100))
         .build();
 ```
+
+`evaluate`/`evaluateAsync`/`listModels` all retry (up to `maxRetries`, default `5`) on:
+
+- `408`, `429`, or any `5xx` status — honoring a `retry-after`/`retry-after-ms` response header
+  when present, falling back to exponential backoff from `initialBackoff` (default `500ms`,
+  doubled each attempt) otherwise
+- a connection failure or a request timeout (any `IOException` from the transport)
+
+Any other non-`200` status, or a retryable failure that's still failing after `maxRetries`,
+throws `TypesafeException` (or the `IOException`/`HttpTimeoutException` itself, for a
+connection/timeout failure).
 
 ## Test code that uses `TypesafeClient` without hitting the real API
 

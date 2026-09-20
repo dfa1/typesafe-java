@@ -197,6 +197,10 @@ explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes i
 (JDK 21+); a custom implementation overrides `close()` only if it holds a resource worth
 releasing.
 
+`JdkHttpTransport(HttpClient http, Duration timeout)` applies `timeout` to every request via
+`HttpRequest.Builder#timeout` (`null` disables it); the no-arg and `(HttpClient)` constructors
+default it to `JdkHttpTransport.DEFAULT_TIMEOUT` (`10` seconds).
+
 ## Client
 
 Also in `io.github.dfa1.typesafe.core`.
@@ -226,9 +230,18 @@ List<ModelDetails> listModels() throws IOException, InterruptedException
 ```
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
-`/v1/models` on the same scheme/authority. Retries `429`/`529` up to 5 times (default) with
-exponential backoff starting at 500ms (default); any other non-`200` status (or a
-retry-exhausted `429`/`529`) throws `TypesafeException`.
+`/v1/models` on the same scheme/authority. All three methods retry up to `maxRetries` times
+(default `5`) on:
+
+- status `408`, `429`, or any `5xx` — honoring a `retry-after`/`retry-after-ms` response header
+  when present (the HTTP-date form of `Retry-After` isn't parsed; that case falls back to
+  backoff), otherwise exponential backoff from `initialBackoff` (default `500ms`, doubled each
+  attempt)
+- any `IOException` from the transport (a connection failure, or `JdkHttpTransport`'s request
+  timeout expiring — see below), backed off the same exponential schedule
+
+Any other non-`200` status, or a retryable failure still failing after `maxRetries`, throws
+`TypesafeException` — or, for a connection/timeout failure, the `IOException` itself.
 
 `TypesafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
 so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use

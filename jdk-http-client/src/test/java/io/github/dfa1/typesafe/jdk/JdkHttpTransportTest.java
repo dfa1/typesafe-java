@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -58,6 +59,43 @@ class JdkHttpTransportTest {
         assertThat(sent.uri()).isEqualTo(ENDPOINT);
         assertThat(sent.method()).isEqualTo("POST");
         assertThat(sent.headers().firstValue("Authorization")).contains("Bearer secret");
+        assertThat(sent.timeout()).contains(JdkHttpTransport.DEFAULT_TIMEOUT);
+    }
+
+    @Test
+    void postAppliesACustomTimeoutWhenGiven() throws Exception {
+        // Given
+        JdkHttpTransport sut = new JdkHttpTransport(httpClient, Duration.ofSeconds(3));
+        given(httpResponse.statusCode()).willReturn(200);
+        given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
+        given(httpResponse.body()).willReturn("{}");
+        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+
+        // When
+        sut.post(ENDPOINT, Map.of(), "{}");
+
+        // Then
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        then(httpClient).should().send(captor.capture(), any());
+        assertThat(captor.getValue().timeout()).contains(Duration.ofSeconds(3));
+    }
+
+    @Test
+    void postAppliesNoTimeoutWhenGivenNull() throws Exception {
+        // Given
+        JdkHttpTransport sut = new JdkHttpTransport(httpClient, null);
+        given(httpResponse.statusCode()).willReturn(200);
+        given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
+        given(httpResponse.body()).willReturn("{}");
+        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+
+        // When
+        sut.post(ENDPOINT, Map.of(), "{}");
+
+        // Then
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        then(httpClient).should().send(captor.capture(), any());
+        assertThat(captor.getValue().timeout()).isEmpty();
     }
 
     @Test
