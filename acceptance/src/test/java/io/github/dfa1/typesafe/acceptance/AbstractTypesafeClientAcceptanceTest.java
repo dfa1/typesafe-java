@@ -10,6 +10,7 @@ import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,11 @@ abstract class AbstractTypesafeClientAcceptanceTest {
                 .httpTransport(httpTransport())
                 .jsonCodec(jsonCodec())
                 .build();
+    }
+
+    @AfterEach
+    void tearDown() {
+        sut.close();
     }
 
     @Test

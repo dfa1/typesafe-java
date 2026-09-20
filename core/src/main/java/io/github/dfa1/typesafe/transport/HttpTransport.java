@@ -11,10 +11,15 @@ import java.util.concurrent.CompletableFuture;
  * (see typesafe-java-jdk-http-client) or wired explicitly via
  * {@code TypesafeClient.Builder#httpTransport}.
  */
-public interface HttpTransport {
+public interface HttpTransport extends AutoCloseable {
 
     HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException;
 
     CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
+
+    /** Releases any resources held by this transport. A no-op unless overridden. */
+    @Override
+    default void close() {
+    }
 }

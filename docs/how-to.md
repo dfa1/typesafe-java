@@ -168,6 +168,20 @@ HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).
 TypesafeClient client = TypesafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
+## Close the client when you're done with it
+
+`TypesafeClient` implements `AutoCloseable` and closes its `HttpTransport` — for
+`JdkHttpTransport`, that releases the underlying `HttpClient`:
+
+```java
+try (TypesafeClient client = TypesafeClient.builder(token).build()) {
+    client.evaluate(request);
+}
+```
+
+A client that lives for the whole process (e.g. a singleton in a long-running service) doesn't
+need closing.
+
 ## Configure the endpoint or retry policy
 
 ```java

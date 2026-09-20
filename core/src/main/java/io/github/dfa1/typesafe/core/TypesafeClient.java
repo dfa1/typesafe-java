@@ -13,7 +13,7 @@ import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-public final class TypesafeClient {
+public final class TypesafeClient implements AutoCloseable {
 
     private static final URI DEFAULT_ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
     private static final int DEFAULT_MAX_RETRIES = 5;
@@ -149,6 +149,12 @@ public final class TypesafeClient {
                     }
                     return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
                 });
+    }
+
+    /** Closes the underlying {@link HttpTransport}, releasing any resources it holds. */
+    @Override
+    public void close() {
+        transport.close();
     }
 
     private Map<String, String> requestHeaders() {

@@ -68,6 +68,21 @@ class TypesafeClientTest {
     }
 
     @Test
+    void closeClosesTheUnderlyingHttpTransport() {
+        // Given
+        TypesafeClient sut = TypesafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .build();
+
+        // When
+        sut.close();
+
+        // Then
+        then(httpTransport).should().close();
+    }
+
+    @Test
     void evaluateThrowsOnANonRetryableErrorStatus() throws Exception {
         // Given
         TypesafeClient sut = clientWith(NO_BACKOFF);

@@ -82,4 +82,16 @@ class JdkHttpTransportTest {
         assertThat(captor.getValue().uri()).isEqualTo(ENDPOINT);
         assertThat(captor.getValue().method()).isEqualTo("POST");
     }
+
+    @Test
+    void closeClosesTheUnderlyingHttpClient() {
+        // Given
+        JdkHttpTransport sut = new JdkHttpTransport(httpClient);
+
+        // When
+        sut.close();
+
+        // Then
+        then(httpClient).should().close();
+    }
 }

@@ -33,3 +33,6 @@ First version — no released API yet, so nothing to describe changes against.
   `questions` map (#1). `state(String)` is sugar for `state(State.text(...))`. Rejects a
   reused question name with `IllegalArgumentException` instead of silently overwriting the
   earlier question — a plain `Map.put` would otherwise drop it with no signal to the caller.
+- `TypesafeClient` now implements `AutoCloseable`; `close()` closes the configured
+  `HttpTransport`. `HttpTransport` gained a `close()` method (default no-op, so existing
+  implementations don't break); `JdkHttpTransport.close()` closes its `HttpClient` (JDK 21+).

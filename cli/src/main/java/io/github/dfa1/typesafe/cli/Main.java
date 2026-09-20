@@ -59,12 +59,12 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        TypesafeClient client = TypesafeClient.builder(ApiKey.fromDefaultFile())
+        try (TypesafeClient client = TypesafeClient.builder(ApiKey.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
-                .build();
-
-        return run(client, codec, parsed, out, err);
+                .build()) {
+            return run(client, codec, parsed, out, err);
+        }
     }
 
     /** The evaluate-and-print flow, taking an already-built client so it's testable without a

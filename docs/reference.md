@@ -150,10 +150,11 @@ boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as `H
 ```java
 package io.github.dfa1.typesafe.transport;
 
-public interface HttpTransport {
+public interface HttpTransport extends AutoCloseable {
     HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
             throws IOException, InterruptedException;
     CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
+    default void close() { }   // no-op unless overridden
 }
 
 public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
@@ -173,7 +174,9 @@ HTTP library. `JdkHttpTransport` (in `typesafe-java-jdk-http-client`) is discove
 `ServiceLoader.load(HttpTransport.class)` through
 `META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
 yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it
-explicitly via `Builder.httpTransport(...)`.
+explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes its `HttpClient`
+(JDK 21+); a custom implementation overrides `close()` only if it holds a resource worth
+releasing.
 
 ## Client
 
@@ -205,6 +208,10 @@ CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
 Default endpoint: `https://api.typesafe.ai/v1/systemone`. Retries `429`/`529` up to 5 times
 (default) with exponential backoff starting at 500ms (default); any other non-`200` status (or
 a retry-exhausted `429`/`529`) throws `TypesafeException`.
+
+`TypesafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
+so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use
+try-with-resources, or skip closing for a client that lives as long as the process.
 
 #### `TypesafeClient.Builder`
 

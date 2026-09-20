@@ -38,6 +38,11 @@ public final class JdkHttpTransport implements HttpTransport {
                 .thenApply(JdkHttpTransport::toTransportResponse);
     }
 
+    @Override
+    public void close() {
+        http.close();
+    }
+
     private static HttpRequest toRequest(URI uri, Map<String, String> headers, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
