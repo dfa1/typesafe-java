@@ -59,6 +59,19 @@ class EvaluateRequestTest {
     }
 
     @Test
+    void builderAcceptsANoulQuestionWithExplicitCriteria() {
+        // When
+        EvaluateRequest result = EvaluateRequest.builder()
+                .state("hi")
+                .noul("urgent", "Is this urgent?", Map.of("true", "Yes", "false", "No"))
+                .build();
+
+        // Then
+        assertThat(result.questions()).containsEntry("urgent",
+                Question.noul("Is this urgent?", Map.of("true", "Yes", "false", "No")));
+    }
+
+    @Test
     void builderRejectsADuplicateQuestionName() {
         // Given
         EvaluateRequest.Builder sut = EvaluateRequest.builder()

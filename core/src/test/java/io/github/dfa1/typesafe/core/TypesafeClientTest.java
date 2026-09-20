@@ -224,6 +224,25 @@ class TypesafeClientTest {
     }
 
     @Test
+    void evaluateAsyncFailsFastWhenDecodingTheResponseThrows() {
+        // Given
+        TypesafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        RuntimeException decodingFailure = new RuntimeException("boom");
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.postAsync(any(), any(), any()))
+                .willReturn(CompletableFuture.completedFuture(
+                        new HttpTransportResponse(200, Map.of(), "not json")));
+        given(jsonCodec.readValue("not json", EvaluateResponse.class)).willThrow(decodingFailure);
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluateAsync(request).get())
+                .isInstanceOf(ExecutionException.class)
+                .cause().isSameAs(decodingFailure);
+    }
+
+    @Test
     void builderThrowsWhenNoHttpTransportIsConfiguredOrDiscoverable() {
         // Given
         TypesafeClient.Builder sut = TypesafeClient.builder(new ApiToken("secret")).jsonCodec(jsonCodec);

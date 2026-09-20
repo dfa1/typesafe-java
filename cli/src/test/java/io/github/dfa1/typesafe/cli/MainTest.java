@@ -187,6 +187,19 @@ class MainTest {
     }
 
     @Test
+    void minFailuresComparesAScoreAnswerToo() {
+        // Given
+        EvaluateResponse sut = response(Map.of(
+                "severity", new Answer.Score(2.5, Map.of(), Map.of(), 1.0)));
+
+        // When
+        List<String> result = Main.minFailures(sut, List.of("severity=3.0"));
+
+        // Then
+        assertThat(result).containsExactly("severity=2.5 < 3.0");
+    }
+
+    @Test
     void minFailuresReportsWhenBelowThreshold() {
         // Given
         EvaluateResponse sut = response(Map.of("urgent", new Answer.Noul(0.6)));

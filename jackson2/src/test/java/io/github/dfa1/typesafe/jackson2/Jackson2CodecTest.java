@@ -7,10 +7,12 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
 import org.junit.jupiter.api.Test;
 
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 class Jackson2CodecTest {
 
@@ -81,5 +83,27 @@ class Jackson2CodecTest {
                 choice -> assertThat(choice.choice()).isEqualTo("technical"));
         assertThat(result.answers().get("frustration")).isInstanceOfSatisfying(Answer.Score.class,
                 score -> assertThat(score.score()).isEqualTo(1.6));
+    }
+
+    @Test
+    void writeValueAsStringWrapsAJsonProcessingExceptionInAnUncheckedIOException() {
+        // Given
+        Object unserializable = new Object() {
+            @SuppressWarnings("unused")
+            public String getValue() {
+                throw new RuntimeException("boom");
+            }
+        };
+
+        // When / Then
+        assertThatExceptionOfType(UncheckedIOException.class)
+                .isThrownBy(() -> sut.writeValueAsString(unserializable));
+    }
+
+    @Test
+    void readValueWrapsAJsonProcessingExceptionInAnUncheckedIOException() {
+        // When / Then
+        assertThatExceptionOfType(UncheckedIOException.class)
+                .isThrownBy(() -> sut.readValue("not json", EvaluateResponse.class));
     }
 }
