@@ -16,6 +16,7 @@ Save a token to `~/.typesafe.apitoken` first — either way below picks it up au
 
 ```java
 ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apitoken
+// or: ApiKey.fromEnv();                 // reads the TYPESAFE_API_KEY environment variable
 TypesafeClient client = TypesafeClient.builder(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
@@ -27,7 +28,8 @@ answer.noul(); // e.g. 0.92
 ```
 
 See [Install](#install) below to add it as a dependency, or the [tutorial](docs/tutorial.md)
-for the full walkthrough.
+for the full walkthrough — including every way to provide the token, in
+[how-to.md](docs/how-to.md#provide-your-api-token).
 
 ### From the command line
 
