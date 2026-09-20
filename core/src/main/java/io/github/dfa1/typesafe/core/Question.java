@@ -13,6 +13,11 @@ public sealed interface Question permits Question.Noul, Question.Choice, Questio
         return new Noul(instructions, criteria);
     }
 
+    /** {@code criteria}-less variant, for a yes/no question that needs no elaboration. */
+    static Noul noul(String instructions) {
+        return new Noul(instructions, null);
+    }
+
     static Choice choice(String instructions, Map<String, String> criteria) {
         return new Choice(instructions, criteria);
     }
@@ -27,7 +32,7 @@ public sealed interface Question permits Question.Noul, Question.Choice, Questio
      *
      * @param instructions the yes/no question itself
      * @param criteria     what {@code "true"}/{@code "false"} mean for this question, keyed by
-     *                     those literal strings; optional
+     *                     those literal strings; optional, may be {@code null}
      */
     record Noul(String instructions, Map<String, String> criteria) implements Question {
     }

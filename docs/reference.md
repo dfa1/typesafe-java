@@ -34,6 +34,7 @@ Static factories build one of three variants:
 | Factory | Fields | Meaning |
 |---|---|---|
 | `Question.noul(instructions, Map<String,String> criteria)` | `instructions`, `criteria` | Score how strongly `instructions` holds, 0.0–1.0 |
+| `Question.noul(instructions)` | `instructions`, `criteria = null` | Same, when `instructions` needs no elaboration |
 | `Question.choice(instructions, Map<String,String> criteria)` | `instructions`, `criteria` | Pick the best-matching key in `criteria` |
 | `Question.score(instructions, List<String> criteria)` | `instructions`, `criteria` | Rank against an ordered list of labels |
 

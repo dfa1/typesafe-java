@@ -27,3 +27,5 @@ First version — no released API yet, so nothing to describe changes against.
   caller integrating with a raw-`byte[]` system (e.g. Kafka) converts once at that boundary.
   `TypesafeClient` now passes a request/response straight through both SPIs with no encode/
   decode step in between.
+- Added `Question.noul(instructions)`, defaulting `criteria` to `null` for a yes/no question
+  that needs no elaboration. Confirmed accepted by the live API before adding it.
