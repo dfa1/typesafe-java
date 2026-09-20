@@ -1,6 +1,8 @@
 # typesafe-java
 
 [![CI](https://github.com/dfa1/typesafe-java/actions/workflows/ci.yml/badge.svg)](https://github.com/dfa1/typesafe-java/actions/workflows/ci.yml)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=dfa1_typesafe-java&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=dfa1_typesafe-java)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=dfa1_typesafe-java&metric=coverage)](https://sonarcloud.io/summary/new_code?id=dfa1_typesafe-java)
 
 Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (any JSON value)
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
