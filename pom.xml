@@ -38,7 +38,7 @@
 
   <modules>
     <module>core</module>
-    <module>jdk-http-client</module>
+    <module>client-jdk</module>
     <module>jackson2</module>
     <module>jackson3</module>
     <module>bom</module>

@@ -14,7 +14,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | Module | Depends on | Contains |
 |---|---|---|
 | `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
-| `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
+| `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-bom` | — | dependency management for the four above |
@@ -193,7 +193,7 @@ that mutates the map it passed in afterward can't reach back into an already-ret
 
 The HTTP calls `TypesafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
 abstracted away from any particular HTTP library. `JdkHttpTransport` (in
-`typesafe-java-jdk-http-client`) is discovered via
+`typesafe-java-client-jdk`) is discovered via
 `ServiceLoader.load(HttpTransport.class)` through
 `META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
 yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it

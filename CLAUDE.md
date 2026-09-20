@@ -18,8 +18,8 @@ core      — TypesafeClient, ApiKey, TypesafeException, and the wire DTOs (Answ
             HttpTransport/JsonCodec, never to a concrete library directly, so the DTOs +
             JsonCodec alone are reusable (e.g. by a Kafka producer/consumer) without pulling
             in TypesafeClient's HTTP concerns.
-jdk-http-client — HttpTransport backed by java.net.http (artifact
-            typesafe-java-jdk-http-client, class JdkHttpTransport, package
+client-jdk — HttpTransport backed by java.net.http (artifact
+            typesafe-java-client-jdk, class JdkHttpTransport, package
             io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via
             ServiceLoader at Builder.build() time (or an explicit
             Builder.httpTransport(...) override).
@@ -28,7 +28,7 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-bom       — dependency-management POM listing core/jdk-http-client/jackson2/jackson3.
+bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3.
 acceptance — live-API tests only; not published. `AbstractTypesafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
@@ -41,7 +41,7 @@ acceptance — live-API tests only; not published. `AbstractTypesafeClientAccept
             Maven's mediation picks the older one and jackson3 fails at runtime with
             `NoSuchFieldError` on a field only the newer annotations jar has.
 cli       — command-line entry point (`Main`), not published as a library artifact; built as
-            an executable uber-jar (maven-shade-plugin) over jdk-http-client + jackson3.
+            an executable uber-jar (maven-shade-plugin) over client-jdk + jackson3.
             Flat flags: `--state <text>` (the only `State` shape it supports — plain text),
             repeatable `--noul`/`--choice`/`--score <name>=<instructions>[|opt1,opt2,...]`,
             optional `--model <id>`, `--verbose`/`--timing` (request id / response time to
@@ -50,9 +50,9 @@ cli       — command-line entry point (`Main`), not published as a library arti
             `EvaluateResponse` as JSON to stdout.
 ```
 
-Dependency rule: `jdk-http-client → core`, `jackson2 → core`, `jackson3 → core`,
-`acceptance → core, jdk-http-client, jackson2, jackson3` (test scope only), `cli → core,
-jdk-http-client, jackson3` — nothing production depends on `acceptance` or `cli`. See
+Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`,
+`acceptance → core, client-jdk, jackson2, jackson3` (test scope only), `cli → core,
+client-jdk, jackson3` — nothing production depends on `acceptance` or `cli`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 
@@ -85,9 +85,9 @@ property (surefire). Opt in with:
 - **`core` has zero Jackson dependency and the DTOs carry zero Jackson annotations.**
   Polymorphism (`Answer`/`Question`'s `type` discriminator) is wired up entirely inside
   each codec module via mixins, not on the DTOs. Adding a third JSON library means
-  adding one more codec module; `core`/`jdk-http-client` don't change.
+  adding one more codec module; `core`/`client-jdk` don't change.
 - **`JsonCodec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
-  consumer that depends on `jdk-http-client` but forgets a codec module gets a clear
+  consumer that depends on `client-jdk` but forgets a codec module gets a clear
   `IllegalStateException` from `Builder.build()`, not a `NoClassDefFoundError`.
 - **Small public API.** Don't expose internals — when in doubt, leave it out or make it
   package-private.

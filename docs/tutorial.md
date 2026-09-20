@@ -30,7 +30,7 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
 <dependencies>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-jdk-http-client</artifactId>
+    <artifactId>typesafe-java-client-jdk</artifactId>
   </dependency>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>

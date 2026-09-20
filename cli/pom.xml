@@ -35,7 +35,7 @@
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-jdk-http-client</artifactId>
+      <artifactId>typesafe-java-client-jdk</artifactId>
       <version>${project.version}</version>
     </dependency>
 

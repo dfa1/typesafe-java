@@ -54,7 +54,7 @@ Likewise, `TypesafeClient` doesn't depend on any HTTP library directly — it re
 `HttpTransport` via `ServiceLoader`. Add:
 
 ```xml
-<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jdk-http-client</artifactId></dependency>
+<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-client-jdk</artifactId></dependency>
 ```
 
 If it's missing, `build()` throws `IllegalStateException`. To wire one explicitly, or to use

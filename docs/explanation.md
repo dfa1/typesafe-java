@@ -25,7 +25,7 @@ decision record.
 
 ## Why `JsonCodec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
 
-`core` cannot declare a compile dependency on `jackson2`/`jackson3` or on `jdk-http-client` —
+`core` cannot declare a compile dependency on `jackson2`/`jackson3` or on `client-jdk` —
 any of those choices would undo the whole point of splitting them out. `ServiceLoader` lets
 `TypesafeClient` stay agnostic to both while still getting real implementations automatically
 the moment one codec module and one transport module are on the classpath, the same pattern the

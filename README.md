@@ -73,7 +73,7 @@ Maven, via the BOM:
 <dependencies>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-jdk-http-client</artifactId>
+    <artifactId>typesafe-java-client-jdk</artifactId>
   </dependency>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
@@ -89,7 +89,7 @@ Available on Maven Central as of `0.1.0`.
 | Module | Contains |
 |---|---|
 | `core` | `TypesafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
-| `jdk-http-client` | `HttpTransport` backed by `java.net.http` |
+| `client-jdk` | `HttpTransport` backed by `java.net.http` |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `bom` | dependency management for the modules above |
 | `cli` | executable uber-jar for ad hoc checks from a terminal — not published |

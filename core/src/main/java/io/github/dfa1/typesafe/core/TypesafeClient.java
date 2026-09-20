@@ -94,7 +94,7 @@ public final class TypesafeClient implements AutoCloseable {
         private static HttpTransport loadDefaultHttpTransport() {
             return ServiceLoader.load(HttpTransport.class).findFirst()
                     .orElseThrow(() -> new IllegalStateException(
-                            "No HttpTransport found on the classpath. Add typesafe-java-jdk-http-client "
+                            "No HttpTransport found on the classpath. Add typesafe-java-client-jdk "
                                     + "as a dependency, or call Builder.httpTransport(...)."));
         }
 
