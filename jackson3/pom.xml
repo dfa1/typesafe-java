@@ -13,6 +13,9 @@
   <packaging>jar</packaging>
 
   <name>TypeSafe Jackson 3 Codec</name>
+  <description>JsonCodec SPI implementation backed by Jackson 3.x. Depends only on
+    typesafe-java-core; discovered via ServiceLoader.
+  </description>
 
   <dependencies>
     <dependency>

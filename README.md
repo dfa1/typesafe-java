@@ -76,7 +76,7 @@ Maven, via the BOM:
 </dependencies>
 ```
 
-Not yet on Maven Central — `0.1-SNAPSHOT` builds from source (`./mvnw install`) until the first
+Not yet on Maven Central — build `0.1-SNAPSHOT` from source (`./mvnw install`) until the first
 release ships.
 
 ## Modules

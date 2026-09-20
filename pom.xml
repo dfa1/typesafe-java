@@ -8,12 +8,35 @@
   <version>0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
+  <name>typesafe-java</name>
+  <description>Java 21 client for the TypeSafe API. Send a state (any JSON value) plus a set of
+    Noul/Choice/Score questions, get back typed answers.
+  </description>
+  <url>https://github.com/dfa1/typesafe-java</url>
+
   <licenses>
     <license>
       <name>MIT</name>
       <url>https://opensource.org/license/mit/</url>
+      <distribution>repo</distribution>
     </license>
   </licenses>
+
+  <developers>
+    <developer>
+      <id>dfa1</id>
+      <name>Davide Angelocola</name>
+      <email>davide.angelocola@gmail.com</email>
+      <url>https://github.com/dfa1</url>
+    </developer>
+  </developers>
+
+  <scm>
+    <connection>scm:git:https://github.com/dfa1/typesafe-java.git</connection>
+    <developerConnection>scm:git:git@github.com:dfa1/typesafe-java.git</developerConnection>
+    <url>https://github.com/dfa1/typesafe-java</url>
+    <tag>HEAD</tag>
+  </scm>
 
   <modules>
     <module>core</module>
@@ -44,6 +67,11 @@
          profile is active; without this default, surefire receives a literal "@{argLine}"
          token as a JVM argument when the profile isn't active. -->
     <argLine />
+    <!-- release plugins -->
+    <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+    <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+    <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+    <central-publishing-plugin.version>0.11.0</central-publishing-plugin.version>
   </properties>
 
   <dependencyManagement>
@@ -108,6 +136,17 @@
           <groupId>org.jacoco</groupId>
           <artifactId>jacoco-maven-plugin</artifactId>
           <version>${jacoco-maven-plugin.version}</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>3.3.1</version>
+          <configuration>
+            <autoVersionSubmodules>true</autoVersionSubmodules>
+            <tagNameFormat>v@{project.version}</tagNameFormat>
+            <pushChanges>false</pushChanges>
+            <localCheckout>true</localCheckout>
+          </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -185,6 +224,87 @@
                 </goals>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <!-- Activated during release: ./mvnw deploy -P release -->
+      <!-- Prerequisites:
+           1. Register namespace io.github.dfa1 at central.sonatype.com (GitHub auto-validates).
+           2. Generate a user token at central.sonatype.com → Account → User Tokens.
+           3. Add to ~/.m2/settings.xml:
+                <servers>
+                  <server>
+                    <id>central</id>
+                    <username>TOKEN_USERNAME</username>
+                    <password>TOKEN_PASSWORD</password>
+                  </server>
+                </servers>
+           4. GPG key must be published: gpg (send-keys) <KEYID>
+      -->
+      <id>release</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>${maven-source-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>${maven-javadoc-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <doclint>none</doclint>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>${maven-gpg-plugin.version}</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>${central-publishing-plugin.version}</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
+            </configuration>
           </plugin>
         </plugins>
       </build>

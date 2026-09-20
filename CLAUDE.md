@@ -117,3 +117,24 @@ Docs live under `docs/`, structured by [Diataxis](https://diataxis.fr/):
 public API, module structure, or a documented behavior updates whichever of these
 apply, in the same commit — plus `CHANGELOG.md` under `[Unreleased]`. `adr/` and
 released `CHANGELOG.md` sections are exempt — they describe the past.
+
+## Releasing
+
+Prerequisites (one-time): namespace `io.github.dfa1` registered at central.sonatype.com
+(GitHub auto-validates), a user token from there added to `~/.m2/settings.xml` as server id
+`central`, and a published GPG key. In CI, the `publish` workflow (triggered by pushing a `v*`
+tag) needs `GPG_PRIVATE_KEY`/`GPG_PASSPHRASE`/`CENTRAL_USERNAME`/`CENTRAL_PASSWORD` secrets in
+the `maven` environment.
+
+```bash
+./mvnw --batch-mode release:clean release:prepare \
+    -DreleaseVersion=<version> -DdevelopmentVersion=<next>-SNAPSHOT
+git push && git push --tags          # GitHub Actions deploys the tag to Maven Central
+```
+
+`release:prepare` bumps every module to `<version>` (`autoVersionSubmodules=true`), tags it
+`v<version>`, then bumps to `<next>-SNAPSHOT` — two local commits, nothing pushed
+(`pushChanges=false`) until the explicit `git push` above. `cli`/`acceptance` opt out of
+publishing (`maven.deploy.skip`/`skipPublishing` in their poms) — not published as library
+artifacts. `CHANGELOG.md` needs a `## [<version>] - <date>` section *before* tagging: the
+`publish` workflow extracts that section verbatim as the GitHub release notes.

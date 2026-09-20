@@ -13,6 +13,9 @@
   <packaging>pom</packaging>
 
   <name>TypeSafe BOM</name>
+  <description>Bill of Materials for typesafe-java. Import in dependencyManagement to get
+    consistent versions of core/jdk-http-client/jackson2/jackson3.
+  </description>
 
   <dependencyManagement>
     <dependencies>

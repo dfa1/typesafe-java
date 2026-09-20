@@ -18,6 +18,16 @@
     published as a library artifact — built as an executable uber-jar for local use.
   </description>
 
+  <properties>
+    <!-- maven.deploy.skip only stops the standard deploy:deploy mojo. It has no effect on
+         central-publishing-maven-plugin, which takes over the deploy phase via
+         <extensions>true</extensions> in the parent's release profile and runs regardless,
+         with its own skip switch. Both are needed to actually keep this uber-jar-only module
+         off Maven Central. -->
+    <maven.deploy.skip>true</maven.deploy.skip>
+    <skipPublishing>true</skipPublishing>
+  </properties>
+
   <dependencies>
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>

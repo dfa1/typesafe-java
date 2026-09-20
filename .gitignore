@@ -3,3 +3,5 @@ target/
 .idea/
 *.iml
 dependency-reduced-pom.xml
+release.properties
+*.releaseBackup

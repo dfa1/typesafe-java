@@ -13,6 +13,9 @@
   <packaging>jar</packaging>
 
   <name>TypeSafe JDK HTTP Transport</name>
+  <description>HttpTransport SPI implementation backed by java.net.http. Depends only on
+    typesafe-java-core; discovered via ServiceLoader.
+  </description>
 
   <dependencies>
     <dependency>

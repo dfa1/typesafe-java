@@ -7,7 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-First version — no released API yet, so nothing to describe changes against.
+## [0.1.0] - 2026-09-20
+
+Initial release.
 
 - Added `cli` module: an executable uber-jar for ad hoc checks against the API from a
   terminal, without writing Java. `--verbose`/`--timing` print the request id / response
@@ -17,7 +19,7 @@ First version — no released API yet, so nothing to describe changes against.
   than "the default token *file*". Use `TypesafeClient.builder(ApiKey.fromDefaultFile()).build()`.
 - Added `ApiKey.fromEnv()`: reads the `TYPESAFE_API_KEY` environment variable, aligning
   the env-var case with the existing `fromFile`/`fromDefaultFile` factory methods. (#5)
-- Changed `HttpTransport.post`/`postAsync` and `HttpTransportResponse.body` from `byte[]` to
+- Changed `HttpTransport.post`/`get` and `HttpTransportResponse.body` from `byte[]` to
   `String`: this SPI only ever carries JSON, which is UTF-8 by construction, so there's no
   charset for this layer to guess at. `HttpTransportResponse` also now copies `headers`
   defensively (`Map.copyOf`).
