@@ -45,7 +45,7 @@ the retry/backoff logic.
 Once that abstraction exists, `TypesafeClient` itself has no HTTP-library dependency any more —
 its only import from `java.net` is `URI`, which every JDK module already has. That removed the
 original reason for a separate `client` module (keeping `core` free of `java.net.http`), so
-`TypesafeClient`/`ApiToken`/`TypesafeException` live in `core` next to the DTOs: one fewer module
+`TypesafeClient`/`ApiKey`/`TypesafeException` live in `core` next to the DTOs: one fewer module
 to version and depend on, with `core` exactly as dependency-free as before. See
 [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 

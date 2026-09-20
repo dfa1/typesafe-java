@@ -14,8 +14,8 @@ First version — no released API yet, so nothing to describe changes against.
   time to stderr; `--version` prints the jar's version and exits without calling the API.
   Not published as a library artifact.
 - Removed `TypesafeClient.withDefaultToken()`: its name read as "a default token" rather
-  than "the default token *file*". Use `TypesafeClient.builder(ApiToken.fromDefaultFile()).build()`.
-- Added `ApiToken.fromEnv()`: reads the `TYPESAFE_API_TOKEN` environment variable, aligning
+  than "the default token *file*". Use `TypesafeClient.builder(ApiKey.fromDefaultFile()).build()`.
+- Added `ApiKey.fromEnv()`: reads the `TYPESAFE_API_KEY` environment variable, aligning
   the env-var case with the existing `fromFile`/`fromDefaultFile` factory methods. (#5)
 - Changed `HttpTransport.post`/`postAsync` and `HttpTransportResponse.body` from `byte[]` to
   `String`: this SPI only ever carries JSON, which is UTF-8 by construction, so there's no

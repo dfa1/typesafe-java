@@ -37,7 +37,7 @@ class TypesafeClientTest {
     @Test
     void evaluateDelegatesToTheConfiguredHttpTransportAndJsonCodec() throws Exception {
         // Given
-        TypesafeClient sut = TypesafeClient.builder(new ApiToken("secret"))
+        TypesafeClient sut = TypesafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
@@ -245,7 +245,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoHttpTransportIsConfiguredOrDiscoverable() {
         // Given
-        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiToken("secret")).jsonCodec(jsonCodec);
+        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -256,7 +256,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoJsonCodecIsConfiguredOrDiscoverable() {
         // Given
-        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiToken("secret")).httpTransport(httpTransport);
+        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -269,7 +269,7 @@ class TypesafeClientTest {
     }
 
     private TypesafeClient clientWith(Duration backoff, int maxRetries) {
-        return TypesafeClient.builder(new ApiToken("secret"))
+        return TypesafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)

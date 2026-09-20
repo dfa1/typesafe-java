@@ -13,7 +13,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiToken`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
 | `typesafe-java-jdk-http-client` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
@@ -179,15 +179,15 @@ explicitly via `Builder.httpTransport(...)`.
 
 Also in `io.github.dfa1.typesafe.core`.
 
-### `ApiToken`
+### `ApiKey`
 
 ```java
-record ApiToken(String value)
+record ApiKey(String value)
 ```
 
-- `ApiToken.fromFile(Path)` — reads and trims the file contents.
-- `ApiToken.fromDefaultFile()` — reads `~/.typesafe.apitoken`.
-- `ApiToken.fromEnv()` — reads the `TYPESAFE_API_TOKEN` environment variable; throws
+- `ApiKey.fromFile(Path)` — reads and trims the file contents.
+- `ApiKey.fromDefaultFile()` — reads `~/.typesafe.apitoken`.
+- `ApiKey.fromEnv()` — reads the `TYPESAFE_API_KEY` environment variable; throws
   `IllegalStateException` if it's not set.
 - `toHttpHeaderValue()` — `"Bearer " + value`.
 - `toString()` never leaks `value`.
@@ -196,7 +196,7 @@ record ApiToken(String value)
 ### `TypesafeClient`
 
 ```java
-static TypesafeClient.Builder builder(ApiToken apiToken)
+static TypesafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)

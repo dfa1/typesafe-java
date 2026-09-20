@@ -5,32 +5,32 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public record ApiToken(String value) {
+public record ApiKey(String value) {
 
     private static final Path DEFAULT_PATH = Path.of(System.getProperty("user.home"), ".typesafe.apitoken");
-    private static final String ENV_VAR = "TYPESAFE_API_TOKEN";
+    private static final String ENV_VAR = "TYPESAFE_API_KEY";
 
-    public ApiToken {
+    public ApiKey {
         Objects.requireNonNull(value, "value");
         if (value.isBlank()) {
-            throw new IllegalArgumentException("API token must not be blank");
+            throw new IllegalArgumentException("API key must not be blank");
         }
     }
 
-    public static ApiToken fromFile(Path path) throws IOException {
-        return new ApiToken(Files.readString(path).strip());
+    public static ApiKey fromFile(Path path) throws IOException {
+        return new ApiKey(Files.readString(path).strip());
     }
 
-    public static ApiToken fromDefaultFile() throws IOException {
+    public static ApiKey fromDefaultFile() throws IOException {
         return fromFile(DEFAULT_PATH);
     }
 
-    public static ApiToken fromEnv() {
+    public static ApiKey fromEnv() {
         String value = System.getenv(ENV_VAR);
         if (value == null) {
             throw new IllegalStateException(ENV_VAR + " is not set");
         }
-        return new ApiToken(value);
+        return new ApiKey(value);
     }
 
     public String toHttpHeaderValue() {
@@ -39,6 +39,6 @@ public record ApiToken(String value) {
 
     @Override
     public String toString() {
-        return "ApiToken(****)";
+        return "ApiKey(****)";
     }
 }

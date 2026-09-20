@@ -21,14 +21,14 @@ public final class TypesafeClient {
 
     private final HttpTransport transport;
     private final JsonCodec jsonCodec;
-    private final ApiToken apiToken;
+    private final ApiKey apiKey;
     private final URI endpoint;
     private final int maxRetries;
     private final Duration initialBackoff;
 
-    private TypesafeClient(ApiToken apiToken, HttpTransport transport, JsonCodec jsonCodec,
+    private TypesafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec,
                             URI endpoint, int maxRetries, Duration initialBackoff) {
-        this.apiToken = apiToken;
+        this.apiKey = apiKey;
         this.transport = transport;
         this.jsonCodec = jsonCodec;
         this.endpoint = endpoint;
@@ -36,20 +36,20 @@ public final class TypesafeClient {
         this.initialBackoff = initialBackoff;
     }
 
-    public static Builder builder(ApiToken apiToken) {
-        return new Builder(apiToken);
+    public static Builder builder(ApiKey apiKey) {
+        return new Builder(apiKey);
     }
 
     public static final class Builder {
-        private final ApiToken apiToken;
+        private final ApiKey apiKey;
         private HttpTransport transport;
         private JsonCodec jsonCodec;
         private URI endpoint = DEFAULT_ENDPOINT;
         private int maxRetries = DEFAULT_MAX_RETRIES;
         private Duration initialBackoff = DEFAULT_INITIAL_BACKOFF;
 
-        private Builder(ApiToken apiToken) {
-            this.apiToken = apiToken;
+        private Builder(ApiKey apiKey) {
+            this.apiKey = apiKey;
         }
 
         public Builder httpTransport(HttpTransport transport) {
@@ -80,7 +80,7 @@ public final class TypesafeClient {
         public TypesafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return new TypesafeClient(apiToken, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
+            return new TypesafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
         }
 
         private static HttpTransport loadDefaultHttpTransport() {
@@ -153,7 +153,7 @@ public final class TypesafeClient {
 
     private Map<String, String> requestHeaders() {
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put("Authorization", apiToken.toHttpHeaderValue());
+        headers.put("Authorization", apiKey.toHttpHeaderValue());
         headers.put("Content-Type", "application/json");
         return headers;
     }

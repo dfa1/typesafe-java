@@ -8,7 +8,7 @@ Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (an
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
 ```java
-ApiToken token = ApiToken.fromDefaultFile(); // reads ~/.typesafe.apitoken
+ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apitoken
 TypesafeClient client = TypesafeClient.builder(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(

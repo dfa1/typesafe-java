@@ -10,7 +10,7 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — TypesafeClient, ApiToken, TypesafeException, and the wire DTOs (Answer, Question,
+core      — TypesafeClient, ApiKey, TypesafeException, and the wire DTOs (Answer, Question,
             State, EvaluateRequest/EvaluateResponse, Usage, RequestId, Model), all in
             io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
             HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any

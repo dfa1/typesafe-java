@@ -7,23 +7,23 @@ For API details, see [reference.md](reference.md). For design rationale, see [ex
 
 ## Provide your API token
 
-`ApiToken` has a source for each case; `TypesafeClient.builder` takes whichever you build:
+`ApiKey` has a source for each case; `TypesafeClient.builder` takes whichever you build:
 
 ```java
 // 1. Default file (~/.typesafe.apitoken)
-ApiToken token = ApiToken.fromDefaultFile();
+ApiKey token = ApiKey.fromDefaultFile();
 TypesafeClient client = TypesafeClient.builder(token).build();
 
 // 2. A specific file
-ApiToken token = ApiToken.fromFile(Path.of("/secrets/typesafe.token"));
+ApiKey token = ApiKey.fromFile(Path.of("/secrets/typesafe.token"));
 TypesafeClient client = TypesafeClient.builder(token).build();
 
-// 3. TYPESAFE_API_TOKEN environment variable
-ApiToken token = ApiToken.fromEnv();
+// 3. TYPESAFE_API_KEY environment variable
+ApiKey token = ApiKey.fromEnv();
 TypesafeClient client = TypesafeClient.builder(token).build();
 
 // 4. Any other in-memory value (e.g. a secrets manager)
-ApiToken token = new ApiToken(secretsManager.getSecret("typesafe-token"));
+ApiKey token = new ApiKey(secretsManager.getSecret("typesafe-token"));
 TypesafeClient client = TypesafeClient.builder(token).build();
 ```
 

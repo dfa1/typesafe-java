@@ -1,7 +1,7 @@
 package io.github.dfa1.typesafe.cli;
 
 import io.github.dfa1.typesafe.core.Answer;
-import io.github.dfa1.typesafe.core.ApiToken;
+import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
@@ -59,7 +59,7 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
+        TypesafeClient client = TypesafeClient.builder(ApiKey.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build();

@@ -11,16 +11,16 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
-class ApiTokenTest {
+class ApiKeyTest {
 
     @Test
-    void loadsAndTrimsTokenFromFile(@TempDir Path dir) throws IOException {
+    void loadsAndTrimsKeyFromFile(@TempDir Path dir) throws IOException {
         // Given
         Path file = dir.resolve(".typesafe.apitoken");
         Files.writeString(file, "apikey_dummy_test_value\n");
 
         // When
-        ApiToken result = ApiToken.fromFile(file);
+        ApiKey result = ApiKey.fromFile(file);
 
         // Then
         assertThat(result.value()).isEqualTo("apikey_dummy_test_value");
@@ -30,7 +30,7 @@ class ApiTokenTest {
     @Test
     void toStringNeverLeaksTheValue() {
         // Given
-        ApiToken sut = new ApiToken("apikey_dummy_test_value");
+        ApiKey sut = new ApiKey("apikey_dummy_test_value");
 
         // When
         String result = sut.toString();
@@ -40,16 +40,16 @@ class ApiTokenTest {
     }
 
     @Test
-    void rejectsBlankToken() {
+    void rejectsBlankKey() {
         // When / Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new ApiToken("  "));
+        assertThatIllegalArgumentException().isThrownBy(() -> new ApiKey("  "));
     }
 
     @Test
     void failsWhenEnvVarNotSet() {
         // When / Then
         assertThatIllegalStateException()
-                .isThrownBy(ApiToken::fromEnv)
-                .withMessageContaining("TYPESAFE_API_TOKEN");
+                .isThrownBy(ApiKey::fromEnv)
+                .withMessageContaining("TYPESAFE_API_KEY");
     }
 }

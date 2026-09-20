@@ -45,16 +45,16 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
 echo "your-token-here" > ~/.typesafe.apitoken
 ```
 
-`ApiToken.fromDefaultFile()` reads this file. (See
+`ApiKey.fromDefaultFile()` reads this file. (See
 [how-to.md#provide-your-api-token](how-to.md#provide-your-api-token) for alternatives.)
 
 ## 3. Build the client
 
 ```java
-import io.github.dfa1.typesafe.core.ApiToken;
+import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 
-TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile()).build();
+TypesafeClient client = TypesafeClient.builder(ApiKey.fromDefaultFile()).build();
 ```
 
 ## 4. Ask a question

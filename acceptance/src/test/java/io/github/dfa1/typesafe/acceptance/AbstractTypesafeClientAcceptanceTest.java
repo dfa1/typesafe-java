@@ -1,6 +1,6 @@
 package io.github.dfa1.typesafe.acceptance;
 
-import io.github.dfa1.typesafe.core.ApiToken;
+import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
@@ -42,7 +42,7 @@ abstract class AbstractTypesafeClientAcceptanceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        sut = TypesafeClient.builder(ApiToken.fromDefaultFile())
+        sut = TypesafeClient.builder(ApiKey.fromDefaultFile())
                 .httpTransport(httpTransport())
                 .jsonCodec(jsonCodec())
                 .build();
