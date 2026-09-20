@@ -6,6 +6,7 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.RequestId;
 import io.github.dfa1.typesafe.core.State;
 import org.junit.jupiter.api.Test;
 
@@ -100,6 +101,19 @@ class Jackson2CodecTest {
 
         // Then
         assertThat(result).isEqualTo(new ModelDetails("jev-1.13.0", "System One model.", "2026-01-01"));
+    }
+
+    @Test
+    void serializesAndDeserializesRequestIdAsItsBareValue() {
+        // Given
+        RequestId requestId = new RequestId("req_01a0c08d990e7e44ba9a80416308258a");
+
+        // When
+        String result = sut.writeValueAsString(requestId);
+
+        // Then
+        assertThat(result).isEqualTo("\"req_01a0c08d990e7e44ba9a80416308258a\"");
+        assertThat(sut.readValue(result, RequestId.class)).isEqualTo(requestId);
     }
 
     @Test

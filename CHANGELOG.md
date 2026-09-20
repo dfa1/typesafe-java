@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `RequestId` now serializes/deserializes as its bare `value` string (e.g. `"req_..."`) instead
+  of a wrapping `{"value": "req_..."}` object, matching how `Model` is already handled.
+
 ## [0.3.0] - 2026-09-20
 
 - `jdk-http-client` module renamed to `client-jdk` (artifact `typesafe-java-jdk-http-client` ->

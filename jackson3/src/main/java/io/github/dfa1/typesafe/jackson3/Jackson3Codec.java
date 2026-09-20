@@ -3,6 +3,7 @@ package io.github.dfa1.typesafe.jackson3;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.RequestId;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
@@ -26,7 +27,9 @@ public final class Jackson3Codec implements JsonCodec {
             .addModule(new SimpleModule()
                     .addSerializer(State.class, new StateSerializer())
                     .addSerializer(Model.class, new ModelSerializer())
-                    .addDeserializer(Model.class, new ModelDeserializer()))
+                    .addDeserializer(Model.class, new ModelDeserializer())
+                    .addSerializer(RequestId.class, new RequestIdSerializer())
+                    .addDeserializer(RequestId.class, new RequestIdDeserializer()))
             .build();
 
     @Override

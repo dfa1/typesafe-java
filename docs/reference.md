@@ -133,6 +133,9 @@ record Usage(int inputTokens, int outputTokens)
 record RequestId(String value)
 ```
 
+Codecs serialize/deserialize a `RequestId` as its bare `value` string — no `type` discriminator,
+no wrapping object.
+
 ### `ModelDetails`
 
 ```java
