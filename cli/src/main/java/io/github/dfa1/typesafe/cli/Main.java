@@ -44,6 +44,55 @@ public final class Main {
             return;
         }
 
+        ParsedArgs parsed = null;
+        try {
+            parsed = parse(args);
+        } catch (IllegalArgumentException e) {
+            fail(e.getMessage());
+        }
+
+        Jackson3Codec codec = new Jackson3Codec();
+        EvaluateRequest request = EvaluateRequest.of(State.text(parsed.state()), parsed.model(), parsed.questions());
+
+        if (parsed.verbose()) {
+            System.err.println("request: " + codec.writeValueAsString(request));
+        }
+
+        TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
+                .jsonCodec(codec)
+                .httpTransport(new JdkHttpTransport())
+                .build();
+        EvaluateResponse response = client.evaluate(request);
+
+        if (parsed.verbose()) {
+            System.err.println("response: " + codec.writeValueAsString(response));
+            System.err.println("request-id: " + response.metadata().requestId());
+        }
+        if (parsed.timing()) {
+            System.err.println("time: " + response.metadata().upstreamServiceTime());
+        }
+        try {
+            if (parsed.printNames().isEmpty()) {
+                System.out.println(codec.writeValueAsString(response));
+            } else {
+                parsed.printNames().forEach(name -> System.out.println(answerValue(response, name)));
+            }
+
+            List<String> failures = minFailures(response, parsed.minSpecs());
+            if (!failures.isEmpty()) {
+                failures.forEach(f -> System.err.println("--min failed: " + f));
+                System.exit(1);
+            }
+        } catch (RuntimeException e) {
+            fail(e.getMessage());
+        }
+    }
+
+    record ParsedArgs(String state, Model model, Map<String, Question> questions, List<String> minSpecs,
+            List<String> printNames, boolean verbose, boolean timing) {
+    }
+
+    static ParsedArgs parse(String[] args) {
         String state = null;
         Model model = Model.LATEST;
         Map<String, Question> questions = new LinkedHashMap<>();
@@ -70,55 +119,21 @@ public final class Main {
                         String rest = eq >= 0 ? value.substring(eq + 1) : value;
                         questions.put(name, question(flag, rest));
                     }
-                    default -> fail("Unknown flag: " + flag);
+                    default -> throw new IllegalArgumentException("Unknown flag: " + flag);
                 }
             }
         } catch (ArrayIndexOutOfBoundsException e) {
-            fail("Missing value for " + args[args.length - 1]);
+            throw new IllegalArgumentException("Missing value for " + args[args.length - 1]);
         }
 
         if (state == null) {
-            fail("Missing required --state");
+            throw new IllegalArgumentException("Missing required --state");
         }
         if (questions.isEmpty()) {
-            fail("At least one --noul/--choice/--score question is required");
+            throw new IllegalArgumentException("At least one --noul/--choice/--score question is required");
         }
 
-        Jackson3Codec codec = new Jackson3Codec();
-        EvaluateRequest request = EvaluateRequest.of(State.text(state), model, questions);
-
-        if (verbose) {
-            System.err.println("request: " + codec.writeValueAsString(request));
-        }
-
-        TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
-                .jsonCodec(codec)
-                .httpTransport(new JdkHttpTransport())
-                .build();
-        EvaluateResponse response = client.evaluate(request);
-
-        if (verbose) {
-            System.err.println("response: " + codec.writeValueAsString(response));
-            System.err.println("request-id: " + response.metadata().requestId());
-        }
-        if (timing) {
-            System.err.println("time: " + response.metadata().upstreamServiceTime());
-        }
-        try {
-            if (printNames.isEmpty()) {
-                System.out.println(codec.writeValueAsString(response));
-            } else {
-                printNames.forEach(name -> System.out.println(answerValue(response, name)));
-            }
-
-            List<String> failures = minFailures(response, minSpecs);
-            if (!failures.isEmpty()) {
-                failures.forEach(f -> System.err.println("--min failed: " + f));
-                System.exit(1);
-            }
-        } catch (RuntimeException e) {
-            fail(e.getMessage());
-        }
+        return new ParsedArgs(state, model, questions, minSpecs, printNames, verbose, timing);
     }
 
     static String answerValue(EvaluateResponse response, String name) {

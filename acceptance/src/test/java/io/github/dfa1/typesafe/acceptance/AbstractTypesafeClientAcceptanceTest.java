@@ -261,4 +261,40 @@ abstract class AbstractTypesafeClientAcceptanceTest {
                     assertThat(escalation.choice()).isIn("yes", "no");
                 });
     }
+
+    @Test
+    void triagesASupportTicketByUrgencyCategoryAndFrustrationInOneCall() throws Exception {
+        // Given
+        Map<String, String> categories = Map.of(
+                "billing", "Payments, charges, refunds",
+                "technical", "Outages, bugs, errors",
+                "shipping", "Delivery and tracking",
+                "feedback", "Praise or general comments",
+                "other", "Anything else");
+        List<String> frustrationLevels = List.of("Calm", "Annoyed", "Frustrated", "Furious");
+        EvaluateRequest request = EvaluateRequest.of(
+                State.text("My card was charged twice for the same order. This is the third "
+                        + "time this has happened and I'm about done with this company."),
+                Map.of(
+                        "urgent", Question.noul("Is this urgent?"),
+                        "category", Question.choice("What kind of issue is this?", categories),
+                        "frustration", Question.score("How frustrated is the customer?", frustrationLevels)));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("urgent")).isInstanceOfSatisfying(Answer.Noul.class, urgent -> {
+            System.out.println("urgent noul = " + urgent.noul());
+            assertThat(urgent.noul()).isBetween(0.0, 1.0);
+        });
+        assertThat(result.answers().get("category")).isInstanceOfSatisfying(Answer.Choice.class, category -> {
+            System.out.println("category = " + category.choice() + " (confidence " + category.confidence() + ")");
+            assertThat(category.choice()).isIn(categories.keySet());
+        });
+        assertThat(result.answers().get("frustration")).isInstanceOfSatisfying(Answer.Score.class, frustration -> {
+            System.out.println("frustration score = " + frustration.score());
+            assertThat(frustration.score()).isBetween(0.0, (double) (frustrationLevels.size() - 1));
+        });
+    }
 }

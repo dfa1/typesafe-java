@@ -16,6 +16,72 @@ import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException
 class MainTest {
 
     @Test
+    void parseReadsStateModelAndAllFlagTypes() {
+        // When
+        Main.ParsedArgs result = Main.parse(new String[] {
+                "--state", "My card was charged twice.",
+                "--model", "jev-preview",
+                "--noul", "urgent=Is this urgent?",
+                "--choice", "category=Pick one|a,b,c",
+                "--score", "severity=Rate it|low,mid,high",
+                "--min", "urgent=0.5",
+                "--print", "urgent",
+                "--verbose",
+                "--timing"
+        });
+
+        // Then
+        assertThat(result.state()).isEqualTo("My card was charged twice.");
+        assertThat(result.model()).isEqualTo(Model.PREVIEW);
+        assertThat(result.questions()).containsOnlyKeys("urgent", "category", "severity");
+        assertThat(result.minSpecs()).containsExactly("urgent=0.5");
+        assertThat(result.printNames()).containsExactly("urgent");
+        assertThat(result.verbose()).isTrue();
+        assertThat(result.timing()).isTrue();
+    }
+
+    @Test
+    void parseDefaultsQuestionNameToTheFlagWhenNoNameIsGiven() {
+        // When
+        Main.ParsedArgs result = Main.parse(new String[] {"--state", "hi", "--noul", "Is this urgent?"});
+
+        // Then
+        assertThat(result.questions()).containsOnlyKeys("noul");
+    }
+
+    @Test
+    void parseRejectsUnknownFlag() {
+        // When / Then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Main.parse(new String[] {"--bogus"}))
+                .withMessageContaining("--bogus");
+    }
+
+    @Test
+    void parseRejectsAFlagMissingItsValue() {
+        // When / Then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Main.parse(new String[] {"--state"}))
+                .withMessageContaining("--state");
+    }
+
+    @Test
+    void parseRejectsMissingState() {
+        // When / Then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Main.parse(new String[] {"--noul", "Is this urgent?"}))
+                .withMessageContaining("--state");
+    }
+
+    @Test
+    void parseRejectsWhenNoQuestionIsGiven() {
+        // When / Then
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> Main.parse(new String[] {"--state", "hi"}))
+                .withMessageContaining("question");
+    }
+
+    @Test
     void modelByIdResolvesKnownId() {
         // When
         Model result = Main.modelById("jev-preview");

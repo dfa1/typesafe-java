@@ -29,9 +29,6 @@ First version — no released API yet, so nothing to describe changes against.
   decode step in between.
 - Added `Question.noul(instructions)`, defaulting `criteria` to `null` for a yes/no question
   that needs no elaboration. Confirmed accepted by the live API before adding it.
-- Added `demo` module: a runnable showcase triaging five sample support tickets by urgency
-  (`Noul`), category (`Choice`), and frustration (`Score`) in one call each, printed as a
-  short report. Not published as a library artifact.
 - Added `EvaluateRequest.builder()`, a fluent alternative to `of(...)` plus hand-building the
   `questions` map (#1). `state(String)` is sugar for `state(State.text(...))`. Rejects a
   reused question name with `IllegalArgumentException` instead of silently overwriting the

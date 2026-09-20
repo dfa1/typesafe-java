@@ -23,7 +23,6 @@
     <module>bom</module>
     <module>acceptance</module>
     <module>cli</module>
-    <module>demo</module>
   </modules>
 
   <properties>
