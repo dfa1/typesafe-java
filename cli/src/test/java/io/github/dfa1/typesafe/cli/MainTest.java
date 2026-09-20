@@ -4,16 +4,35 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.core.Usage;
+import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 
+@ExtendWith(MockitoExtension.class)
 class MainTest {
+
+    @Mock
+    private TypesafeClient client;
+
+    private final Jackson3Codec codec = new Jackson3Codec();
+    private final ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
+    private final ByteArrayOutputStream errBuffer = new ByteArrayOutputStream();
+    private final PrintStream out = new PrintStream(outBuffer);
+    private final PrintStream err = new PrintStream(errBuffer);
 
     @Test
     void parseReadsStateModelAndAllFlagTypes() {
@@ -232,6 +251,113 @@ class MainTest {
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> Main.minFailures(sut, List.of("category=0.5")))
                 .withMessageContaining("category");
+    }
+
+    @Test
+    void runPrintsTheFullResponseAsJsonWhenNoPrintNamesAreGiven() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).contains("\"noul\":0.5");
+    }
+
+    @Test
+    void runPrintsOnlyTheRequestedAnswersWhenPrintNamesAreGiven() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).isEqualToNormalizingNewlines("0.5\n");
+    }
+
+    @Test
+    void runReturns1AndReportsMinFailuresOnStderr() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.2))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of("urgent=0.5"), List.of(), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isEqualTo(1);
+        assertThat(errBuffer.toString()).contains("--min failed: urgent=0.2 < 0.5");
+    }
+
+    @Test
+    void runPrintsRequestAndResponseToStderrWhenVerbose() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false);
+
+        // When
+        Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(errBuffer.toString()).contains("request:").contains("response:").contains("request-id:");
+    }
+
+    @Test
+    void runPrintsTimingToStderrWhenTiming() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, true);
+
+        // When
+        Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(errBuffer.toString()).contains("time:");
+    }
+
+    @Test
+    void runReturns1AndPrintsUsageWhenAPrintNameIsUnknown() throws Exception {
+        // Given
+        given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
+        Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("bogus"), false, false);
+
+        // When
+        int result = Main.run(client, codec, parsed, out, err);
+
+        // Then
+        assertThat(result).isEqualTo(1);
+        assertThat(errBuffer.toString()).contains("No such answer: bogus").contains("Usage: typesafe");
+    }
+
+    @Test
+    void runFromArgsPrintsVersionAndReturns0() throws Exception {
+        // When
+        int result = Main.run(new String[] {"--version"}, out, err);
+
+        // Then
+        assertThat(result).isZero();
+    }
+
+    @Test
+    void runFromArgsReturns1AndPrintsUsageWhenArgsAreInvalid() throws Exception {
+        // When
+        int result = Main.run(new String[] {"--bogus"}, out, err);
+
+        // Then
+        assertThat(result).isEqualTo(1);
+        assertThat(errBuffer.toString()).contains("Unknown flag: --bogus").contains("Usage: typesafe");
     }
 
     private static EvaluateResponse response(Map<String, Answer> answers) {

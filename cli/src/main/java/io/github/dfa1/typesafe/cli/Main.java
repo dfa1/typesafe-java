@@ -10,7 +10,9 @@ import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypesafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
+import io.github.dfa1.typesafe.json.JsonCodec;
 
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -39,52 +41,66 @@ public final class Main {
     }
 
     public static void main(String[] args) throws Exception {
+        System.exit(run(args, System.out, System.err));
+    }
+
+    /** Parses {@code args} and, on success, builds the real client and evaluates. */
+    static int run(String[] args, PrintStream out, PrintStream err) throws Exception {
         if (args.length == 1 && "--version".equals(args[0])) {
-            System.out.println(Main.class.getPackage().getImplementationVersion());
-            return;
+            out.println(Main.class.getPackage().getImplementationVersion());
+            return 0;
         }
 
-        ParsedArgs parsed = null;
+        ParsedArgs parsed;
         try {
             parsed = parse(args);
         } catch (IllegalArgumentException e) {
-            fail(e.getMessage());
+            return fail(err, e.getMessage());
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        EvaluateRequest request = EvaluateRequest.of(State.text(parsed.state()), parsed.model(), parsed.questions());
-
-        if (parsed.verbose()) {
-            System.err.println("request: " + codec.writeValueAsString(request));
-        }
-
         TypesafeClient client = TypesafeClient.builder(ApiToken.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build();
+
+        return run(client, codec, parsed, out, err);
+    }
+
+    /** The evaluate-and-print flow, taking an already-built client so it's testable without a
+     *  network call. */
+    static int run(TypesafeClient client, JsonCodec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
+            throws Exception {
+        EvaluateRequest request = EvaluateRequest.of(State.text(parsed.state()), parsed.model(), parsed.questions());
+
+        if (parsed.verbose()) {
+            err.println("request: " + codec.writeValueAsString(request));
+        }
+
         EvaluateResponse response = client.evaluate(request);
 
         if (parsed.verbose()) {
-            System.err.println("response: " + codec.writeValueAsString(response));
-            System.err.println("request-id: " + response.metadata().requestId());
+            err.println("response: " + codec.writeValueAsString(response));
+            err.println("request-id: " + response.metadata().requestId());
         }
         if (parsed.timing()) {
-            System.err.println("time: " + response.metadata().upstreamServiceTime());
+            err.println("time: " + response.metadata().upstreamServiceTime());
         }
         try {
             if (parsed.printNames().isEmpty()) {
-                System.out.println(codec.writeValueAsString(response));
+                out.println(codec.writeValueAsString(response));
             } else {
-                parsed.printNames().forEach(name -> System.out.println(answerValue(response, name)));
+                parsed.printNames().forEach(name -> out.println(answerValue(response, name)));
             }
 
             List<String> failures = minFailures(response, parsed.minSpecs());
             if (!failures.isEmpty()) {
-                failures.forEach(f -> System.err.println("--min failed: " + f));
-                System.exit(1);
+                failures.forEach(f -> err.println("--min failed: " + f));
+                return 1;
             }
+            return 0;
         } catch (RuntimeException e) {
-            fail(e.getMessage());
+            return fail(err, e.getMessage());
         }
     }
 
@@ -191,9 +207,9 @@ public final class Main {
         throw new IllegalArgumentException("Unknown model: " + id);
     }
 
-    private static void fail(String message) {
-        System.err.println(message);
-        System.err.println(USAGE);
-        System.exit(1);
+    private static int fail(PrintStream err, String message) {
+        err.println(message);
+        err.println(USAGE);
+        return 1;
     }
 }
