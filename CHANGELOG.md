@@ -46,3 +46,16 @@ First version — no released API yet, so nothing to describe changes against.
   constant for, rather than being limited to the three previously hardcoded enum values.
 - Added `EvaluateResponse.nouls()`/`.choices()`/`.scores()`, each `answers()` narrowed to that
   `Answer` subtype's entries — an alternative to `instanceof`/casting the mixed map yourself.
+- Added a per-request timeout: `JdkHttpTransport`'s new `(HttpClient, Duration)` constructor
+  applies it via `HttpRequest.Builder#timeout`, defaulting to `JdkHttpTransport.DEFAULT_TIMEOUT`
+  (10s) — distinct from `HttpClient`'s own `connectTimeout`, which only bounds the TCP handshake.
+- Broadened `evaluate`/`evaluateAsync`/`listModels` retries from just `429`/`529` to `408`/`429`/
+  any `5xx`, honoring a `retry-after`/`retry-after-ms` response header when present before
+  falling back to exponential backoff, and to also retry any `IOException` from the transport
+  (a connection failure, or a request timing out) — previously not retried at all.
+- Normalized `HttpTransport` to a single asynchronous method per verb: `post`/`get` now both
+  return `CompletableFuture<HttpTransportResponse>` (no more separate `postAsync`, no more
+  `throws IOException, InterruptedException` on the sync-looking methods). `TypesafeClient`'s
+  synchronous `evaluate`/`listModels` block on the future internally; a single retry engine now
+  backs both the sync and async paths instead of duplicating the loop. `close()` is abstract
+  again (no default no-op) — every implementation must define one, even if it's empty.

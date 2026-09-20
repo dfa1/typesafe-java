@@ -267,7 +267,7 @@ TypesafeClient client = TypesafeClient.builder(token)
 
 given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
 given(httpTransport.post(any(), any(), eq(requestBody)))
-        .willReturn(new HttpTransportResponse(200, Map.of(), responseBody));
+        .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), responseBody)));
 given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
 
 client.evaluate(request);

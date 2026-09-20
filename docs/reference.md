@@ -167,18 +167,22 @@ boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as `H
 package io.github.dfa1.typesafe.transport;
 
 public interface HttpTransport extends AutoCloseable {
-    HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
-            throws IOException, InterruptedException;
-    CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body);
-    HttpTransportResponse get(URI uri, Map<String, String> headers)
-            throws IOException, InterruptedException;
-    default void close() { }   // no-op unless overridden
+    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body);
+    CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers);
+    void close();   // no default -- every implementation must define one, even a no-op
 }
 
 public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
     Optional<String> header(String name);   // case-insensitive lookup
 }
 ```
+
+Every call is asynchronous — there's no separate synchronous/async pair of methods per verb.
+`TypesafeClient.evaluate`/`listModels` (synchronous) block on the returned future internally;
+`evaluateAsync` returns it directly. An implementation whose underlying library is inherently
+synchronous (e.g. Apache HttpClient's classic API) still returns a `CompletableFuture`, already
+completed (or failed) by the time the call returns — see `JdkHttpTransport.get`/`post` below for
+the async-native shape most HTTP libraries actually provide.
 
 Bodies are `String`, not `byte[]`: `TypesafeClient` only ever sends/receives JSON over this SPI,
 and JSON text is UTF-8 by construction (RFC 8259), so there's no charset this layer needs to
@@ -194,8 +198,7 @@ abstracted away from any particular HTTP library. `JdkHttpTransport` (in
 `META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
 yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it
 explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes its `HttpClient`
-(JDK 21+); a custom implementation overrides `close()` only if it holds a resource worth
-releasing.
+(JDK 21+).
 
 `JdkHttpTransport(HttpClient http, Duration timeout)` applies `timeout` to every request via
 `HttpRequest.Builder#timeout` (`null` disables it); the no-arg and `(HttpClient)` constructors

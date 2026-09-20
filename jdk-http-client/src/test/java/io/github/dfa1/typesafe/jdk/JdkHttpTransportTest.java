@@ -17,7 +17,6 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -43,10 +42,11 @@ class JdkHttpTransportTest {
         given(httpResponse.headers()).willReturn(
                 HttpHeaders.of(Map.of("Content-Type", List.of("application/json")), (name, value) -> true));
         given(httpResponse.body()).willReturn("{\"ok\":true}");
-        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        HttpTransportResponse result = sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), "{\"a\":1}");
+        HttpTransportResponse result =
+                sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), "{\"a\":1}").get();
 
         // Then
         assertThat(result.statusCode()).isEqualTo(200);
@@ -54,7 +54,7 @@ class JdkHttpTransportTest {
         assertThat(result.body()).isEqualTo("{\"ok\":true}");
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        then(httpClient).should().send(captor.capture(), any());
+        then(httpClient).should().sendAsync(captor.capture(), any());
         HttpRequest sent = captor.getValue();
         assertThat(sent.uri()).isEqualTo(ENDPOINT);
         assertThat(sent.method()).isEqualTo("POST");
@@ -69,14 +69,14 @@ class JdkHttpTransportTest {
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
         given(httpResponse.body()).willReturn("{}");
-        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        sut.post(ENDPOINT, Map.of(), "{}");
+        sut.post(ENDPOINT, Map.of(), "{}").get();
 
         // Then
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        then(httpClient).should().send(captor.capture(), any());
+        then(httpClient).should().sendAsync(captor.capture(), any());
         assertThat(captor.getValue().timeout()).contains(Duration.ofSeconds(3));
     }
 
@@ -87,38 +87,15 @@ class JdkHttpTransportTest {
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
         given(httpResponse.body()).willReturn("{}");
-        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
-
-        // When
-        sut.post(ENDPOINT, Map.of(), "{}");
-
-        // Then
-        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        then(httpClient).should().send(captor.capture(), any());
-        assertThat(captor.getValue().timeout()).isEmpty();
-    }
-
-    @Test
-    void postAsyncSendsAHeadedJsonPostAndMapsTheResponse() throws ExecutionException, InterruptedException {
-        // Given
-        JdkHttpTransport sut = new JdkHttpTransport(httpClient);
-        given(httpResponse.statusCode()).willReturn(500);
-        given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
-        given(httpResponse.body()).willReturn("{\"error\":true}");
         given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        CompletableFuture<HttpTransportResponse> result =
-                sut.postAsync(ENDPOINT, Map.of(), "{\"a\":1}");
+        sut.post(ENDPOINT, Map.of(), "{}").get();
 
         // Then
-        assertThat(result.get().statusCode()).isEqualTo(500);
-        assertThat(result.get().body()).isEqualTo("{\"error\":true}");
-
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         then(httpClient).should().sendAsync(captor.capture(), any());
-        assertThat(captor.getValue().uri()).isEqualTo(ENDPOINT);
-        assertThat(captor.getValue().method()).isEqualTo("POST");
+        assertThat(captor.getValue().timeout()).isEmpty();
     }
 
     @Test
@@ -128,21 +105,22 @@ class JdkHttpTransportTest {
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
         given(httpResponse.body()).willReturn("{\"models\":[]}");
-        given(httpClient.<String>send(any(), any())).willReturn(httpResponse);
+        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        HttpTransportResponse result = sut.get(ENDPOINT, Map.of("Authorization", "Bearer secret"));
+        HttpTransportResponse result = sut.get(ENDPOINT, Map.of("Authorization", "Bearer secret")).get();
 
         // Then
         assertThat(result.statusCode()).isEqualTo(200);
         assertThat(result.body()).isEqualTo("{\"models\":[]}");
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
-        then(httpClient).should().send(captor.capture(), any());
+        then(httpClient).should().sendAsync(captor.capture(), any());
         HttpRequest sent = captor.getValue();
         assertThat(sent.uri()).isEqualTo(ENDPOINT);
         assertThat(sent.method()).isEqualTo("GET");
         assertThat(sent.headers().firstValue("Authorization")).contains("Bearer secret");
+        assertThat(sent.timeout()).contains(JdkHttpTransport.DEFAULT_TIMEOUT);
     }
 
     @Test

@@ -7,14 +7,17 @@ import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
-import java.util.List;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class TypesafeClient implements AutoCloseable {
 
@@ -104,10 +107,7 @@ public final class TypesafeClient implements AutoCloseable {
     }
 
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
-        Map<String, String> headers = requestHeaders();
-        String body = jsonCodec.writeValueAsString(request);
-        HttpTransportResponse response = sendWithRetry(() -> transport.post(endpoint, headers, body));
-        return toEvaluateResponse(response);
+        return await(evaluateAsync(request));
     }
 
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
@@ -118,85 +118,78 @@ public final class TypesafeClient implements AutoCloseable {
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
-        return evaluateAsync(headers, body, 0);
-    }
-
-    private CompletableFuture<EvaluateResponse> evaluateAsync(Map<String, String> headers, String body, int attempt) {
-        return transport.postAsync(endpoint, headers, body)
-                .handle((response, error) -> error == null
-                        ? handleAsyncResponse(response, headers, body, attempt)
-                        : retryOnConnectionFailure(error, headers, body, attempt))
-                .thenCompose(stage -> stage);
-    }
-
-    private CompletableFuture<EvaluateResponse> handleAsyncResponse(
-            HttpTransportResponse response, Map<String, String> headers, String body, int attempt) {
-        int status = response.statusCode();
-
-        if (status == 200) {
-            try {
-                return CompletableFuture.completedFuture(toEvaluateResponse(response));
-            } catch (RuntimeException e) {
-                return CompletableFuture.failedFuture(e);
-            }
-        }
-        if (isRetryableStatus(status) && attempt < maxRetries) {
-            return delayThenRetry(backoffFor(response, attempt), headers, body, attempt);
-        }
-        return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
-    }
-
-    private CompletableFuture<EvaluateResponse> retryOnConnectionFailure(
-            Throwable error, Map<String, String> headers, String body, int attempt) {
-        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-        if (cause instanceof IOException && attempt < maxRetries) {
-            return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), headers, body, attempt);
-        }
-        return CompletableFuture.failedFuture(cause);
-    }
-
-    private CompletableFuture<EvaluateResponse> delayThenRetry(
-            Duration backoff, Map<String, String> headers, String body, int attempt) {
-        return CompletableFuture
-                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
-                .thenCompose(ignored -> evaluateAsync(headers, body, attempt + 1));
+        return sendWithRetry(() -> transport.post(endpoint, headers, body), this::toEvaluateResponse, 0);
     }
 
     /** Lists the models available to the account. */
     public List<ModelDetails> listModels() throws IOException, InterruptedException {
         Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
-        HttpTransportResponse response = sendWithRetry(() -> transport.get(modelsEndpoint, headers));
-        return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
+        return await(sendWithRetry(() -> transport.get(modelsEndpoint, headers), this::toModelDetails, 0));
     }
 
-    private HttpTransportResponse sendWithRetry(HttpCall call) throws IOException, InterruptedException {
-        for (int attempt = 0; ; attempt++) {
-            HttpTransportResponse response;
+    private <T> CompletableFuture<T> sendWithRetry(
+            Supplier<CompletableFuture<HttpTransportResponse>> call, Function<HttpTransportResponse, T> decode, int attempt) {
+        return call.get()
+                .handle((response, error) -> error == null
+                        ? handleResponse(response, call, decode, attempt)
+                        : retryOnConnectionFailure(error, call, decode, attempt))
+                .thenCompose(stage -> stage);
+    }
+
+    private <T> CompletableFuture<T> handleResponse(
+            HttpTransportResponse response, Supplier<CompletableFuture<HttpTransportResponse>> call,
+            Function<HttpTransportResponse, T> decode, int attempt) {
+        int status = response.statusCode();
+
+        if (status == 200) {
             try {
-                response = call.send();
-            } catch (IOException e) {
-                if (attempt < maxRetries) {
-                    Thread.sleep(initialBackoff.multipliedBy(1L << attempt).toMillis());
-                    continue;
-                }
-                throw e;
+                return CompletableFuture.completedFuture(decode.apply(response));
+            } catch (RuntimeException e) {
+                return CompletableFuture.failedFuture(e);
             }
-            int status = response.statusCode();
-
-            if (status == 200) {
-                return response;
-            }
-            if (isRetryableStatus(status) && attempt < maxRetries) {
-                Thread.sleep(backoffFor(response, attempt).toMillis());
-                continue;
-            }
-            throw new TypesafeException(status, response.body());
         }
+        if (isRetryableStatus(status) && attempt < maxRetries) {
+            return delayThenRetry(backoffFor(response, attempt), call, decode, attempt);
+        }
+        return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
     }
 
-    @FunctionalInterface
-    private interface HttpCall {
-        HttpTransportResponse send() throws IOException, InterruptedException;
+    private <T> CompletableFuture<T> retryOnConnectionFailure(
+            Throwable error, Supplier<CompletableFuture<HttpTransportResponse>> call,
+            Function<HttpTransportResponse, T> decode, int attempt) {
+        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+        if (cause instanceof IOException && attempt < maxRetries) {
+            return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), call, decode, attempt);
+        }
+        return CompletableFuture.failedFuture(cause);
+    }
+
+    private <T> CompletableFuture<T> delayThenRetry(
+            Duration backoff, Supplier<CompletableFuture<HttpTransportResponse>> call,
+            Function<HttpTransportResponse, T> decode, int attempt) {
+        return CompletableFuture
+                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
+                .thenCompose(ignored -> sendWithRetry(call, decode, attempt + 1));
+    }
+
+    /** Blocks on {@code future}, unwrapping {@link ExecutionException} back to its cause so a
+     *  synchronous call surfaces the same exception an async one would fail with. */
+    private static <T> T await(CompletableFuture<T> future) throws IOException, InterruptedException {
+        try {
+            return future.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof IOException io) {
+                throw io;
+            }
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            if (cause instanceof Error er) {
+                throw er;
+            }
+            throw new IOException(cause);
+        }
     }
 
     /** {@code 408}/{@code 429}/any {@code 5xx}: a client- or server-side hiccup worth retrying,
@@ -249,5 +242,9 @@ public final class TypesafeClient implements AutoCloseable {
                 response.header("x-envoy-upstream-service-time")
                         .map(Long::parseLong).map(Duration::ofMillis).orElse(null));
         return new EvaluateResponse(body.model(), body.answers(), body.usage(), metadata);
+    }
+
+    private List<ModelDetails> toModelDetails(HttpTransportResponse response) {
+        return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
     }
 }

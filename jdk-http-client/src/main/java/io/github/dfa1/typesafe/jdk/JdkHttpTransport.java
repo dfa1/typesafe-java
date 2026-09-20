@@ -3,7 +3,6 @@ package io.github.dfa1.typesafe.jdk;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -40,16 +39,7 @@ public final class JdkHttpTransport implements HttpTransport {
     }
 
     @Override
-    public HttpTransportResponse post(URI uri, Map<String, String> headers, String body)
-            throws IOException, InterruptedException {
-        HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
-                .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
-        HttpResponse<String> response = http.send(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        return toTransportResponse(response);
-    }
-
-    @Override
-    public CompletableFuture<HttpTransportResponse> postAsync(URI uri, Map<String, String> headers, String body) {
+    public CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                 .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
         return http.sendAsync(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
@@ -57,10 +47,10 @@ public final class JdkHttpTransport implements HttpTransport {
     }
 
     @Override
-    public HttpTransportResponse get(URI uri, Map<String, String> headers) throws IOException, InterruptedException {
+    public CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers) {
         HttpRequest.Builder builder = HttpRequest.newBuilder(uri).GET();
-        HttpResponse<String> response = http.send(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        return toTransportResponse(response);
+        return http.sendAsync(request(builder, headers), HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8))
+                .thenApply(JdkHttpTransport::toTransportResponse);
     }
 
     @Override
