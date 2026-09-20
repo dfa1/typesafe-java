@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-20
+
+- `jdk-http-client` module renamed to `client-jdk` (artifact `typesafe-java-jdk-http-client` ->
+  `typesafe-java-client-jdk`); package and class names are unchanged.
 - `cli`'s runnable uber-jar is now published to Maven Central under the `all` classifier
   (`typesafe-java-cli-VERSION-all.jar`), GPG-signed like every other artifact; the plain
   `typesafe-java-cli` artifact stays a normal, non-executable jar so a mistaken plain
