@@ -121,7 +121,7 @@ public final class Main {
         }
     }
 
-    private static String answerValue(EvaluateResponse response, String name) {
+    static String answerValue(EvaluateResponse response, String name) {
         return switch (response.answers().get(name)) {
             case Answer.Noul n -> String.valueOf(n.noul());
             case Answer.Choice c -> c.choice();
@@ -130,7 +130,7 @@ public final class Main {
         };
     }
 
-    private static List<String> minFailures(EvaluateResponse response, List<String> minSpecs) {
+    static List<String> minFailures(EvaluateResponse response, List<String> minSpecs) {
         List<String> failures = new ArrayList<>();
         for (String spec : minSpecs) {
             int eq = spec.indexOf('=');
@@ -150,7 +150,7 @@ public final class Main {
         return failures;
     }
 
-    private static Question question(String flag, String rest) {
+    static Question question(String flag, String rest) {
         int bar = rest.indexOf('|');
         String instructions = bar >= 0 ? rest.substring(0, bar) : rest;
         List<String> options = bar >= 0 ? Arrays.asList(rest.substring(bar + 1).split(",")) : List.of();
@@ -167,7 +167,7 @@ public final class Main {
         };
     }
 
-    private static Model modelById(String id) {
+    static Model modelById(String id) {
         for (Model model : Model.values()) {
             if (model.id().equals(id)) {
                 return model;
