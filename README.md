@@ -7,6 +7,12 @@
 Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (any JSON value)
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
+Save a token to `~/.typesafe.apitoken` first — either way below picks it up automatically.
+
+## Quickstart
+
+### As a Java library
+
 ```java
 ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apitoken
 TypesafeClient client = TypesafeClient.builder(token).build();
@@ -19,7 +25,31 @@ Answer.Noul answer = (Answer.Noul) client.evaluate(request).answers().get("is_ur
 answer.noul(); // e.g. 0.92
 ```
 
+See [Install](#install) below to add it as a dependency, or the [tutorial](docs/tutorial.md)
+for the full walkthrough.
+
+### From the command line
+
+No Java coding required — the `cli` module builds a self-contained jar, handy for wiring a
+check into a Jenkins job, a shell script, or any other CI pipeline without writing a line of
+Java:
+
+```bash
+./mvnw -pl cli -am package -DskipTests
+java -jar cli/target/typesafe-java-cli-*.jar \
+        --state "My card was charged twice." \
+        --noul "urgent=Is this urgent?" \
+        --min "urgent=0.5" || echo "not urgent enough"
+```
+
+Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met, so it doubles as a
+pass/fail gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
+full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Not published as a
+library artifact — build it locally as shown above.
+
 ## Install
+
+Maven, via the BOM:
 
 ```xml
 <dependencyManagement>
@@ -46,24 +76,8 @@ answer.noul(); // e.g. 0.92
 </dependencies>
 ```
 
-Save a token to `~/.typesafe.apitoken` and you're set — see the [tutorial](docs/tutorial.md)
-for the full walkthrough.
-
-## Try it from the command line
-
-No Java coding required — the `cli` module builds a self-contained jar:
-
-```bash
-./mvnw -pl cli -am package -DskipTests
-java -jar cli/target/typesafe-java-cli-*.jar \
-        --state "My card was charged twice." \
-        --noul "urgent=Is this urgent?" \
-        --min "urgent=0.5" || echo "not urgent enough"
-```
-
-Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met — handy as a shell or
-CI gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the full
-flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...).
+Not yet on Maven Central — `0.1-SNAPSHOT` builds from source (`./mvnw install`) until the first
+release ships.
 
 ## Modules
 
