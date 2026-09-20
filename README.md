@@ -1,5 +1,7 @@
 # typesafe-java
 
+[![CI](https://github.com/dfa1/typesafe-java/actions/workflows/ci.yml/badge.svg)](https://github.com/dfa1/typesafe-java/actions/workflows/ci.yml)
+
 Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (any JSON value)
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
