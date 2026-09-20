@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `cli`'s uber-jar is now attached to each GitHub release, so it's downloadable without
+  building from source. Still not published to Maven Central — it's an uber-jar, not a
+  library dependency.
+
 ## [0.1.0] - 2026-09-20
 
 Initial release.

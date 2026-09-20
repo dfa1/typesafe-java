@@ -40,7 +40,11 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           NOTES=$(awk "/^## \[$VERSION\]/{found=1; next} found && /^## \[/{exit} found{print}" CHANGELOG.md)
+          # cli isn't published to Maven Central (it's an uber-jar, not a library dependency --
+          # see maven.deploy.skip in cli/pom.xml) but is attached here so it's downloadable
+          # without building from source.
           gh release create "$GITHUB_REF_NAME" \
             --title "$GITHUB_REF_NAME" \
             --notes "$NOTES" \
-            --verify-tag
+            --verify-tag \
+            "cli/target/typesafe-java-cli-$VERSION.jar"

@@ -30,13 +30,19 @@ for the full walkthrough.
 
 ### From the command line
 
-No Java coding required — the `cli` module builds a self-contained jar, handy for wiring a
-check into a Jenkins job, a shell script, or any other CI pipeline without writing a line of
-Java:
+No Java coding required — the `cli` module is a self-contained jar, handy for wiring a check
+into a Jenkins job, a shell script, or any other CI pipeline without writing a line of Java.
+Download it from the [latest release](https://github.com/dfa1/typesafe-java/releases/latest),
+or build it from source:
 
 ```bash
 ./mvnw -pl cli -am package -DskipTests
-java -jar cli/target/typesafe-java-cli-*.jar \
+```
+
+Either way, run it the same way:
+
+```bash
+java -jar typesafe-java-cli-*.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --min "urgent=0.5" || echo "not urgent enough"
@@ -44,8 +50,8 @@ java -jar cli/target/typesafe-java-cli-*.jar \
 
 Prints the answer as JSON and exits `1` if `--min`'s threshold isn't met, so it doubles as a
 pass/fail gate. See [how-to.md](docs/how-to.md#run-a-quick-check-from-the-command-line) for the
-full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Not published as a
-library artifact — build it locally as shown above.
+full flag reference (`--choice`/`--score`, `--print`, `--verbose`, ...). Not published to Maven
+Central — it's an uber-jar, not a library dependency.
 
 ## Install
 

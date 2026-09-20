@@ -298,12 +298,13 @@ is `String`-based too.)
 
 ## Run a quick check from the command line
 
-The `cli` module builds an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
-ad hoc checks against the real API, without writing any Java:
+The `cli` module is an executable uber-jar (JDK `HttpTransport` + Jackson 3 codec) for
+ad hoc checks against the real API, without writing any Java. Download it from the
+[latest release](https://github.com/dfa1/typesafe-java/releases/latest), or build it:
+`./mvnw -pl cli -am package -DskipTests` (jar lands in `cli/target/`).
 
 ```bash
-./mvnw -pl cli -am package -DskipTests
-java -jar cli/target/typesafe-java-cli-*.jar \
+java -jar typesafe-java-cli-*.jar \
         --state "My card was charged twice." \
         --noul "urgent=Is this urgent?" \
         --choice "category=What kind of issue is this?|billing,shipping,other" \
