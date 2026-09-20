@@ -23,7 +23,7 @@ EvaluateRequest request = EvaluateRequest.of(
         State.text("Help! My payouts have been failing for 3 days."),
         Map.of("is_urgent", Question.noul("Does this convey urgency?")));
 
-Answer.Noul answer = (Answer.Noul) client.evaluate(request).answers().get("is_urgent");
+Answer.Noul answer = client.evaluate(request).nouls().get("is_urgent");
 answer.noul(); // e.g. 0.92
 ```
 

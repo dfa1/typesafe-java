@@ -82,7 +82,7 @@ EvaluateResponse response = client.evaluate(request);
 ## 5. Read the answer
 
 ```java
-Answer.Noul answer = (Answer.Noul) response.answers().get("is_urgent");
+Answer.Noul answer = response.nouls().get("is_urgent");
 System.out.println("urgency score: " + answer.noul());          // e.g. 0.92
 System.out.println("input tokens: " + response.usage().inputTokens());
 System.out.println("request id: " + response.metadata().requestId().value());
