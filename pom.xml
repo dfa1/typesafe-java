@@ -37,6 +37,13 @@
          Update this when bumping mockito.version (run: mvn dependency:tree -pl core | grep byte-buddy-agent). -->
     <bytebuddy.version>1.18.13</bytebuddy.version>
     <excludedGroups>acceptance</excludedGroups>
+    <!-- coverage -->
+    <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
+    <!-- Default for the @{argLine} placeholder in the surefire config below. JaCoCo's
+         prepare-agent goal overwrites this with the agent arguments when the coverage
+         profile is active; without this default, surefire receives a literal "@{argLine}"
+         token as a JVM argument when the profile isn't active. -->
+    <argLine />
   </properties>
 
   <dependencyManagement>
@@ -84,16 +91,23 @@
           <artifactId>maven-surefire-plugin</artifactId>
           <version>3.2.5</version>
           <configuration>
-            <!-- net.bytebuddy:byte-buddy-agent:jar is resolved to an absolute path by
+            <!-- @{argLine} expands to the JaCoCo agent arguments set by jacoco:prepare-agent
+                 when the coverage profile is active (see the argLine property default above).
+                 net.bytebuddy:byte-buddy-agent:jar is resolved to an absolute path by
                  maven-dependency-plugin:properties (declared in build/plugins); loading it as
                  a javaagent suppresses the Mockito inline-mock-maker self-attach warning. -->
-            <argLine>-javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
+            <argLine>@{argLine} -javaagent:${net.bytebuddy:byte-buddy-agent:jar}</argLine>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-dependency-plugin</artifactId>
           <version>3.8.1</version>
+        </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco-maven-plugin.version}</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -144,4 +158,36 @@
       </plugin>
     </plugins>
   </build>
+
+  <profiles>
+    <profile>
+      <!-- Activated in CI: ./mvnw verify -P coverage
+           Attaches the JaCoCo agent to surefire and writes one
+           target/site/jacoco/jacoco.xml per module for SonarCloud to ingest. -->
+      <id>coverage</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>prepare-agent</id>
+                <goals>
+                  <goal>prepare-agent</goal>
+                </goals>
+              </execution>
+              <execution>
+                <id>report</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>report</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
