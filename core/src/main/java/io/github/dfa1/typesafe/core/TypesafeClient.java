@@ -41,10 +41,6 @@ public final class TypesafeClient {
         return new Builder(apiToken);
     }
 
-    public static TypesafeClient withDefaultToken() throws IOException {
-        return builder(ApiToken.fromDefaultFile()).build();
-    }
-
     public static final class Builder {
         private final ApiToken apiToken;
         private HttpTransport transport;

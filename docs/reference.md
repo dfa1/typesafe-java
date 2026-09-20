@@ -165,7 +165,6 @@ record ApiToken(String value)
 
 ```java
 static TypesafeClient.Builder builder(ApiToken apiToken)
-static TypesafeClient withDefaultToken() throws IOException   // builder(ApiToken.fromDefaultFile()).build()
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)

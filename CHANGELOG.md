@@ -13,3 +13,5 @@ First version — no released API yet, so nothing to describe changes against.
   terminal, without writing Java. `--verbose`/`--timing` print the request id / response
   time to stderr; `--version` prints the jar's version and exits without calling the API.
   Not published as a library artifact.
+- Removed `TypesafeClient.withDefaultToken()`: its name read as "a default token" rather
+  than "the default token *file*". Use `TypesafeClient.builder(ApiToken.fromDefaultFile()).build()`.
