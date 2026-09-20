@@ -88,6 +88,23 @@ EvaluateRequest request = EvaluateRequest.of(state, Model.PREVIEW, questions);
 
 See [reference.md#model](reference.md#model) for the full list.
 
+## Build a request with the fluent builder
+
+`EvaluateRequest.builder()` avoids hand-building the `questions` map for `of(...)`:
+
+```java
+EvaluateRequest request = EvaluateRequest.builder()
+        .state("Help! My payouts have been failing for 3 days.")
+        .noul("is_urgent", "Does this convey urgency?")
+        .choice("category", "Which category?", Map.of("billing", "", "technical", ""))
+        .score("severity", "Rate the severity", List.of("low", "medium", "high"))
+        .build();
+```
+
+`state(String)` is sugar for `state(State.text(...))`; pass a `State` directly for the
+`fields`/`messages` shapes. Reusing a question name throws `IllegalArgumentException` instead
+of silently dropping the earlier question.
+
 ## Ask a Choice question
 
 `Question.choice` picks the best-matching option out of a labeled set:

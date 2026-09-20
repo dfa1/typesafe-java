@@ -70,6 +70,25 @@ record EvaluateRequest(State state, Model model, Map<String, Question> questions
 `model = Model.LATEST`. `EvaluateRequest.of(State state, Model model, Map<String, Question> questions)`
 picks a specific model.
 
+`EvaluateRequest.builder()` is the fluent alternative to `of(...)` plus hand-building the
+`questions` map:
+
+```java
+EvaluateRequest request = EvaluateRequest.builder()
+        .state("Help! My payouts have been failing for 3 days.")
+        .noul("is_urgent", "Does this convey urgency?")
+        .choice("category", "Which category?", Map.of("billing", "", "technical", ""))
+        .score("severity", "Rate the severity", List.of("low", "medium", "high"))
+        .build();
+```
+
+`state(String)` is sugar for `state(State.text(...))`; `state(State)` accepts any shape.
+`model(Model)` defaults to `Model.LATEST` when omitted. Each question method (`noul`, `noul`
+with a criteria map, `choice`, `score`) takes the question's name first, then the same
+arguments as the matching `Question` factory. Reusing a name throws `IllegalArgumentException`
+— each question key must be unique, since a second call with the same name would otherwise
+silently overwrite the first in the underlying map.
+
 ### `Model`
 
 Known values for `EvaluateRequest.model()` — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
