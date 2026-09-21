@@ -7,14 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- `TypesafeClient` is now an interface instead of a final class (the implementation,
-  `DefaultTypesafeClient`, is public and owns `Builder` — `TypesafeClient.builder(...)` still
-  works exactly as before) — a caller can now wrap one in a decorator (caching, metrics, a
-  circuit breaker, ...) that's itself substitutable anywhere a `TypesafeClient` is expected, and
-  `Mockito.mock(TypesafeClient.class)` no longer needs the inline mock maker.
-- New `testkit` module: `RecordingTypesafeClient`, a `TypesafeClient` test double for
-  unit-testing code that calls `evaluate()`/`listModels()` without hitting the real API or
-  reaching for Mockito.
+- `TypesafeClient` is now an interface, decoratable (caching, metrics, a circuit breaker, ...);
+  new `testkit` module with `RecordingTypesafeClient`, a `TypesafeClient` test double:
+  [`4d1c6f4`](https://github.com/dfa1/typesafe-java/commit/4d1c6f4).
 - `RequestId` now serializes/deserializes as its bare `value` string (e.g. `"req_..."`) instead
   of a wrapping `{"value": "req_..."}` object, matching how `Model` is already handled.
 - `cli`: stdout is now silent by default instead of always printing the full `EvaluateResponse`
