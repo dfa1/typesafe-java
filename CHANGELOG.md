@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Breaking:** `TypesafeClient`/`TypesafeException` renamed to `TypeSafeClient`/`TypeSafeException`
+  (matching the product's actual capitalization, "TypeSafe"), along with every class named after
+  them (`DefaultTypeSafeClient`, `RecordingTypeSafeClient`, ...):
+  [`10f6f0f`](https://github.com/dfa1/typesafe-java/commit/10f6f0f). Package names and Maven
+  artifact IDs are unaffected — they stay lowercase (`io.github.dfa1.typesafe`,
+  `typesafe-java-*`), regular Java/Maven convention regardless of class capitalization.
 - `TypeSafeClient` is now an interface, decoratable (caching, metrics, a circuit breaker, ...);
   new `testkit` module with `RecordingTypeSafeClient`, a `TypeSafeClient` test double:
   [`4d1c6f4`](https://github.com/dfa1/typesafe-java/commit/4d1c6f4).
