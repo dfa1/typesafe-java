@@ -7,12 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- `MappingTypeSafeClient`'s javadoc now documents, and a test now locks in, that it never wraps
-  or reclassifies a `TypeSafeException` from its delegate — a `RateLimit`/`InternalServer`/etc.
-  propagates completely unchanged. Its own failures (`IllegalArgumentException` for a
-  misconfigured record, `IllegalStateException` for a response that doesn't match one) are
-  deliberately a different, non-`TypeSafeException` exception family, since both are always
-  non-transient — retrying either is never useful. No behavior change; this was already true.
 - `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
   the client and applies a decorator to it in one call (e.g.
   `builder(apiKey).build(MappingTypeSafeClient::new)`), returning `T` instead of the plain
