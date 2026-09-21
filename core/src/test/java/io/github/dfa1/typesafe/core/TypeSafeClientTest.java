@@ -11,12 +11,15 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -25,6 +28,7 @@ import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
+@SuppressWarnings("resource")
 @ExtendWith(MockitoExtension.class)
 class TypeSafeClientTest {
 
@@ -38,7 +42,7 @@ class TypeSafeClientTest {
     private JsonCodec jsonCodec;
 
     @Test
-    void evaluateDelegatesToTheConfiguredHttpTransportAndJsonCodec() throws Exception {
+    void evaluateDelegatesToTheConfiguredHttpTransportAndJsonCodec() {
         // Given
         TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
@@ -71,7 +75,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void listModelsDelegatesToTheConfiguredHttpTransportAndJsonCodec() throws Exception {
+    void listModelsDelegatesToTheConfiguredHttpTransportAndJsonCodec() {
         // Given
         TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
@@ -112,7 +116,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateThrowsOnANonRetryableErrorStatus() throws Exception {
+    void evaluateThrowsOnANonRetryableErrorStatus() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -132,7 +136,40 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateRetriesOnRateLimitThenSucceeds() throws Exception {
+    void evaluateThrowsTheSubclassMatchingTheStatusCode() {
+        // Given
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(401, Map.of(), "no token")));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(request))
+                .isInstanceOf(TypeSafeException.Authentication.class);
+    }
+
+    @Test
+    void evaluateThrowsRateLimitWithTheRetryAfterHeader() {
+        // Given
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 0);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willReturn(CompletableFuture.completedFuture(
+                        new HttpTransportResponse(429, Map.of("retry-after-ms", "1500"), "slow down")));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(request))
+                .isInstanceOf(TypeSafeException.RateLimit.class)
+                .satisfies(e -> assertThat(((TypeSafeException.RateLimit) e).retryAfter())
+                        .contains(java.time.Duration.ofMillis(1500)));
+    }
+
+    @Test
+    void evaluateRetriesOnRateLimitThenSucceeds() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -153,7 +190,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateThrowsAfterExhaustingRetries() throws Exception {
+    void evaluateThrowsAfterExhaustingRetries() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -170,7 +207,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateRetriesOnAnyServerErrorStatus() throws Exception {
+    void evaluateRetriesOnAnyServerErrorStatus() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -190,7 +227,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateRetriesOnRequestTimeoutStatus() throws Exception {
+    void evaluateRetriesOnRequestTimeoutStatus() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -210,7 +247,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateRetriesOnAConnectionFailureThenSucceeds() throws Exception {
+    void evaluateRetriesOnAConnectionFailureThenSucceeds() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -231,7 +268,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateThrowsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
+    void evaluateThrowsAfterExhaustingRetriesOnAConnectionFailure() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -241,12 +278,65 @@ class TypeSafeClientTest {
         given(httpTransport.post(any(), any(), any())).willReturn(CompletableFuture.failedFuture(connectionFailure));
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluate(request)).isSameAs(connectionFailure);
+        assertThatThrownBy(() -> sut.evaluate(request))
+                .isInstanceOf(TypeSafeException.Connection.class)
+                .cause().isSameAs(connectionFailure);
         then(httpTransport).should(times(2)).post(any(), any(), any());
     }
 
     @Test
-    void evaluateRethrowsAnErrorFromTheTransportWithoutRetrying() throws Exception {
+    void evaluateThrowsTypeSafeTimeoutExceptionAfterExhaustingRetriesOnATimeout() {
+        // Given
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 0);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        HttpTimeoutException timeout = new HttpTimeoutException("request timed out");
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any())).willReturn(CompletableFuture.failedFuture(timeout));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(request))
+                .isInstanceOf(TypeSafeException.Timeout.class)
+                .cause().isSameAs(timeout);
+    }
+
+    @Test
+    void evaluateThrowsTypeSafeInterruptedAndRestoresTheInterruptFlagWhenTheCallingThreadIsInterrupted() throws Exception {
+        // Given
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
+        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        CompletableFuture<HttpTransportResponse> neverCompletes = new CompletableFuture<>();
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any())).willReturn(neverCompletes);
+
+        AtomicReference<Throwable> thrown = new AtomicReference<>();
+        AtomicBoolean interruptFlagAfterward = new AtomicBoolean();
+        Thread caller = new Thread(() -> {
+            try {
+                sut.evaluate(request);
+            } catch (Throwable t) {
+                thrown.set(t);
+            } finally {
+                interruptFlagAfterward.set(Thread.currentThread().isInterrupted());
+            }
+        });
+
+        // When
+        caller.start();
+        while (caller.getState() != Thread.State.WAITING && caller.getState() != Thread.State.TIMED_WAITING) {
+            Thread.onSpinWait();
+        }
+        caller.interrupt();
+        caller.join(5_000);
+
+        // Then
+        assertThat(thrown.get()).isInstanceOf(TypeSafeException.Interrupted.class);
+        assertThat(interruptFlagAfterward.get()).isTrue();
+    }
+
+    @Test
+    void evaluateRethrowsAnErrorFromTheTransportWithoutRetrying() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -261,7 +351,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluatePopulatesMetadataFromResponseHeaders() throws Exception {
+    void evaluatePopulatesMetadataFromResponseHeaders() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -284,7 +374,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateAsyncSucceeds() throws Exception {
+    void evaluateAsyncSucceeds() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -297,14 +387,14 @@ class TypeSafeClientTest {
         given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
-        EvaluateResponse result = sut.evaluateAsync(request).get();
+        EvaluateResponse result = sut.evaluateAsync(request).join();
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
     }
 
     @Test
-    void evaluateAsyncRetriesOnRateLimitThenSucceeds() throws Exception {
+    void evaluateAsyncRetriesOnRateLimitThenSucceeds() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -319,7 +409,7 @@ class TypeSafeClientTest {
         given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
-        EvaluateResponse result = sut.evaluateAsync(request).get();
+        EvaluateResponse result = sut.evaluateAsync(request).join();
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
@@ -327,7 +417,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateAsyncFailsAfterExhaustingRetries() throws Exception {
+    void evaluateAsyncFailsAfterExhaustingRetries() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -344,7 +434,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateAsyncRetriesOnAConnectionFailureThenSucceeds() throws Exception {
+    void evaluateAsyncRetriesOnAConnectionFailureThenSucceeds() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -357,7 +447,7 @@ class TypeSafeClientTest {
         given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
-        EvaluateResponse result = sut.evaluateAsync(request).get();
+        EvaluateResponse result = sut.evaluateAsync(request).join();
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
@@ -365,7 +455,7 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void evaluateAsyncFailsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
+    void evaluateAsyncFailsAfterExhaustingRetriesOnAConnectionFailure() {
         // Given
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
@@ -378,6 +468,7 @@ class TypeSafeClientTest {
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
                 .isInstanceOf(ExecutionException.class)
+                .cause().isInstanceOf(TypeSafeException.Connection.class)
                 .cause().isSameAs(connectionFailure);
         then(httpTransport).should(times(2)).post(any(), any(), any());
     }
@@ -413,6 +504,7 @@ class TypeSafeClientTest {
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
                 .isInstanceOf(ExecutionException.class)
+                .cause().isInstanceOf(TypeSafeException.ResponseDecoding.class)
                 .cause().isSameAs(decodingFailure);
     }
 

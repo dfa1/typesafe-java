@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Breaking:** `TypeSafeClient.evaluate`/`evaluateAsync`/`listModels` no longer declare any
+  checked exception — `throws IOException, InterruptedException` is gone from `evaluate`/
+  `listModels`. `TypeSafeException` is now sealed, with a subclass per HTTP status
+  (`BadRequest` 400, `Authentication` 401, `PermissionDenied` 403, `NotFound` 404,
+  `UnprocessableEntity` 422, `RateLimit` 429 with a `retryAfter()` accessor, `InternalServer`
+  5xx) so callers can catch specific failures instead of switching on `statusCode()`. A `200`
+  response the `JsonCodec` fails to decode now throws `TypeSafeException.ResponseDecoding`
+  (wrapping the codec's exception as its cause) instead of that exception escaping directly. A
+  connection/timeout failure still failing after `maxRetries` now throws
+  `TypeSafeException.Connection`/`.Timeout` (a subclass of `Connection`) instead of the
+  transport's raw `IOException`; the calling thread being interrupted while waiting now throws
+  `TypeSafeException.Interrupted`, restoring the thread's interrupt status first. These three
+  have no real HTTP response behind them, so `statusCode()`/`body()` are `-1`/`null` on all of
+  them. `TypeSafeException` itself remains the catch-all base class for any other status. See
+  [ADR 0002](adr/0002-no-checked-exceptions.md).
+  [#7](https://github.com/dfa1/typesafe-java/issues/7)
 - New `client-okhttp` module: `OkHttpTransport`, an `HttpTransport` backed by OkHttp — an
   alternative to `client-jdk` for environments `java.net.http` doesn't cover, e.g. Android.
   Depends on `com.squareup.okhttp3:okhttp-jvm` (OkHttp 5.x publishes as Kotlin Multiplatform;

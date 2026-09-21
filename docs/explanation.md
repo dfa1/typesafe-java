@@ -105,6 +105,17 @@ codec's `State` handling is a serializer that writes the variant's raw value dir
 `Answer`/`Question` use. There's also no deserializer: `state` only ever appears on
 `EvaluateRequest`, which this client only ever writes, never reads back.
 
+## Why `evaluate`/`listModels` declare no checked exception
+
+They used to declare `throws IOException, InterruptedException`, mirroring
+`java.net.http.HttpClient`'s own convention. That was an inconsistency with `TypeSafeException`
+itself (already unchecked, for non-2xx statuses): the same call had two failure modes treated
+differently — one a caller could ignore, the other forced onto every call site's signature or a
+`try`/`catch`. A connection failure, a timeout, and the calling thread being interrupted are now
+`TypeSafeException.Connection`/`.Timeout`/`.Interrupted` — all unchecked, alongside the
+per-status subclasses. See [ADR 0002](../adr/0002-no-checked-exceptions.md) for the full
+decision record.
+
 ## Why retries are bounded and exponential
 
 `evaluate`/`evaluateAsync` retry `408`, `429`, and any `5xx` up to 5 times, doubling the backoff

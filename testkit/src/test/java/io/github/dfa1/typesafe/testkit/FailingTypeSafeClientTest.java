@@ -15,12 +15,13 @@ import java.util.concurrent.ExecutionException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@SuppressWarnings("resource")
 class FailingTypeSafeClientTest {
 
     private static final EvaluateRequest REQUEST = EvaluateRequest.of(State.text("hi"), Map.of());
 
     @Test
-    void everyNthCallThrowsInsteadOfReachingTheDelegate() throws Exception {
+    void everyNthCallThrowsInsteadOfReachingTheDelegate() {
         // Given
         EvaluateResponse response = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient()
@@ -55,7 +56,7 @@ class FailingTypeSafeClientTest {
     }
 
     @Test
-    void listModelsIsCountedTowardTheSameFailEveryCounterAsEvaluate() throws Exception {
+    void listModelsIsCountedTowardTheSameFailEveryCounterAsEvaluate() {
         // Given
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient()
                 .enqueueEvaluate(new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null));

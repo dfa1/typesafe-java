@@ -180,18 +180,31 @@ client.evaluateAsync(request)
 
 ## Handle API errors
 
-A non-`200`, non-retryable response (or exhausted retries) throws `TypeSafeException`:
+A non-`200`, non-retryable response (or exhausted retries) throws `TypeSafeException`, one of
+its per-status subclasses (see [reference](reference.md#typesafeexception)) when the status
+matches one, or the base class itself otherwise:
 
 ```java
 try {
     client.evaluate(request);
+} catch (TypeSafeException.RateLimit e) {
+    e.retryAfter().ifPresent(delay -> System.err.println("retry after " + delay));
+} catch (TypeSafeException.Authentication e) {
+    System.err.println("bad API key");
+} catch (TypeSafeException.Timeout e) {
+    System.err.println("timed out: " + e.getMessage());
+} catch (TypeSafeException.Connection e) {
+    System.err.println("couldn't reach TypeSafe: " + e.getMessage());
 } catch (TypeSafeException e) {
     System.err.println(e.statusCode() + ": " + e.body());
 }
 ```
 
-`408`, `429`, and any `5xx` are retried automatically with exponential backoff (5 attempts,
-starting at 500ms) before `TypeSafeException` is thrown.
+`evaluate`/`evaluateAsync`/`listModels` declare no checked exception — every failure above,
+including a connection failure/timeout and the calling thread being interrupted, is an unchecked
+`TypeSafeException` (see [ADR 0002](../adr/0002-no-checked-exceptions.md)). `408`, `429`, any
+`5xx`, and a connection/timeout failure are all retried automatically with exponential backoff
+(5 attempts, starting at 500ms) before any exception is thrown.
 
 ## Use a custom `HttpClient`
 
@@ -216,9 +229,9 @@ TypeSafeClient client = TypeSafeClient.builder(token)
         .build();
 ```
 
-A timed-out request surfaces as an `HttpTimeoutException` (a subtype of `IOException`) from
-`evaluate`/`evaluateAsync`/`listModels` — retried automatically the same as a connection failure,
-up to `maxRetries` (see below).
+A timed-out request is retried automatically the same as a connection failure, up to
+`maxRetries` (see below); once retries are exhausted it surfaces as `TypeSafeException.Timeout`,
+not the transport's raw `HttpTimeoutException`.
 
 ## Close the client when you're done with it
 
@@ -253,8 +266,8 @@ TypeSafeClient client = TypeSafeClient.builder(token)
 - a connection failure or a request timeout (any `IOException` from the transport)
 
 Any other non-`200` status, or a retryable failure that's still failing after `maxRetries`,
-throws `TypeSafeException` (or the `IOException`/`HttpTimeoutException` itself, for a
-connection/timeout failure).
+throws `TypeSafeException` — `TypeSafeException.Connection`/`.Timeout` for the latter (see
+[reference](reference.md#typesafeexception)).
 
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
@@ -267,7 +280,7 @@ record CachingTypeSafeClient(TypeSafeClient delegate, Map<EvaluateRequest, Evalu
         implements TypeSafeClient {
 
     @Override
-    public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
+    public EvaluateResponse evaluate(EvaluateRequest request) {
         EvaluateResponse cached = cache.get(request);
         if (cached != null) {
             return cached;

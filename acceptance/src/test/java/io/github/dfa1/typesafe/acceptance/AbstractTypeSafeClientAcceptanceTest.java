@@ -32,6 +32,7 @@ import static org.assertj.core.api.Assertions.within;
  * well-formed (values in range, probabilities summing to ~1, keys matching what was asked)
  * rather than pinning down a specific answer.
  */
+@SuppressWarnings("JavaPrintToLogpoint")
 @Tag("acceptance")
 abstract class AbstractTypeSafeClientAcceptanceTest {
 
@@ -55,7 +56,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void evaluatesANoulQuestionAgainstTheLiveApi() throws Exception {
+    void evaluatesANoulQuestionAgainstTheLiveApi() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
                 State.text("Help! My payouts have been failing for 3 days."),
@@ -93,7 +94,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void noulRatesHowGruntledACustomerReallyIs() throws Exception {
+    void noulRatesHowGruntledACustomerReallyIs() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
                 State.text("""
@@ -114,7 +115,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void choicePicksTheCulpritBehindAPizzaOrderGoneWrong() throws Exception {
+    void choicePicksTheCulpritBehindAPizzaOrderGoneWrong() {
         // Given
         Map<String, String> suspects = Map.of(
                 "wrong_toppings", "The pizza arrived with the wrong toppings entirely",
@@ -148,7 +149,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void scoreRatesTheSpicinessOfAChiliDescription() throws Exception {
+    void scoreRatesTheSpicinessOfAChiliDescription() {
         // Given
         List<String> heatLevels = List.of("Mild", "Medium", "Hot", "Face-melting");
         EvaluateRequest request = EvaluateRequest.of(
@@ -182,7 +183,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void fillsGraphqlFilterSlotsFromHumanText() throws Exception {
+    void fillsGraphqlFilterSlotsFromHumanText() {
         // Given
         Map<String, String> markets = Map.of("US", "United States market", "EU", "European market",
                 "ASIA", "Asian markets");
@@ -213,7 +214,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void diagnosesWhyMarketDataIsMissing() throws Exception {
+    void diagnosesWhyMarketDataIsMissing() {
         // Given
         String state = """
                 CLIENT COMPLAINT:
@@ -269,7 +270,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
-    void triagesASupportTicketByUrgencyCategoryAndFrustrationInOneCall() throws Exception {
+    void triagesASupportTicketByUrgencyCategoryAndFrustrationInOneCall() {
         // Given
         Map<String, String> categories = Map.of(
                 "billing", "Payments, charges, refunds",

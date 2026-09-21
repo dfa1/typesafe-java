@@ -2,7 +2,6 @@ package io.github.dfa1.typesafe.core;
 
 import io.github.dfa1.typesafe.transport.HttpTransport;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -22,24 +21,24 @@ public interface TypeSafeClient extends AutoCloseable {
      * Evaluates {@code request} synchronously, blocking until a response arrives or the retry
      * budget is exhausted. Retries a {@code 408}/{@code 429}/any {@code 5xx} status, or a
      * connection failure, up to {@code maxRetries} times (exponential backoff, honoring a
-     * {@code retry-after}/{@code retry-after-ms} response header when present); any other
-     * non-{@code 200} status throws {@link TypeSafeException}.
-     *
-     * @throws IOException a connection failure or timeout, once retries are exhausted
-     * @throws InterruptedException if the calling thread is interrupted while waiting
+     * {@code retry-after}/{@code retry-after-ms} response header when present). All of the
+     * following throw {@link TypeSafeException}: any other non-{@code 200} status; a connection
+     * failure/timeout once retries are exhausted ({@link TypeSafeException.Connection}/
+     * {@link TypeSafeException.Timeout}); the calling thread being interrupted while waiting
+     * ({@link TypeSafeException.Interrupted}, which restores the thread's interrupt status
+     * before throwing).
      */
-    EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException;
+    EvaluateResponse evaluate(EvaluateRequest request);
 
     /**
      * Asynchronous form of {@link #evaluate}: same retry policy, but returns immediately with a
      * {@link CompletableFuture} that completes with the response, or completes exceptionally
-     * with {@link TypeSafeException} (a non-retryable or retries-exhausted status) or an
-     * {@link IOException} (a connection failure or timeout, once retries are exhausted).
+     * with {@link TypeSafeException}.
      */
     CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request);
 
     /** Lists the models available to the account. */
-    List<ModelDetails> listModels() throws IOException, InterruptedException;
+    List<ModelDetails> listModels();
 
     /** Closes the underlying {@link HttpTransport}, releasing any resources it holds. */
     @Override

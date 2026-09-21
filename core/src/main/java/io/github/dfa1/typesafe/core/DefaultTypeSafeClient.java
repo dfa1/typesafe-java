@@ -5,7 +5,9 @@ import io.github.dfa1.typesafe.transport.HttpTransport;
 import io.github.dfa1.typesafe.transport.HttpTransportResponse;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.net.URI;
+import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -46,7 +48,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     }
 
     @Override
-    public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
+    public EvaluateResponse evaluate(EvaluateRequest request) {
         return await(evaluateAsync(request));
     }
 
@@ -63,7 +65,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     }
 
     @Override
-    public List<ModelDetails> listModels() throws IOException, InterruptedException {
+    public List<ModelDetails> listModels() {
         Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
         return await(sendWithRetry(() -> transport.get(modelsEndpoint, headers), this::toModelDetails, 0));
     }
@@ -86,23 +88,52 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             try {
                 return CompletableFuture.completedFuture(decode.apply(response));
             } catch (RuntimeException e) {
-                return CompletableFuture.failedFuture(e);
+                return CompletableFuture.failedFuture(new TypeSafeException.ResponseDecoding(response.body(), e));
             }
         }
         if (isRetryableStatus(status) && attempt < maxRetries) {
             return delayThenRetry(backoffFor(response, attempt), call, decode, attempt);
         }
-        return CompletableFuture.failedFuture(new TypeSafeException(status, response.body()));
+        return CompletableFuture.failedFuture(toException(status, response));
+    }
+
+    /** Most specific {@link TypeSafeException} subclass for {@code status}, or the plain
+     *  base class as a catch-all when no subclass matches. */
+    private static TypeSafeException toException(int status, HttpTransportResponse response) {
+        String body = response.body();
+        return switch (status) {
+            case 400 -> new TypeSafeException.BadRequest(body);
+            case 401 -> new TypeSafeException.Authentication(body);
+            case 403 -> new TypeSafeException.PermissionDenied(body);
+            case 404 -> new TypeSafeException.NotFound(body);
+            case 422 -> new TypeSafeException.UnprocessableEntity(body);
+            case 429 -> new TypeSafeException.RateLimit(body, retryAfter(response).orElse(null));
+            default -> status >= 500 && status < 600
+                    ? new TypeSafeException.InternalServer(status, body)
+                    : new TypeSafeException(status, body);
+        };
     }
 
     private <T> CompletableFuture<T> retryOnConnectionFailure(
             Throwable error, Supplier<CompletableFuture<HttpTransportResponse>> call,
             Function<HttpTransportResponse, T> decode, int attempt) {
         Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-        if (cause instanceof IOException && attempt < maxRetries) {
-            return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), call, decode, attempt);
+        if (cause instanceof IOException io) {
+            if (attempt < maxRetries) {
+                return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), call, decode, attempt);
+            }
+            return CompletableFuture.failedFuture(toConnectionException(io));
         }
         return CompletableFuture.failedFuture(cause);
+    }
+
+    /** Wraps a transport's raw {@link IOException}, once retries are exhausted, as
+     *  {@link TypeSafeException.Timeout} when it's one of the JDK's timeout exception types,
+     *  {@link TypeSafeException.Connection} otherwise. */
+    private static TypeSafeException.Connection toConnectionException(IOException cause) {
+        return cause instanceof HttpTimeoutException || cause instanceof InterruptedIOException
+                ? new TypeSafeException.Timeout(cause)
+                : new TypeSafeException.Connection(cause);
     }
 
     private <T> CompletableFuture<T> delayThenRetry(
@@ -114,22 +145,24 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     }
 
     /** Blocks on {@code future}, unwrapping {@link ExecutionException} back to its cause so a
-     *  synchronous call surfaces the same exception an async one would fail with. */
-    private static <T> T await(CompletableFuture<T> future) throws IOException, InterruptedException {
+     *  synchronous call surfaces the same exception an async one would fail with. An
+     *  {@link InterruptedException} while waiting becomes {@link TypeSafeException.Interrupted},
+     *  restoring the thread's interrupt status first. */
+    private static <T> T await(CompletableFuture<T> future) {
         try {
             return future.get();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof IOException io) {
-                throw io;
-            }
             if (cause instanceof RuntimeException re) {
                 throw re;
             }
             if (cause instanceof Error er) {
                 throw er;
             }
-            throw new IOException(cause);
+            throw new TypeSafeException.Connection(cause);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TypeSafeException.Interrupted(e);
         }
     }
 

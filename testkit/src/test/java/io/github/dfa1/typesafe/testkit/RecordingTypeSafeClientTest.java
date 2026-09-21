@@ -16,6 +16,7 @@ import java.util.concurrent.ExecutionException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@SuppressWarnings("resource")
 class RecordingTypeSafeClientTest {
 
     @Test

@@ -5,7 +5,6 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,7 +34,7 @@ public final class FailingTypeSafeClient implements TypeSafeClient {
     }
 
     @Override
-    public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
+    public EvaluateResponse evaluate(EvaluateRequest request) {
         maybeFail();
         return delegate.evaluate(request);
     }
@@ -51,7 +50,7 @@ public final class FailingTypeSafeClient implements TypeSafeClient {
     }
 
     @Override
-    public List<ModelDetails> listModels() throws IOException, InterruptedException {
+    public List<ModelDetails> listModels() {
         maybeFail();
         return delegate.listModels();
     }

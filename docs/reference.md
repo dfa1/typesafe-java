@@ -279,9 +279,9 @@ record ApiKey(String value)
 ```java
 static DefaultTypeSafeClient.Builder builder(ApiKey apiKey)
 
-EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
+EvaluateResponse evaluate(EvaluateRequest request)
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
-List<ModelDetails> listModels() throws IOException, InterruptedException
+List<ModelDetails> listModels()
 ```
 
 `TypeSafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
@@ -304,8 +304,10 @@ Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
 - any `IOException` from the transport (a connection failure, or `JdkHttpTransport`'s request
   timeout expiring — see below), backed off the same exponential schedule
 
-Any other non-`200` status, or a retryable failure still failing after `maxRetries`, throws
-`TypeSafeException` — or, for a connection/timeout failure, the `IOException` itself.
+None of the three methods declares a checked exception — every failure is an unchecked
+`TypeSafeException` (see below), including a connection failure/timeout still failing after
+`maxRetries`, and the calling thread being interrupted while waiting. See
+[ADR 0002](../adr/0002-no-checked-exceptions.md) for why.
 
 `TypeSafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
 so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use
@@ -325,8 +327,37 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 ### `TypeSafeException`
 
 ```java
-class TypeSafeException extends RuntimeException {
+sealed class TypeSafeException extends RuntimeException {
     int statusCode();
     String body();
 }
 ```
+
+The base class is also the catch-all: constructed directly for a status with no dedicated
+subclass below. A `200` response the configured `JsonCodec` couldn't decode throws
+`TypeSafeException.ResponseDecoding` (`statusCode()` `200`, `getCause()` the codec's original
+exception) instead of that exception escaping directly.
+
+| Subclass | Status |
+|---|---|
+| `TypeSafeException.BadRequest` | `400` |
+| `TypeSafeException.Authentication` | `401` |
+| `TypeSafeException.PermissionDenied` | `403` |
+| `TypeSafeException.NotFound` | `404` |
+| `TypeSafeException.UnprocessableEntity` | `422` |
+| `TypeSafeException.RateLimit` | `429` — `retryAfter()` returns the `retry-after`/`retry-after-ms` header as an `Optional<Duration>` |
+| `TypeSafeException.InternalServer` | any `5xx` |
+| `TypeSafeException.ResponseDecoding` | `200`, but decoding the body failed |
+| `TypeSafeException.Connection` | no HTTP response — the transport couldn't reach TypeSafe, once retries are exhausted |
+| `TypeSafeException.Timeout` | a `Connection` specifically caused by a timeout |
+| `TypeSafeException.Interrupted` | the calling thread was interrupted while waiting for a response |
+
+`Connection`, `Timeout`, and `Interrupted` never had an HTTP response to carry: `statusCode()`
+returns the sentinel `-1` and `body()` returns `null` on all three. `getCause()` is the
+transport's original `IOException` (`Connection`/`Timeout`) or the original `InterruptedException`
+(`Interrupted`). Throwing `Interrupted` restores the thread's interrupt status first
+(`Thread.currentThread().interrupt()`), so code further up the call stack still observes it.
+`Timeout` is thrown instead of `Connection` when the underlying `IOException` was
+`java.net.http.HttpTimeoutException` (from `JdkHttpTransport`) or `java.io.InterruptedIOException`
+— the supertype of `java.net.SocketTimeoutException` — (from `OkHttpTransport`). See
+[ADR 0002](../adr/0002-no-checked-exceptions.md).
