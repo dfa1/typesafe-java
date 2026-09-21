@@ -32,13 +32,17 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-testkit   — RecordingTypeSafeClient, in io.github.dfa1.typesafe.testkit, depending only on
-            core. Implements TypeSafeClient directly, at the EvaluateRequest/EvaluateResponse
-            level: `enqueueEvaluate`/`enqueueModels` queue a response (FIFO, no request
-            matcher — a test already controls call order itself) to whichever
-            evaluate()/evaluateAsync()/listModels() call comes next; `evaluateRequests()`
-            records every evaluate()/evaluateAsync() call, in order. A call with nothing left
-            queued throws (or, for evaluateAsync, fails its future with) an AssertionError.
+testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testkit, depending
+            only on core. RecordingTypeSafeClient implements TypeSafeClient directly, at the
+            EvaluateRequest/EvaluateResponse level: `enqueueEvaluate`/`enqueueModels` queue a
+            response (FIFO, no request matcher — a test already controls call order itself) to
+            whichever evaluate()/evaluateAsync()/listModels() call comes next;
+            `evaluateRequests()` records every evaluate()/evaluateAsync() call, in order. A
+            call with nothing left queued throws (or, for evaluateAsync, fails its future with)
+            an AssertionError. FailingTypeSafeClient decorates any TypeSafeClient (e.g. a
+            RecordingTypeSafeClient, composing recording with periodic failure): every
+            `failEvery`-th call (evaluate/evaluateAsync/listModels share one counter) throws a
+            supplied exception instead of reaching the delegate.
 bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit.
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec

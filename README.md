@@ -95,7 +95,7 @@ Maven, via the BOM (see the Maven Central badge above for the latest version):
 | `core` | `TypeSafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
 | `client-jdk` | `HttpTransport` backed by `java.net.http` |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
-| `testkit` | `RecordingTypeSafeClient`, a `TypeSafeClient` test double for unit tests |
+| `testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
 | `bom` | dependency management for the modules above |
 | `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |

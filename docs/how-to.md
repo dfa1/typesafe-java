@@ -314,6 +314,26 @@ anything your code calls (they don't even appear in `TypeSafeClient`'s public me
 test built on them breaks whenever this library's internals change for reasons that have nothing
 to do with your code.
 
+## Test how your code handles intermittent failures
+
+`FailingTypeSafeClient` decorates any `TypeSafeClient` — including a `RecordingTypeSafeClient`,
+so recording and periodic failure compose — and throws every `failEvery`-th call instead of
+reaching the delegate (`evaluate()`, `evaluateAsync()`, and `listModels()` share one counter):
+
+```java
+TypeSafeClient client = new FailingTypeSafeClient(
+        new RecordingTypeSafeClient().enqueueEvaluate(response),
+        3,
+        () -> new TypeSafeException(503, "overloaded"));
+
+client.evaluate(request); // 1st call: succeeds
+client.evaluate(request); // 2nd call: succeeds
+client.evaluate(request); // 3rd call: throws TypeSafeException(503, "overloaded")
+```
+
+The failure supplier runs once per triggered call, so it can return a fresh exception instance
+each time, or a different one depending on external state. `failEvery` must be positive.
+
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 
 `typesafe-java-core` has zero runtime dependencies — `TypeSafeClient` talks to `HttpTransport`/

@@ -230,6 +230,19 @@ for the recipe. `evaluateRequests()` records every `evaluate()`/`evaluateAsync()
 comes next (`enqueueModels` likewise for `listModels()`); a call with nothing left queued throws
 (or, for `evaluateAsync`, fails its future with) an `AssertionError`.
 
+```java
+public final class FailingTypeSafeClient implements TypeSafeClient {
+    public FailingTypeSafeClient(TypeSafeClient delegate, int failEvery, Supplier<? extends RuntimeException> failure);
+}
+```
+
+A `TypeSafeClient` decorator for unit-testing how calling code handles intermittent failures —
+see [how-to.md](how-to.md#test-how-your-code-handles-intermittent-failures) for the recipe. Wraps
+any `TypeSafeClient` (a `RecordingTypeSafeClient`, `DefaultTypeSafeClient`, or another decorator);
+every `failEvery`-th call — `evaluate()`, `evaluateAsync()`, and `listModels()` share one counter
+— throws `failure.get()` instead of reaching the delegate; every other call passes straight
+through. The constructor throws `IllegalArgumentException` if `failEvery` isn't positive.
+
 ## Client
 
 Also in `io.github.dfa1.typesafe.core`.
