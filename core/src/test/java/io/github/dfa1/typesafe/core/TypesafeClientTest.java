@@ -85,8 +85,8 @@ class TypesafeClientTest {
 
         given(httpTransport.get(modelsEndpoint, expectedHeaders))
                 .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "models-json")));
-        given(jsonCodec.readValue("models-json", TypesafeClient.ModelsResponse.class))
-                .willReturn(new TypesafeClient.ModelsResponse(models));
+        given(jsonCodec.readValue("models-json", DefaultTypesafeClient.ModelsResponse.class))
+                .willReturn(new DefaultTypesafeClient.ModelsResponse(models));
 
         // When
         List<ModelDetails> result = sut.listModels();
@@ -419,7 +419,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoHttpTransportIsConfiguredOrDiscoverable() {
         // Given
-        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
+        DefaultTypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -430,7 +430,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoJsonCodecIsConfiguredOrDiscoverable() {
         // Given
-        TypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
+        DefaultTypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -441,17 +441,17 @@ class TypesafeClientTest {
     @Test
     void isRetryableStatusAcceptsRequestTimeoutRateLimitAndAnyServerError() {
         // When / Then
-        assertThat(TypesafeClient.isRetryableStatus(408)).isTrue();
-        assertThat(TypesafeClient.isRetryableStatus(429)).isTrue();
-        assertThat(TypesafeClient.isRetryableStatus(500)).isTrue();
-        assertThat(TypesafeClient.isRetryableStatus(599)).isTrue();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(408)).isTrue();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(429)).isTrue();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(500)).isTrue();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(599)).isTrue();
     }
 
     @Test
     void isRetryableStatusRejectsOrdinaryClientErrors() {
         // When / Then
-        assertThat(TypesafeClient.isRetryableStatus(400)).isFalse();
-        assertThat(TypesafeClient.isRetryableStatus(404)).isFalse();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(400)).isFalse();
+        assertThat(DefaultTypesafeClient.isRetryableStatus(404)).isFalse();
     }
 
     @Test
@@ -460,7 +460,7 @@ class TypesafeClientTest {
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "2"), "");
 
         // When
-        Optional<Duration> result = TypesafeClient.retryAfter(response);
+        Optional<Duration> result = DefaultTypesafeClient.retryAfter(response);
 
         // Then
         assertThat(result).contains(Duration.ofSeconds(2));
@@ -473,7 +473,7 @@ class TypesafeClientTest {
                 new HttpTransportResponse(429, Map.of("retry-after-ms", "250", "retry-after", "5"), "");
 
         // When
-        Optional<Duration> result = TypesafeClient.retryAfter(response);
+        Optional<Duration> result = DefaultTypesafeClient.retryAfter(response);
 
         // Then
         assertThat(result).contains(Duration.ofMillis(250));
@@ -482,16 +482,16 @@ class TypesafeClientTest {
     @Test
     void retryAfterIsEmptyWhenTheHeaderIsAnHttpDateOrAbsent() {
         // When / Then
-        assertThat(TypesafeClient.retryAfter(
+        assertThat(DefaultTypesafeClient.retryAfter(
                 new HttpTransportResponse(429, Map.of("retry-after", "Wed, 21 Oct 2026 07:28:00 GMT"), "")))
                 .isEmpty();
-        assertThat(TypesafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
+        assertThat(DefaultTypesafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
     }
 
     @Test
     void backoffForUsesTheRetryAfterHeaderWhenPresent() {
         // Given
-        TypesafeClient sut = clientWith(Duration.ofSeconds(10));
+        DefaultTypesafeClient sut = clientWith(Duration.ofSeconds(10));
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "1"), "");
 
         // When
@@ -504,7 +504,7 @@ class TypesafeClientTest {
     @Test
     void backoffForFallsBackToExponentialWhenNoHeaderIsPresent() {
         // Given
-        TypesafeClient sut = clientWith(Duration.ofMillis(100));
+        DefaultTypesafeClient sut = clientWith(Duration.ofMillis(100));
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of(), "");
 
         // When
@@ -514,12 +514,12 @@ class TypesafeClientTest {
         assertThat(result).isEqualTo(Duration.ofMillis(400));
     }
 
-    private TypesafeClient clientWith(Duration backoff) {
+    private DefaultTypesafeClient clientWith(Duration backoff) {
         return clientWith(backoff, 5);
     }
 
-    private TypesafeClient clientWith(Duration backoff, int maxRetries) {
-        return TypesafeClient.builder(new ApiKey("secret"))
+    private DefaultTypesafeClient clientWith(Duration backoff, int maxRetries) {
+        return (DefaultTypesafeClient) TypesafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)

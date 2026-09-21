@@ -11,8 +11,9 @@
   <packaging>jar</packaging>
 
   <name>TypeSafe Testkit</name>
-  <description>A HttpTransport test double (RecordingHttpTransport) for unit-testing code that
-    calls TypesafeClient without hitting the real API. Depends only on typesafe-java-core.
+  <description>RecordingTypesafeClient, a TypesafeClient test double for unit-testing code that
+    calls evaluate()/listModels() without hitting the real API. Depends only on
+    typesafe-java-core.
   </description>
 
   <dependencies>

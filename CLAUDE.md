@@ -10,14 +10,18 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — TypesafeClient, ApiKey, TypesafeException, and the wire DTOs (Answer, Question,
-            State, EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails),
-            all in io.github.dfa1.typesafe.core; plus the JsonCodec
-            (io.github.dfa1.typesafe.json) + HttpTransport (io.github.dfa1.typesafe.transport)
-            SPIs. Zero dependency on any JSON or HTTP library — TypesafeClient talks to
-            HttpTransport/JsonCodec, never to a concrete library directly, so the DTOs +
-            JsonCodec alone are reusable (e.g. by a Kafka producer/consumer) without pulling
-            in TypesafeClient's HTTP concerns.
+core      — TypesafeClient (interface; the only implementation, DefaultTypesafeClient, is
+            public and owns Builder — TypesafeClient.builder(...) is a one-line delegate to
+            DefaultTypesafeClient.builder(...), so call sites don't change. A consumer can
+            implement TypesafeClient itself to decorate one, e.g. with caching), ApiKey,
+            TypesafeException, and the wire DTOs (Answer, Question, State,
+            EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
+            io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
+            HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
+            JSON or HTTP library — DefaultTypesafeClient talks to HttpTransport/JsonCodec,
+            never to a concrete library directly, so the DTOs + JsonCodec alone are reusable
+            (e.g. by a Kafka producer/consumer) without pulling in TypesafeClient's HTTP
+            concerns.
 client-jdk — HttpTransport backed by java.net.http (artifact
             typesafe-java-client-jdk, class JdkHttpTransport, package
             io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via
@@ -28,12 +32,13 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-testkit   — RecordingHttpTransport (+ RecordedRequest), a HttpTransport test double for
-            unit-testing code that calls TypesafeClient without hitting the real API, in
-            io.github.dfa1.typesafe.testkit. Depends only on core. Records every call in
-            arrival order (`requests()`); `respond(response)`/`respondTo(matcher, response)`
-            stub a response to any/a matching request, consumed by the first request that
-            matches — registering the same stub twice simulates a retry (e.g. 500 then 200).
+testkit   — RecordingTypesafeClient, in io.github.dfa1.typesafe.testkit, depending only on
+            core. Implements TypesafeClient directly, at the EvaluateRequest/EvaluateResponse
+            level: `enqueueEvaluate`/`enqueueModels` queue a response (FIFO, no request
+            matcher — a test already controls call order itself) to whichever
+            evaluate()/evaluateAsync()/listModels() call comes next; `evaluateRequests()`
+            records every evaluate()/evaluateAsync() call, in order. A call with nothing left
+            queued throws (or, for evaluateAsync, fails its future with) an AssertionError.
 bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit.
 acceptance — live-API tests only; not published. `AbstractTypesafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec

@@ -49,23 +49,44 @@ original reason for a separate `client` module (keeping `core` free of `java.net
 to version and depend on, with `core` exactly as dependency-free as before. See
 [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 
-## Why `testkit` is a first-party module instead of "just mock `HttpTransport` with Mockito"
+## Why `TypesafeClient` is an interface, not a final class
 
-Mockito's own guidance is to avoid mocking a type you don't own: a hand-rolled mock of someone
-else's type can silently drift from that type's real contract, and it couples your tests to
-implementation details (exact method call sequences, argument matchers) that break whenever the
-owner refactors, for reasons that have nothing to do with the code under test. `HttpTransport`
-is this library's type, not a consumer's — so a consumer mocking it ad hoc in their own test
-suite hits exactly that problem.
+It started out `public final class TypesafeClient`. Mockito 5's default (inline) mock maker
+already mocks final classes, so finality was never actually blocking a caller from unit-testing
+code that depends on `TypesafeClient` — but it did block a different, legitimate use: a
+decorator. `final` means nothing can `implements`/present itself as a `TypesafeClient`, so a
+caller who wants to wrap one with caching, metrics, a circuit breaker, or anything else in the
+classic Decorator shape has no supertype to implement — they'd have to invent their own
+interface with the same three methods and get every call site to depend on that instead of on
+`TypesafeClient` directly.
 
-`RecordingHttpTransport` sidesteps it by having the library own both ends: it's a real
-`HttpTransport` implementation, released and versioned alongside `JdkHttpTransport`, so it stays
-in sync with the interface by construction rather than by a consumer's guesswork. It's
-deliberately not a full expectations-DSL (no queued request/response pairs asserted in strict
-order, no "unexpected call" failure mode beyond an unmatched stub) — recording every call in
-arrival order and letting a test assert on that list with plain AssertJ gets the same count/order
-guarantees MockRestServiceServer/MockWebServer provide, without a bespoke matcher language to
-learn or maintain.
+Making it an interface costs nothing observable at existing call sites: `TypesafeClient.builder(key).build()`
+still type-checks and behaves identically, since `Builder.build()` always returned the interface
+type as far as callers could tell. What moved is the implementation — the retry/backoff/header/
+decode logic, previously `TypesafeClient`'s own body, now lives in `DefaultTypesafeClient`, the
+only concrete `TypesafeClient` this library produces. A consumer can now write
+`class CachingTypesafeClient implements TypesafeClient` and hand it anywhere a `TypesafeClient`
+was expected.
+
+`Builder` moved with it, onto `DefaultTypesafeClient` rather than staying on the `TypesafeClient`
+interface: constructing a `DefaultTypesafeClient` — picking defaults, discovering a
+`HttpTransport`/`JsonCodec` via `ServiceLoader` — is that class's own concern, not something a
+pure contract interface should carry. That required making `DefaultTypesafeClient` itself
+public (a nested class can't be more accessible than its enclosing class), so it's no longer
+hidden — but `TypesafeClient.builder(apiKey)` still exists as a one-line delegating static method
+on the interface, so nothing at the call site changes; a consumer only sees `DefaultTypesafeClient`
+by name if they explicitly go looking for it.
+
+## Why `testkit` ships a `TypesafeClient` fake instead of "just mock it with Mockito"
+
+Once `TypesafeClient` became an interface (see above), `Mockito.mock(TypesafeClient.class)` was
+already enough to stub `evaluate()`/`listModels()` — so `RecordingTypesafeClient` isn't there to
+make something possible that wasn't. It's there so a consumer's test doesn't need a Mockito
+dependency at all, and so the two or three lines of "queue a response, assert on what was sent"
+every such test wants don't get rewritten by hand each time. It's deliberately a plain FIFO
+(`enqueueEvaluate`/`enqueueModels`) rather than a matcher-based expectations DSL: a test already
+controls call order — it's the one deciding when to call `evaluate()`/`listModels()` — so
+matching by request content would only restate what the test already knows.
 
 ## Why `State` is a sealed interface, not `Object`
 

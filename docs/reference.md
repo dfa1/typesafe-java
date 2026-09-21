@@ -18,7 +18,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-java-testkit` | `core` | `RecordingHttpTransport`, `RecordedRequest` |
+| `typesafe-java-testkit` | `core` | `RecordingTypesafeClient` |
 | `typesafe-java-bom` | — | dependency management for the five above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypesafeClient` talks to
@@ -215,26 +215,20 @@ default it to `JdkHttpTransport.DEFAULT_TIMEOUT` (`10` seconds).
 `io.github.dfa1.typesafe.testkit` (module `typesafe-java-testkit`).
 
 ```java
-public record RecordedRequest(String method, URI uri, Map<String, String> headers, String body) {
-}
-
-public final class RecordingHttpTransport implements HttpTransport {
-    public RecordingHttpTransport respond(HttpTransportResponse response);
-    public RecordingHttpTransport respondTo(Predicate<RecordedRequest> matcher, HttpTransportResponse response);
-    public List<RecordedRequest> requests();
+public final class RecordingTypesafeClient implements TypesafeClient {
+    public RecordingTypesafeClient enqueueEvaluate(EvaluateResponse response);
+    public RecordingTypesafeClient enqueueModels(List<ModelDetails> models);
+    public List<EvaluateRequest> evaluateRequests();
 }
 ```
 
-A `HttpTransport` test double for unit-testing code that calls `TypesafeClient` without hitting
-the real API — see [how-to.md](how-to.md#test-code-that-uses-typesafeclient-without-hitting-the-real-api)
-for the recipe. `requests()` returns every call received, in arrival order, as an immutable
-snapshot. `respond(response)` stubs a response matching any request; `respondTo(matcher,
-response)` stubs one matching only requests satisfying `matcher` (typically a lambda over
-`RecordedRequest#uri`/`#body`). Each stub is consumed by the first request that matches it, so
-registering the same predicate (or `respond`) twice yields its two responses to two successive
-matching requests, in registration order — the mechanism for simulating a retry. A request with
-no remaining matching stub fails its `CompletableFuture` with an `AssertionError` naming the
-unmatched request, rather than throwing `NullPointerException` or blocking forever.
+A `TypesafeClient` test double at the `EvaluateRequest`/`EvaluateResponse` level — for unit-testing
+code that calls `evaluate()`/`listModels()` and reacts to the result, without reaching for
+Mockito — see [how-to.md](how-to.md#test-code-that-uses-typesafeclient-without-hitting-the-real-api)
+for the recipe. `evaluateRequests()` records every `evaluate()`/`evaluateAsync()` call, in order.
+`enqueueEvaluate(response)` queues a response to whichever `evaluate()`/`evaluateAsync()` call
+comes next (`enqueueModels` likewise for `listModels()`); a call with nothing left queued throws
+(or, for `evaluateAsync`, fails its future with) an `AssertionError`.
 
 ## Client
 
@@ -257,12 +251,21 @@ record ApiKey(String value)
 ### `TypesafeClient`
 
 ```java
-static TypesafeClient.Builder builder(ApiKey apiKey)
+static DefaultTypesafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
 List<ModelDetails> listModels() throws IOException, InterruptedException
 ```
+
+`TypesafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
+caching layer, metrics, a circuit breaker, ...) implementing the same interface — anywhere a
+`TypesafeClient` is expected, a decorator around one works too. `builder(apiKey)` is a thin
+static factory on the interface that delegates to `DefaultTypesafeClient.builder(apiKey)` — the
+implementation class is public and owns its own `Builder`, since constructing a
+`DefaultTypesafeClient` (defaults, `ServiceLoader` discovery, ...) is squarely that class's
+concern, not the interface's. Nothing about the call site changes: `TypesafeClient.builder(key)`
+still works exactly as before.
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
 `/v1/models` on the same scheme/authority. All three methods retry up to `maxRetries` times

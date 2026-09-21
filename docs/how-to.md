@@ -251,41 +251,68 @@ Any other non-`200` status, or a retryable failure that's still failing after `m
 throws `TypesafeException` (or the `IOException`/`HttpTimeoutException` itself, for a
 connection/timeout failure).
 
-## Test code that uses `TypesafeClient` without hitting the real API
+## Decorate `TypesafeClient` with your own cross-cutting concerns
 
-Don't mock `TypesafeClient` (or the `HttpTransport`/`JsonCodec` SPIs it talks to) directly in
-your own unit tests — they're types this library owns, not yours, so a test built on top of
-them breaks whenever this library's internals change, for reasons that have nothing to do with
-your code (see [Mockito's "don't mock types you don't own"](https://github.com/mockito/mockito/wiki/How-to-write-good-tests#dont-mock-a-type-you-dont-own)).
-Wrap `TypesafeClient` behind a narrow interface of your own that fits your domain, and mock
-*that* in unit tests of the code that calls it.
-
-To verify your wrapper itself calls `TypesafeClient` correctly — an integration-style test
-of the wiring, not a unit test of your business logic — add `typesafe-java-testkit`
-(test scope) and swap in `RecordingHttpTransport`, a `HttpTransport` test double that runs the
-real `TypesafeClient` (real retry/header/decode logic, real `JsonCodec`) against canned HTTP
-responses instead of the network:
+`TypesafeClient` is an interface, so wrap one in another implementation of the same interface —
+the classic Decorator pattern — to add caching, metrics, a circuit breaker, or anything else,
+transparently to callers that just depend on `TypesafeClient`:
 
 ```java
-RecordingHttpTransport transport = new RecordingHttpTransport()
-        .respond(new HttpTransportResponse(200, Map.of(), responseBody));
+record CachingTypesafeClient(TypesafeClient delegate, Map<EvaluateRequest, EvaluateResponse> cache)
+        implements TypesafeClient {
 
-TypesafeClient client = TypesafeClient.builder(token)
-        .httpTransport(transport)
-        .build();
+    @Override
+    public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
+        EvaluateResponse cached = cache.get(request);
+        if (cached != null) {
+            return cached;
+        }
+        EvaluateResponse response = delegate.evaluate(request);
+        cache.put(request, response);
+        return response;
+    }
 
-client.evaluate(request);
+    // evaluateAsync/listModels/close delegate straight through
 
-assertThat(transport.requests()).hasSize(1);
+}
+
+TypesafeClient client = new CachingTypesafeClient(TypesafeClient.builder(token).build(), new ConcurrentHashMap<>());
 ```
 
-Every call is recorded in `transport.requests()` in order, so count/order assertions are plain
-`AssertJ` list assertions — no `InOrder`/`times(n)` verification needed. Stub a response to a
-specific request with `respondTo(Predicate<RecordedRequest>, HttpTransportResponse)` instead of
-`respond(...)` (which matches any request); each stub is consumed by the first request that
-matches it, so registering the same predicate twice — e.g. once for a `500` and once for a
-`200` — simulates a retry. A request with no matching stub fails with an `AssertionError` naming
-the unmatched request. See `RecordingHttpTransportTest` in `testkit` for more examples.
+## Test code that uses `TypesafeClient` without hitting the real API
+
+Two options:
+
+1. **Add `typesafe-java-testkit` (test scope) and use `RecordingTypesafeClient`, or mock
+   `TypesafeClient` directly.** Both work at the `EvaluateRequest`/`EvaluateResponse` level, with
+   no setup — the simplest option for testing code that just calls `evaluate()`/`listModels()`
+   and reacts to the result:
+
+   ```java
+   RecordingTypesafeClient client = new RecordingTypesafeClient()
+           .enqueueEvaluate(response);
+
+   codeUnderTest.run(client);
+
+   assertThat(client.evaluateRequests()).containsExactly(expectedRequest);
+   ```
+
+   is equivalent to `Mockito.mock(TypesafeClient.class)` plus
+   `given(client.evaluate(request)).willReturn(response)` (works because `TypesafeClient` is an
+   interface) — pick whichever fits your test's style; `RecordingTypesafeClient` needs no Mockito
+   dependency and records every request for free, Mockito's `verify`/`ArgumentCaptor` give you
+   more control over matching a specific request to a specific stub. `enqueueEvaluate(response)`
+   queues a response to whichever `evaluate()`/`evaluateAsync()` call comes next (`enqueueModels`
+   likewise for `listModels()`); a call with nothing left queued throws (or, for `evaluateAsync`,
+   fails its future with) an `AssertionError`.
+2. **Wrap it behind an interface of your own** if you want zero coupling to this library's types
+   in your domain code, or need a shape it doesn't have (e.g. a synchronous-only facade). Mock
+   *that* interface instead.
+
+Don't mock the `HttpTransport`/`JsonCodec` SPIs directly, though — they're lower-level than
+anything your code calls (they don't even appear in `TypesafeClient`'s public methods), and a
+test built on them breaks whenever this library's internals change for reasons that have nothing
+to do with your code.
 
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 
