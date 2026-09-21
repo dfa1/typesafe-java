@@ -1,0 +1,54 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
+    <version>0.5.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>typesafe-java-client-okhttp</artifactId>
+  <packaging>jar</packaging>
+
+  <name>TypeSafe OkHttp Transport</name>
+  <description>HttpTransport SPI implementation backed by OkHttp. Depends only on
+    typesafe-java-core (plus OkHttp itself); discovered via ServiceLoader. An alternative to
+    typesafe-java-client-jdk for environments java.net.http doesn't cover, e.g. Android.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <!-- okhttp-jvm, not okhttp: OkHttp 5.x publishes as Kotlin Multiplatform. The bare
+         "okhttp" coordinate resolves (via plain Maven, which doesn't understand Gradle Module
+         Metadata variants) to an empty common-metadata jar with no actual classes;
+         "okhttp-jvm" is the JVM target artifact with real bytecode. -->
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp-jvm</artifactId>
+      <version>${okhttp.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

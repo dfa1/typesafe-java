@@ -43,6 +43,13 @@
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-client-okhttp</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-jackson2</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>

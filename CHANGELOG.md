@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- New `client-okhttp` module: `OkHttpTransport`, an `HttpTransport` backed by OkHttp — an
+  alternative to `client-jdk` for environments `java.net.http` doesn't cover, e.g. Android.
+  Depends on `com.squareup.okhttp3:okhttp-jvm` (OkHttp 5.x publishes as Kotlin Multiplatform;
+  the bare `okhttp` coordinate resolves to an empty jar under plain Maven). The `acceptance`
+  module now runs its full test suite against OkHttp too (`OkHttpClientWithJackson2/3AcceptanceTest`).
 - `testkit`: new `FailingTypeSafeClient`, a `TypeSafeClient` decorator that fails every Nth call
   (`evaluate()`/`evaluateAsync()`/`listModels()` share one counter) — for unit-testing how
   calling code handles intermittent failures. Wraps any `TypeSafeClient`, including a

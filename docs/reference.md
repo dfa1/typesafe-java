@@ -16,10 +16,11 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 |---|---|---|
 | `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
 | `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
+| `typesafe-java-client-okhttp` | `core` | `OkHttpTransport` (OkHttp) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient` |
-| `typesafe-java-bom` | — | dependency management for the five above |
+| `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
+| `typesafe-java-bom` | — | dependency management for the six above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
 `HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
@@ -199,16 +200,28 @@ that mutates the map it passed in afterward can't reach back into an already-ret
 
 The HTTP calls `TypeSafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
 abstracted away from any particular HTTP library. `JdkHttpTransport` (in
-`typesafe-java-client-jdk`) is discovered via
-`ServiceLoader.load(HttpTransport.class)` through
+`typesafe-java-client-jdk`) and `OkHttpTransport` (in `typesafe-java-client-okhttp`) are each
+discovered via `ServiceLoader.load(HttpTransport.class)` through
 `META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
-yourself (e.g. backed by Apache HttpClient, OkHttp, ...) and wire it in the same way, or pass it
-explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes its `HttpClient`
-(JDK 21+).
+yourself (e.g. backed by Apache HttpClient) and wire it in the same way, or pass any
+implementation explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes
+its `HttpClient` (JDK 21+); `OkHttpTransport.close()` shuts down its `OkHttpClient`'s dispatcher
+executor, evicts its connection pool, and closes its cache if one is configured.
 
 `JdkHttpTransport(HttpClient http, Duration timeout)` applies `timeout` to every request via
 `HttpRequest.Builder#timeout` (`null` disables it); the no-arg and `(HttpClient)` constructors
 default it to `JdkHttpTransport.DEFAULT_TIMEOUT` (`10` seconds).
+
+`OkHttpTransport(OkHttpClient http, Duration timeout)` applies `timeout` as `http`'s overall
+call timeout (`OkHttpClient.Builder#callTimeout`), rebuilding a derived client with it set; a
+`null` timeout uses `http` exactly as given, untouched. The no-arg and `(OkHttpClient)`
+constructors default it to `OkHttpTransport.DEFAULT_TIMEOUT` (`10` seconds). Response header
+names come back lowercase (OkHttp normalizes them internally) rather than preserving the wire
+casing the way `JdkHttpTransport` does — use `HttpTransportResponse#header(String)`, a
+case-insensitive lookup, rather than indexing `headers()` directly, and this is transport-agnostic.
+Depends on `com.squareup.okhttp3:okhttp-jvm`, not the bare `okhttp` coordinate — OkHttp 5.x
+publishes as Kotlin Multiplatform, and plain Maven (unlike Gradle) resolves the bare coordinate
+to an empty metadata artifact with no classes.
 
 ## Testkit
 

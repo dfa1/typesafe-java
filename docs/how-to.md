@@ -51,18 +51,22 @@ TypeSafeClient client = TypeSafeClient.builder(token)
 ## Choose an HTTP transport
 
 Likewise, `TypeSafeClient` doesn't depend on any HTTP library directly — it resolves an
-`HttpTransport` via `ServiceLoader`. Add:
+`HttpTransport` via `ServiceLoader`. Add one of:
 
 ```xml
 <dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-client-jdk</artifactId></dependency>
+<!-- or, e.g. on Android, where java.net.http isn't available -->
+<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-client-okhttp</artifactId></dependency>
 ```
 
-If it's missing, `build()` throws `IllegalStateException`. To wire one explicitly, or to use
-your own `HttpTransport` (e.g. backed by Apache HttpClient or OkHttp):
+If neither is present, `build()` throws `IllegalStateException`. Only add one — having both on
+the classpath makes `ServiceLoader` resolution between them non-deterministic. To wire one
+explicitly, or to use your own `HttpTransport` (e.g. backed by Apache HttpClient):
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
         .httpTransport(new JdkHttpTransport())
+        // or: .httpTransport(new OkHttpTransport())
         .build();
 ```
 
@@ -219,7 +223,8 @@ up to `maxRetries` (see below).
 ## Close the client when you're done with it
 
 `TypeSafeClient` implements `AutoCloseable` and closes its `HttpTransport` — for
-`JdkHttpTransport`, that releases the underlying `HttpClient`:
+`JdkHttpTransport`, that releases the underlying `HttpClient`; for `OkHttpTransport`, it shuts
+down the `OkHttpClient`'s dispatcher executor, evicts its connection pool, and closes its cache:
 
 ```java
 try (TypeSafeClient client = TypeSafeClient.builder(token).build()) {

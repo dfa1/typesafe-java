@@ -27,6 +27,17 @@ client-jdk — HttpTransport backed by java.net.http (artifact
             io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via
             ServiceLoader at Builder.build() time (or an explicit
             Builder.httpTransport(...) override).
+client-okhttp — HttpTransport backed by OkHttp (artifact typesafe-java-client-okhttp, class
+            OkHttpTransport, package io.github.dfa1.typesafe.okhttp). Depends only on core
+            (plus OkHttp). An alternative to client-jdk for environments java.net.http doesn't
+            cover, e.g. Android. Depends on `com.squareup.okhttp3:okhttp-jvm`, not `okhttp` —
+            OkHttp 5.x publishes as Kotlin Multiplatform, and the bare `okhttp` coordinate
+            resolves under plain Maven (no Gradle Module Metadata variant awareness) to an
+            empty common-metadata jar with no classes; `okhttp-jvm` is the real JVM artifact.
+            OkHttp lowercases response header names internally, unlike JdkHttpTransport (which
+            preserves wire casing) — harmless since HttpTransportResponse#header(String) is a
+            case-insensitive lookup, but `OkHttpTransportTest` asserts through `header(...)`
+            rather than the raw `headers()` map for exactly this reason.
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn); State
             (no discriminator — string/object/array on the wire) via a custom serializer,

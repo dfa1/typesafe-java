@@ -88,12 +88,16 @@ Maven, via the BOM (see the Maven Central badge above for the latest version):
 </dependencies>
 ```
 
+On Android, or anywhere else `java.net.http` isn't available, swap `typesafe-java-client-jdk`
+for `typesafe-java-client-okhttp`.
+
 ## Modules
 
 | Module | Contains |
 |---|---|
 | `core` | `TypeSafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
 | `client-jdk` | `HttpTransport` backed by `java.net.http` |
+| `client-okhttp` | `HttpTransport` backed by OkHttp — an alternative for environments `java.net.http` doesn't cover, e.g. Android |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
 | `bom` | dependency management for the modules above |

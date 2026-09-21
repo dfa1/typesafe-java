@@ -39,6 +39,7 @@
   <modules>
     <module>core</module>
     <module>client-jdk</module>
+    <module>client-okhttp</module>
     <module>jackson2</module>
     <module>jackson3</module>
     <module>testkit</module>
@@ -52,6 +53,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <jackson2.version>2.17.2</jackson2.version>
     <jackson3.version>3.0.0</jackson3.version>
+    <okhttp.version>5.5.0</okhttp.version>
     <junit.version>5.10.2</junit.version>
     <assertj.version>3.27.7</assertj.version>
     <mockito.version>5.23.0</mockito.version>
