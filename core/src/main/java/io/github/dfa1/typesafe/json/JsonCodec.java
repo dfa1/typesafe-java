@@ -8,5 +8,8 @@ public interface JsonCodec {
 
     String writeValueAsString(Object value);
 
+    /** Same as {@link #writeValueAsString(Object)}, indented for human reading. */
+    String writeValueAsPrettyString(Object value);
+
     <T> T readValue(String content, Class<T> type);
 }

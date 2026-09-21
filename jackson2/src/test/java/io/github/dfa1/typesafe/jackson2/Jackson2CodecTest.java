@@ -48,6 +48,18 @@ class Jackson2CodecTest {
     }
 
     @Test
+    void writeValueAsPrettyStringIndentsTheOutput() {
+        // Given
+        State state = State.fields(Map.of("order_id", "A-104"));
+
+        // When
+        String result = sut.writeValueAsPrettyString(state);
+
+        // Then
+        assertThat(result).isEqualTo("{\n  \"order_id\" : \"A-104\"\n}");
+    }
+
+    @Test
     void serializesEachStateShapeAsItsRawJsonType() {
         // When / Then
         assertThat(sut.writeValueAsString(State.text("hi"))).isEqualTo("\"hi\"");

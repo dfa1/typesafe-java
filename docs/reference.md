@@ -152,6 +152,7 @@ package io.github.dfa1.typesafe.json;
 
 public interface JsonCodec {
     String writeValueAsString(Object value);
+    String writeValueAsPrettyString(Object value); // same, indented for human reading
     <T> T readValue(String content, Class<T> type);
 }
 ```

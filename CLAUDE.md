@@ -52,7 +52,8 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
             stderr), `--version` (prints the jar's `Implementation-Version` manifest entry,
             set by the shade plugin, and exits without calling the API). Stdout is silent
             unless `--print <name>` (that answer's value) or `--verbose` (the full
-            `EvaluateResponse` as JSON) is given.
+            `EvaluateResponse` as pretty-printed JSON, via `JsonCodec.writeValueAsPrettyString`)
+            is given.
 ```
 
 Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`,

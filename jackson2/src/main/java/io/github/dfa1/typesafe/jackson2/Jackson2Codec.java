@@ -43,6 +43,15 @@ public final class Jackson2Codec implements JsonCodec {
     }
 
     @Override
+    public String writeValueAsPrettyString(Object value) {
+        try {
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
     public <T> T readValue(String content, Class<T> type) {
         try {
             return mapper.readValue(content, type);

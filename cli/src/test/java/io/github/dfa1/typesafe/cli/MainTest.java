@@ -262,7 +262,7 @@ class MainTest {
     }
 
     @Test
-    void runPrintsTheFullResponseAsJsonToStdoutWhenVerbose() throws Exception {
+    void runPrintsTheFullResponseAsPrettyJsonToStdoutWhenVerbose() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
@@ -273,7 +273,7 @@ class MainTest {
 
         // Then
         assertThat(result).isZero();
-        assertThat(outBuffer.toString()).contains("\"noul\":0.5");
+        assertThat(outBuffer.toString()).contains("\"noul\" : 0.5").contains("\n");
     }
 
     @Test

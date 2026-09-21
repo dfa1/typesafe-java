@@ -38,6 +38,11 @@ public final class Jackson3Codec implements JsonCodec {
     }
 
     @Override
+    public String writeValueAsPrettyString(Object value) {
+        return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+    }
+
+    @Override
     public <T> T readValue(String content, Class<T> type) {
         return mapper.readValue(content, type);
     }

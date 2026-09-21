@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `cli`: stdout is now silent by default instead of always printing the full `EvaluateResponse`
   as JSON — use `--print <name>` for a specific answer or `--verbose` for the full response.
   `--min`-only invocations (a pass/fail gate) no longer print anything on stdout either way.
+- `JsonCodec` gained `writeValueAsPrettyString(Object)`, implemented by both `jackson2` and
+  `jackson3`; `cli`'s `--verbose` now uses it, so the request/response JSON it prints is
+  indented instead of one long line.
 
 ## [0.3.0] - 2026-09-20
 
