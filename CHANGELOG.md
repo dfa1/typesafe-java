@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
+  the client and applies a decorator to it in one call (e.g.
+  `builder(apiKey).build(MappingTypeSafeClient::new)`), returning `T` instead of the plain
+  `TypeSafeClient` — no cast needed to reach a decorator's own methods. Stack more than one
+  decorator via `Function#andThen`. The plain `build()` is unchanged.
+- New `mapping` module: `MappingTypeSafeClient`, a `TypeSafeClient` decorator adding
+  `evaluateTyped(State, [Model,] Class<T>)`/`evaluateTypedAsync(...)` for a caller-defined
+  **record** whose components carry `@Noul`/`@Choice`/`@Score` (`@Noul`/`@Score` on a `double`
+  component, `@Choice` on a `String` one, with its options as a nested `@Option[]`). Reflects
+  over the record's components to build the request's questions and maps the response back into
+  a new instance of that same record — no `Map<String, Answer>` and manual `(Answer.Noul)`-style
+  cast at the call site. Validates each component (exactly one annotation, matching type, no
+  duplicate `@Option` key) once per record type and caches the result; a missing or
+  shape-mismatched answer in the response throws a clear `IllegalStateException` naming the
+  component instead of a bare `NullPointerException`/`ClassCastException`. Depends only on
+  `core`; its own tests depend on `testkit`'s `RecordingTypeSafeClient` (test scope only).
+  Addresses the first half of [#2](https://github.com/dfa1/typesafe-java/issues/2) — the second
+  half (`Question.noul` without an empty criteria map) already shipped earlier. `acceptance` now
+  covers it too, against the live API.
 - **Breaking:** `TypeSafeClient.evaluate`/`evaluateAsync`/`listModels` no longer declare any
   checked exception — `throws IOException, InterruptedException` is gone from `evaluate`/
   `listModels`. `TypeSafeException` is now sealed, with a subclass per HTTP status

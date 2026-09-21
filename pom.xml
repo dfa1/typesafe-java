@@ -43,6 +43,7 @@
     <module>jackson2</module>
     <module>jackson3</module>
     <module>testkit</module>
+    <module>mapping</module>
     <module>bom</module>
     <module>acceptance</module>
     <module>cli</module>

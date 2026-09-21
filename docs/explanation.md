@@ -88,6 +88,62 @@ every such test wants don't get rewritten by hand each time. It's deliberately a
 controls call order — it's the one deciding when to call `evaluate()`/`listModels()` — so
 matching by request content would only restate what the test already knows.
 
+## Why `mapping` uses reflection over records, not an annotation processor or a fluent builder
+
+[Issue #2](https://github.com/dfa1/typesafe-java/issues/2) flagged that reading an answer back
+means `Map<String, Answer>` plus a manual `(Answer.Noul)`-style cast, and that a `Noul` question
+with no criteria still needed an empty `Map.of()` at the call site (since fixed — `Question.noul`
+now has a criteria-less overload too). `MappingTypeSafeClient` fixes the cast: a caller's own
+record carries `@Noul`/`@Choice`/`@Score` on its components, and gets a populated instance of
+that same record back.
+
+Three ways to build that mapping, in ascending complexity: a fluent builder (no annotations,
+just explicit `.noul("isUrgent", "...")` calls mapped to record positions by hand — doesn't
+remove the cast, only moves it into the builder's own return type); reflection over
+`Class#getRecordComponents()` (no new build step, matches how the rest of this project already
+avoids codegen — `jackson2`/`jackson3`'s polymorphism is hand-written mixins, not generated); or
+an annotation processor generating a real mapper class at compile time (fully typed at compile
+time, zero reflection cost per call, but a new `javac`-time dependency and generated-sources
+step nothing else in this repo has). Reflection won: even repeated, its cost is dwarfed by the
+network round trip each call wraps, and it keeps `mapping`'s dependency footprint identical to
+every other module here (`core` only).
+
+That said, `MappingTypeSafeClient` still caches each record type's reflection metadata — its
+per-component question/answer mapping and canonical constructor — the first time that type is
+used, keyed by `Class` on the instance. A single call's reflection cost being noise doesn't mean
+redoing it on every call is free; caching it is nearly free to add (one `ConcurrentHashMap`) and
+turns "noise per call" into "noise once per record type," which also means a caller only pays
+the validation cost (see below) once, not on every request.
+
+`@Option` only exists nested inside `@Choice#options()` (`@Target({})`, not usable on its own) —
+`Question.Choice#criteria()` is a `Map<String, String>`, and a Java annotation attribute can't
+be a `Map`; an array of a small carrier annotation is the standard workaround. `@Noul`/`@Score`
+map to a `double` component (the raw `Answer.Noul#noul()`/`Answer.Score#score()` value, not a
+derived `boolean`/enum) deliberately: a probability-to-boolean threshold is a policy decision
+this library shouldn't make on a caller's behalf.
+
+## Why `MappingTypeSafeClient` doesn't have its own `Builder`
+
+The natural-looking ask — `MappingTypeSafeClient.builder(apiKey)...build()`, mirroring
+`TypeSafeClient.builder(apiKey)` — was rejected. `TypeSafeClient.builder` works because
+`TypeSafeClient` has exactly one production implementation to build. `MappingTypeSafeClient` is
+a decorator, meant to wrap *any* `TypeSafeClient` (a plain one, one already wrapped in caching,
+a `FailingTypeSafeClient` for testing, a test double) — a builder that constructs its own
+`DefaultTypeSafeClient` internally would bake in "wrap a fresh default client" as the only path,
+against the entire reason the decorator shape exists (see "Why `TypeSafeClient` is an interface,
+not a final class" above). It would also duplicate `DefaultTypeSafeClient.Builder`'s whole
+surface (`httpTransport`, `jsonCodec`, `endpoint`, `maxRetries`, `initialBackoff`) as forwarding
+methods that go stale the moment the original gains an option this copy doesn't.
+
+What shipped instead is a single addition to the *existing* `Builder`:
+`build(Function<TypeSafeClient, T> decorate)`, one line (`decorate.apply(build())`) that applies
+a decorator to the client it just built and returns `T` instead of the plain `TypeSafeClient` —
+no cast needed to reach `evaluateTyped`. It's generic, so `core` never needs to know
+`MappingTypeSafeClient` exists, and it's purely additive: the plain `new
+MappingTypeSafeClient(anyDelegate)` constructor still works for every case this doesn't cover.
+Stacking more than one decorator needs no extra API either — `Function#andThen` (stdlib) composes
+them, so `builder(apiKey).build(caching.andThen(MappingTypeSafeClient::new))` already works.
+
 ## Why `State` is a sealed interface, not `Object`
 
 `EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `JsonCodec` can

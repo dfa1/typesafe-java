@@ -20,6 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -528,6 +529,67 @@ class TypeSafeClientTest {
         assertThatThrownBy(sut::build)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JsonCodec");
+    }
+
+    @Test
+    void buildWithADecoratorAppliesItToTheBuiltClient() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec);
+
+        // When
+        WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
+
+        // Then
+        assertThat(result.delegate).isInstanceOf(DefaultTypeSafeClient.class);
+    }
+
+    @Test
+    void buildComposesMultipleDecoratorsViaFunctionAndThen() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec);
+        Function<TypeSafeClient, WrappingTypeSafeClient> innermost = WrappingTypeSafeClient::new;
+        Function<TypeSafeClient, WrappingTypeSafeClient> both = innermost.andThen(WrappingTypeSafeClient::new);
+
+        // When
+        WrappingTypeSafeClient result = sut.build(both);
+
+        // Then
+        assertThat(result.delegate).isInstanceOf(WrappingTypeSafeClient.class);
+        assertThat(((WrappingTypeSafeClient) result.delegate).delegate).isInstanceOf(DefaultTypeSafeClient.class);
+    }
+
+    /** Minimal decorator: just enough to prove {@code Builder#build(Function)} wires a decorator
+     *  around the built client, without pulling in a real one from another module. */
+    private static final class WrappingTypeSafeClient implements TypeSafeClient {
+        private final TypeSafeClient delegate;
+
+        WrappingTypeSafeClient(TypeSafeClient delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public EvaluateResponse evaluate(EvaluateRequest request) {
+            return delegate.evaluate(request);
+        }
+
+        @Override
+        public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
+            return delegate.evaluateAsync(request);
+        }
+
+        @Override
+        public List<ModelDetails> listModels() {
+            return delegate.listModels();
+        }
+
+        @Override
+        public void close() {
+            delegate.close();
+        }
     }
 
     @Test

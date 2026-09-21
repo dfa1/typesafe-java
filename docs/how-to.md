@@ -156,6 +156,35 @@ choices.get("market").choice();
 
 Each is `answers()` narrowed to that subtype, recomputed on every call.
 
+## Get typed answers instead of `Map<String, Answer>`
+
+`typesafe-java-mapping` maps a **record**'s annotated components into the request's questions and
+the response back into a new instance of that record — no `answers().get("name")`, no
+`(Answer.Noul)` cast:
+
+```java
+record TicketUrgency(
+        @Noul("Does this convey urgency?") double isUrgent,
+        @Choice(value = "Who's at fault?", options = {
+                @Option("wrong_toppings"), @Option(value = "late_delivery", description = "Arrived late")})
+        String culprit,
+        @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) double spiciness) {
+}
+
+MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::new);
+TicketUrgency result = client.evaluateTyped(State.text("..."), TicketUrgency.class);
+result.isUrgent();   // double, from Answer.Noul#noul()
+result.culprit();    // String, from Answer.Choice#choice()
+```
+
+Component type must match its annotation (`double` for `@Noul`/`@Score`, `String` for
+`@Choice`) — see [reference.md](reference.md#answer-mapping) for the full mapping table,
+including its validation and error-reporting rules. Since `MappingTypeSafeClient` is a
+`TypeSafeClient` decorator, `evaluateTypedAsync` and the plain `evaluate`/`evaluateAsync`/
+`listModels`/`close` methods are all available on the same instance. Pass a `Model` as the
+second argument (`evaluateTyped(state, Model.PREVIEW, TicketUrgency.class)`) to pin one, the
+same as `EvaluateRequest.of`; the two-argument form defaults to `Model.LATEST`.
+
 ## Ask a Score question
 
 `Question.score` ranks a statement against an ordered list of labels (e.g. a Likert scale):
@@ -295,6 +324,24 @@ record CachingTypeSafeClient(TypeSafeClient delegate, Map<EvaluateRequest, Evalu
 }
 
 TypeSafeClient client = new CachingTypeSafeClient(TypeSafeClient.builder(token).build(), new ConcurrentHashMap<>());
+```
+
+`Builder#build(Function<TypeSafeClient, T>)` applies a decorator to the built client in one call,
+returning `T` (the decorator's own type, e.g. `MappingTypeSafeClient` — no cast needed to reach
+its extra methods) instead of the plain `TypeSafeClient`:
+
+```java
+CachingTypeSafeClient client = TypeSafeClient.builder(token)
+        .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
+```
+
+Stack more than one decorator by composing the functions with `Function#andThen`:
+
+```java
+Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
+Function<TypeSafeClient, MappingTypeSafeClient> mapping = MappingTypeSafeClient::new;
+
+MappingTypeSafeClient client = TypeSafeClient.builder(token).build(caching.andThen(mapping));
 ```
 
 ## Test code that uses `TypeSafeClient` without hitting the real API
