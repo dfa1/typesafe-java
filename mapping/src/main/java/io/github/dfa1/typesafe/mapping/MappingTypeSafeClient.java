@@ -29,6 +29,16 @@ import java.util.function.Function;
  * {@code @Noul}/{@code @Score}, {@code String} for {@code @Choice}. A record type's reflection
  * metadata (its components' questions and its canonical constructor) is computed once and cached
  * for the lifetime of this instance, so repeated calls for the same record type don't re-walk it.
+ *
+ * <p>A {@link io.github.dfa1.typesafe.core.TypeSafeException} the delegate throws (already final
+ * — its own retries, if any, are already exhausted) propagates unchanged; this class never wraps
+ * or reclassifies it. The exceptions this class raises itself —
+ * {@link IllegalArgumentException} for a record whose annotations don't validate, and
+ * {@link IllegalStateException} for a response that doesn't match its record — are deliberately
+ * a different, non-{@code TypeSafeException} family: both are always non-transient (a
+ * misconfigured record fails the same way every time; a successful response that doesn't match
+ * its record is a client-side data-shape bug, not a server hiccup), so retrying either is never
+ * useful.
  */
 public final class MappingTypeSafeClient implements TypeSafeClient {
 
