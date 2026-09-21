@@ -50,7 +50,8 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
     }
 
     /** Wraps {@code delegate} in a {@link MappingTypeSafeClient}. Pass this as the {@code decorate}
-     *  function to {@link TypeSafeClient.Builder#build(java.util.function.Function)}, e.g.
+     *  function to {@link io.github.dfa1.typesafe.core.DefaultTypeSafeClient.Builder#build(java.util.function.Function)},
+     *  e.g.
      *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
     public static MappingTypeSafeClient decorate(TypeSafeClient delegate) {
         return new MappingTypeSafeClient(delegate);
