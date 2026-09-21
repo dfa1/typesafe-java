@@ -8,6 +8,11 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.json.JsonCodec;
+import io.github.dfa1.typesafe.mapping.Choice;
+import io.github.dfa1.typesafe.mapping.MappingTypeSafeClient;
+import io.github.dfa1.typesafe.mapping.Noul;
+import io.github.dfa1.typesafe.mapping.Option;
+import io.github.dfa1.typesafe.mapping.Score;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 
 import org.junit.jupiter.api.AfterEach;
@@ -303,5 +308,79 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
             System.out.println("frustration score = " + frustration.score());
             assertThat(frustration.score()).isBetween(0.0, (double) (frustrationLevels.size() - 1));
         });
+    }
+
+    /** {@code levels()} on {@link ItalianFoodVerdict#nonnaOutrage} below, mirrored here as a
+     *  plain list since an annotation attribute can't reference a shared constant array — only
+     *  an inline literal. Used to print the matching level name and bound the score assertion. */
+    private static final List<String> NONNA_OUTRAGE_LEVELS =
+            List.of("Mild disapproval", "Visible disappointment", "Loud protest", "Disowned from the family");
+
+    /** A {@code Noul}, a {@code Choice} among three real Italian dining faux pas, and a
+     *  {@code Score} across an outrage scale, all in one record — for
+     *  {@link #judgesATouristsDiningChoicesLikeATraditionalItalianNonnaWould}. */
+    record ItalianFoodVerdict(
+            @Noul("Would a traditional Italian consider these dining choices a violation of culinary etiquette?")
+            double isFoodHeresy,
+            @Choice(value = "Which single choice described is the most egregious Italian food faux pas?", options = {
+                    @Option(value = "pineapple_pizza", description = "Pizza topped with pineapple (ananas)"),
+                    @Option(value = "cappuccino_after_dinner",
+                            description = "Ordering a cappuccino after 9pm or after a meal, instead of an espresso"),
+                    @Option(value = "parmesan_on_seafood", description = "Adding grated parmesan to a seafood pasta dish") })
+            String worstOffense,
+            @Score(value = "How strongly would a traditional Italian nonna react to these choices, from mild "
+                    + "disapproval to disowning the tourist from the family?", levels = {
+                            "Mild disapproval", "Visible disappointment", "Loud protest", "Disowned from the family" })
+            double nonnaOutrage) {
+    }
+
+    @Test
+    void judgesATouristsDiningChoicesLikeATraditionalItalianNonnaWould() {
+        // Given
+        MappingTypeSafeClient typedClient = new MappingTypeSafeClient(sut);
+        State state = State.text("""
+                A tourist visiting Rome sits down at a trattoria at 9:30pm for dinner. They order
+                a seafood spaghetti and ask the waiter to grate parmesan cheese generously over
+                it. To finish the meal, they order a large cappuccino. Earlier that day, for
+                lunch, they'd ordered a margherita pizza but asked the chef to add pineapple
+                chunks on top.
+                """);
+
+        // When
+        ItalianFoodVerdict verdict = typedClient.evaluateTyped(state, ItalianFoodVerdict.class);
+
+        // Then
+        System.out.println("isFoodHeresy = " + verdict.isFoodHeresy());
+        System.out.println("worstOffense = " + verdict.worstOffense());
+        System.out.println("nonnaOutrage = " + verdict.nonnaOutrage()
+                + " (" + NONNA_OUTRAGE_LEVELS.get((int) Math.round(verdict.nonnaOutrage())) + ")");
+
+        assertThat(verdict.isFoodHeresy()).isBetween(0.0, 1.0);
+        assertThat(verdict.worstOffense()).isIn("pineapple_pizza", "cappuccino_after_dinner", "parmesan_on_seafood");
+        assertThat(verdict.nonnaOutrage()).isBetween(0.0, (double) (NONNA_OUTRAGE_LEVELS.size() - 1));
+    }
+
+    @Test
+    void judgesATouristsDiningChoicesAsynchronouslyToo() throws Exception {
+        // Given
+        MappingTypeSafeClient typedClient = new MappingTypeSafeClient(sut);
+        State state = State.text("""
+                A tourist visits a historic pizzeria in Naples — the birthplace of pizza — and
+                orders a hawaiian pizza, insisting the chef pile on extra pineapple chunks.
+                After finishing dinner around 10pm, they order a cappuccino to end the night.
+                """);
+
+        // When
+        ItalianFoodVerdict verdict = typedClient.evaluateTypedAsync(state, ItalianFoodVerdict.class).get();
+
+        // Then
+        System.out.println("isFoodHeresy = " + verdict.isFoodHeresy());
+        System.out.println("worstOffense = " + verdict.worstOffense());
+        System.out.println("nonnaOutrage = " + verdict.nonnaOutrage()
+                + " (" + NONNA_OUTRAGE_LEVELS.get((int) Math.round(verdict.nonnaOutrage())) + ")");
+
+        assertThat(verdict.isFoodHeresy()).isBetween(0.0, 1.0);
+        assertThat(verdict.worstOffense()).isIn("pineapple_pizza", "cappuccino_after_dinner", "parmesan_on_seafood");
+        assertThat(verdict.nonnaOutrage()).isBetween(0.0, (double) (NONNA_OUTRAGE_LEVELS.size() - 1));
     }
 }

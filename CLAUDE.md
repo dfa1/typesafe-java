@@ -54,7 +54,19 @@ testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testki
             RecordingTypeSafeClient, composing recording with periodic failure): every
             `failEvery`-th call (evaluate/evaluateAsync/listModels share one counter) throws a
             supplied exception instead of reaching the delegate.
-bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit.
+mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSafeClient decorator
+            adding evaluateTyped(State, Class<T>)/evaluateTypedAsync(...) for a caller-defined
+            record T whose components carry @Noul/@Choice/@Score (each mirroring the matching
+            Question factory's shape: @Noul/@Score take a double component, @Choice a String
+            one; @Choice's options are a nested @Option[] since an annotation can't hold a Map).
+            Reflects over T's record components (RecordComponent, not a codegen'd mapper) to
+            build the EvaluateRequest's questions, keyed by component name, then constructs a
+            new T from EvaluateResponse#answers() via T's canonical constructor — so a caller
+            gets a typed record back instead of Map<String, Answer> and a manual
+            (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
+            on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
+            consumer of this module would reach for.
+bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit/mapping.
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
@@ -65,7 +77,9 @@ acceptance — live-API tests only; not published. `AbstractTypeSafeClientAccept
             in `com.fasterxml.jackson.core:jackson-annotations` transitively at different
             versions (2.17.2 vs 2.20); acceptance/pom.xml pins the newer one explicitly, or
             Maven's mediation picks the older one and jackson3 fails at runtime with
-            `NoSuchFieldError` on a field only the newer annotations jar has.
+            `NoSuchFieldError` on a field only the newer annotations jar has. Also depends on
+            `mapping` (test scope) — one test wraps `sut` in a `MappingTypeSafeClient` to
+            exercise a `@Noul`/`@Choice`/`@Score`-annotated record against the live API.
 cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its main artifact
             is a plain (non-executable) jar of just this module's own classes; the runnable
             uber-jar (maven-shade-plugin) is published separately under the `all` classifier
@@ -82,9 +96,11 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
             is given.
 ```
 
-Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`, `testkit → core`,
-`acceptance → core, client-jdk, jackson2, jackson3` (test scope only), `cli → core,
-client-jdk, jackson3` — nothing production depends on `acceptance`, `cli`, or `testkit`. See
+Dependency rule: `client-jdk → core`, `client-okhttp → core`, `jackson2 → core`, `jackson3 →
+core`, `testkit → core`, `mapping → core` (`mapping`'s own tests additionally depend on
+`testkit`, test scope only), `acceptance → core, client-jdk, client-okhttp, jackson2, jackson3,
+mapping` (test scope only), `cli → core, client-jdk, jackson3` — nothing production depends on
+`acceptance`, `cli`, or `testkit`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 

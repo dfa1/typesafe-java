@@ -27,6 +27,18 @@ Answer.Noul answer = client.evaluate(request).nouls().get("is_urgent");
 answer.noul(); // e.g. 0.92
 ```
 
+Or skip the `Map`/cast with a typed record (`typesafe-java-mapping`):
+
+```java
+record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
+}
+
+MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::new);
+UrgencyCheck result = client.evaluateTyped(
+        State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
+result.isUrgent(); // e.g. 0.92
+```
+
 See [Install](#install) below to add it as a dependency, or the [tutorial](docs/tutorial.md)
 for the full walkthrough — including every way to provide the token, in
 [how-to.md](docs/how-to.md#provide-your-api-token).
@@ -100,6 +112,7 @@ for `typesafe-java-client-okhttp`.
 | `client-okhttp` | `HttpTransport` backed by OkHttp — an alternative for environments `java.net.http` doesn't cover, e.g. Android |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
+| `mapping` | `MappingTypeSafeClient` — maps a `@Noul`/`@Choice`/`@Score`-annotated record to/from `EvaluateRequest`/`EvaluateResponse` |
 | `bom` | dependency management for the modules above |
 | `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |

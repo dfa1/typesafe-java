@@ -8,6 +8,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 - [JsonCodec SPI](#jsoncodec-spi)
 - [HttpTransport SPI](#httptransport-spi)
 - [Testkit](#testkit)
+- [Answer mapping](#answer-mapping)
 - [Client](#client)
 
 ## Module layout
@@ -20,7 +21,8 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
-| `typesafe-java-bom` | — | dependency management for the six above |
+| `typesafe-java-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
+| `typesafe-java-bom` | — | dependency management for the seven above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
 `HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
@@ -256,6 +258,49 @@ every `failEvery`-th call — `evaluate()`, `evaluateAsync()`, and `listModels()
 — throws `failure.get()` instead of reaching the delegate; every other call passes straight
 through. The constructor throws `IllegalArgumentException` if `failEvery` isn't positive.
 
+## Answer mapping
+
+`io.github.dfa1.typesafe.mapping` (module `typesafe-java-mapping`).
+
+```java
+public final class MappingTypeSafeClient implements TypeSafeClient {
+    public MappingTypeSafeClient(TypeSafeClient delegate);
+    public <T extends Record> T evaluateTyped(State state, Class<T> type);
+    public <T extends Record> T evaluateTyped(State state, Model model, Class<T> type);
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Class<T> type);
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Model model, Class<T> type);
+}
+```
+
+A `TypeSafeClient` decorator that reflects over a **record**'s components to build the
+`EvaluateRequest`'s questions and map the response back into a new instance of that same record
+— see [how-to.md](how-to.md#get-typed-answers-instead-of-mapstring-answer) for the recipe. The
+two-argument overloads default to `Model.LATEST`, matching `EvaluateRequest.of`. Every component
+must carry exactly one of:
+
+| Annotation | Component type | Populated with |
+|---|---|---|
+| `@Noul(String value)` | `double` | `Answer.Noul#noul()` |
+| `@Choice(String value, Option[] options)` | `String` | `Answer.Choice#choice()` |
+| `@Score(String value, String[] levels)` | `double` | `Answer.Score#score()` |
+
+`@Option(String value, String description default "")` only appears nested inside
+`@Choice#options()` — `Question.Choice#criteria()` is a `Map<String, String>` an annotation
+can't hold directly.
+
+`evaluateTyped`/`evaluateTypedAsync` throw `IllegalArgumentException` at call time (before any
+network call), the first time a given record type is used, if: a component carries zero or more
+than one of `@Noul`/`@Choice`/`@Score`; a component's type doesn't match its annotation (e.g. a
+`@Noul String` instead of `double`); or `@Choice#options()` repeats the same `@Option` key. A
+record type's reflection metadata (its per-component question/answer mapping and its canonical
+constructor) is computed once and cached for the instance's lifetime, so this validation — and
+the underlying `getRecordComponents()` walk — only happens once per record type, not on every
+call. Once the response comes back, a missing answer for a component, or an answer whose shape
+doesn't match its annotation, throws `IllegalStateException` naming the component (the latter
+with the original `ClassCastException` as its cause) rather than a bare, unexplained exception.
+
+`evaluate()`/`evaluateAsync()`/`listModels()`/`close()` delegate straight through, unchanged.
+
 ## Client
 
 Also in `io.github.dfa1.typesafe.core`.
@@ -323,6 +368,7 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `maxRetries(int)` | `5` |
 | `initialBackoff(Duration)` | `500ms` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
+| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::new`) in one call, returning `T` instead of the plain `TypeSafeClient`. Stack more than one via `Function#andThen`. |
 
 ### `TypeSafeException`
 

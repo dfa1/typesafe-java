@@ -268,6 +268,13 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             return new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
         }
 
+        /** {@link #build()}, then applies {@code decorate} to the result — e.g.
+         *  {@code builder(apiKey).build(MappingTypeSafeClient::new)}. Stack more than one
+         *  decorator via {@link Function#andThen}. */
+        public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
+            return decorate.apply(build());
+        }
+
         private static HttpTransport loadDefaultHttpTransport() {
             return ServiceLoader.load(HttpTransport.class).findFirst()
                     .orElseThrow(() -> new IllegalStateException(

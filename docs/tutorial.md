@@ -88,7 +88,38 @@ System.out.println("input tokens: " + response.usage().inputTokens());
 System.out.println("request id: " + response.metadata().requestId().value());
 ```
 
-That's the whole round trip. From here:
+## 6. Optional: get a typed record back instead
+
+Add `typesafe-java-mapping` alongside the BOM, and the same round trip becomes one typed method
+call — no question map to build, no `nouls()`/cast to read back:
+
+```xml
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-mapping</artifactId>
+</dependency>
+```
+
+```java
+import io.github.dfa1.typesafe.mapping.MappingTypeSafeClient;
+import io.github.dfa1.typesafe.mapping.Noul;
+
+record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
+}
+
+MappingTypeSafeClient typedClient = TypeSafeClient.builder(ApiKey.fromDefaultFile())
+        .build(MappingTypeSafeClient::new);
+
+UrgencyCheck result = typedClient.evaluateTyped(
+        State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
+System.out.println("urgency score: " + result.isUrgent());
+```
+
+`isUrgent` is populated straight from `Answer.Noul#noul()` — the record's field name is the
+question's key. See [how-to.md](how-to.md#get-typed-answers-instead-of-mapstring-answer) for
+`@Choice`/`@Score` annotations too.
+
+That's the whole round trip, either way. From here:
 
 - [how-to.md](how-to.md) for `Choice`/`Score` questions, async calls, and picking a codec.
 - [reference.md](reference.md) for the full API surface.
