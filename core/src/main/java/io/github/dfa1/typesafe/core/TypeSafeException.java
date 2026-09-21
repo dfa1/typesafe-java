@@ -1,11 +1,11 @@
 package io.github.dfa1.typesafe.core;
 
-public class TypesafeException extends RuntimeException {
+public class TypeSafeException extends RuntimeException {
 
     private final int statusCode;
     private final String body;
 
-    public TypesafeException(int statusCode, String body) {
+    public TypeSafeException(int statusCode, String body) {
         super("TypeSafe API error " + statusCode + ": " + body);
         this.statusCode = statusCode;
         this.body = body;

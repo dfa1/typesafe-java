@@ -7,8 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- `TypesafeClient` is now an interface, decoratable (caching, metrics, a circuit breaker, ...);
-  new `testkit` module with `RecordingTypesafeClient`, a `TypesafeClient` test double:
+- `TypeSafeClient` is now an interface, decoratable (caching, metrics, a circuit breaker, ...);
+  new `testkit` module with `RecordingTypeSafeClient`, a `TypeSafeClient` test double:
   [`4d1c6f4`](https://github.com/dfa1/typesafe-java/commit/4d1c6f4).
 - `RequestId` now serializes/deserializes as its bare `value` string (e.g. `"req_..."`) instead
   of a wrapping `{"value": "req_..."}` object, matching how `Model` is already handled.
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Initial release.
 
-- `TypesafeClient`: synchronous `evaluate`, asynchronous `evaluateAsync`, and `listModels`.
+- `TypeSafeClient`: synchronous `evaluate`, asynchronous `evaluateAsync`, and `listModels`.
   Retries `408`/`429`/any `5xx` (honoring `Retry-After`) and connection failures, up to
   `maxRetries` with exponential backoff. Implements `AutoCloseable`.
 - `Noul`/`Choice`/`Score` questions via `Question`; typed `Answer` responses via

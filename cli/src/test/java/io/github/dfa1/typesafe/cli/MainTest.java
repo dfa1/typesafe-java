@@ -4,7 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Model;
-import io.github.dfa1.typesafe.core.TypesafeClient;
+import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,7 @@ import static org.mockito.BDDMockito.given;
 class MainTest {
 
     @Mock
-    private TypesafeClient client;
+    private TypeSafeClient client;
 
     private final Jackson3Codec codec = new Jackson3Codec();
     private final ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();

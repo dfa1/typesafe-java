@@ -19,8 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-/** The only {@link TypesafeClient} implementation this library ships; built via {@link #builder}. */
-public final class DefaultTypesafeClient implements TypesafeClient {
+/** The only {@link TypeSafeClient} implementation this library ships; built via {@link #builder}. */
+public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private final HttpTransport transport;
     private final JsonCodec jsonCodec;
@@ -30,7 +30,7 @@ public final class DefaultTypesafeClient implements TypesafeClient {
     private final int maxRetries;
     private final Duration initialBackoff;
 
-    private DefaultTypesafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec,
+    private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec,
                                    URI endpoint, int maxRetries, Duration initialBackoff) {
         this.apiKey = apiKey;
         this.transport = transport;
@@ -92,7 +92,7 @@ public final class DefaultTypesafeClient implements TypesafeClient {
         if (isRetryableStatus(status) && attempt < maxRetries) {
             return delayThenRetry(backoffFor(response, attempt), call, decode, attempt);
         }
-        return CompletableFuture.failedFuture(new TypesafeException(status, response.body()));
+        return CompletableFuture.failedFuture(new TypeSafeException(status, response.body()));
     }
 
     private <T> CompletableFuture<T> retryOnConnectionFailure(
@@ -147,8 +147,8 @@ public final class DefaultTypesafeClient implements TypesafeClient {
     }
 
     static Optional<Duration> retryAfter(HttpTransportResponse response) {
-        return response.header("retry-after-ms").flatMap(DefaultTypesafeClient::parseNonNegativeLong).map(Duration::ofMillis)
-                .or(() -> response.header("retry-after").flatMap(DefaultTypesafeClient::parseNonNegativeLong).map(Duration::ofSeconds));
+        return response.header("retry-after-ms").flatMap(DefaultTypeSafeClient::parseNonNegativeLong).map(Duration::ofMillis)
+                .or(() -> response.header("retry-after").flatMap(DefaultTypeSafeClient::parseNonNegativeLong).map(Duration::ofSeconds));
     }
 
     private static Optional<Long> parseNonNegativeLong(String value) {
@@ -229,10 +229,10 @@ public final class DefaultTypesafeClient implements TypesafeClient {
             return this;
         }
 
-        public TypesafeClient build() {
+        public TypeSafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return new DefaultTypesafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
+            return new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
         }
 
         private static HttpTransport loadDefaultHttpTransport() {

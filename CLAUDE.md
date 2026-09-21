@@ -10,17 +10,17 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — TypesafeClient (interface; the only implementation, DefaultTypesafeClient, is
-            public and owns Builder — TypesafeClient.builder(...) is a one-line delegate to
-            DefaultTypesafeClient.builder(...), so call sites don't change. A consumer can
-            implement TypesafeClient itself to decorate one, e.g. with caching), ApiKey,
-            TypesafeException, and the wire DTOs (Answer, Question, State,
+core      — TypeSafeClient (interface; the only implementation, DefaultTypeSafeClient, is
+            public and owns Builder — TypeSafeClient.builder(...) is a one-line delegate to
+            DefaultTypeSafeClient.builder(...), so call sites don't change. A consumer can
+            implement TypeSafeClient itself to decorate one, e.g. with caching), ApiKey,
+            TypeSafeException, and the wire DTOs (Answer, Question, State,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
             io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
             HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
-            JSON or HTTP library — DefaultTypesafeClient talks to HttpTransport/JsonCodec,
+            JSON or HTTP library — DefaultTypeSafeClient talks to HttpTransport/JsonCodec,
             never to a concrete library directly, so the DTOs + JsonCodec alone are reusable
-            (e.g. by a Kafka producer/consumer) without pulling in TypesafeClient's HTTP
+            (e.g. by a Kafka producer/consumer) without pulling in TypeSafeClient's HTTP
             concerns.
 client-jdk — HttpTransport backed by java.net.http (artifact
             typesafe-java-client-jdk, class JdkHttpTransport, package
@@ -32,15 +32,15 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-testkit   — RecordingTypesafeClient, in io.github.dfa1.typesafe.testkit, depending only on
-            core. Implements TypesafeClient directly, at the EvaluateRequest/EvaluateResponse
+testkit   — RecordingTypeSafeClient, in io.github.dfa1.typesafe.testkit, depending only on
+            core. Implements TypeSafeClient directly, at the EvaluateRequest/EvaluateResponse
             level: `enqueueEvaluate`/`enqueueModels` queue a response (FIFO, no request
             matcher — a test already controls call order itself) to whichever
             evaluate()/evaluateAsync()/listModels() call comes next; `evaluateRequests()`
             records every evaluate()/evaluateAsync() call, in order. A call with nothing left
             queued throws (or, for evaluateAsync, fails its future with) an AssertionError.
 bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit.
-acceptance — live-API tests only; not published. `AbstractTypesafeClientAcceptanceTest`
+acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
             `JdkHttpClientWithJackson3AcceptanceTest`) supplies the pair via two abstract
@@ -120,8 +120,8 @@ in the root pom (Java 17+ blocks the reflection it uses otherwise).
 Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
-`ObjectMapper` during the initial split. `TypesafeClientTest` mocks `HttpTransport`/`JsonCodec`
-to verify `TypesafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
+`ObjectMapper` during the initial split. `TypeSafeClientTest` mocks `HttpTransport`/`JsonCodec`
+to verify `TypeSafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
 has `// Given` / `// When` / `// Then` comments marking its three phases (omit `// Given` when
 there's nothing to arrange). The pre-built instance a test invokes behavior on is named `sut`
 (e.g. a `Jackson2Codec` field, or an object constructed in `// Given` that `// When` calls a

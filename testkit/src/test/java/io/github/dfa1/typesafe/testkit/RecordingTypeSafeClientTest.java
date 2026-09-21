@@ -16,14 +16,14 @@ import java.util.concurrent.ExecutionException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class RecordingTypesafeClientTest {
+class RecordingTypeSafeClientTest {
 
     @Test
     void evaluateReturnsTheNextQueuedResponseAndRecordsTheRequest() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse response = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
-        RecordingTypesafeClient sut = new RecordingTypesafeClient().enqueueEvaluate(response);
+        RecordingTypeSafeClient sut = new RecordingTypeSafeClient().enqueueEvaluate(response);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -39,7 +39,7 @@ class RecordingTypesafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse first = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         EvaluateResponse second = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(2, 2), null);
-        RecordingTypesafeClient sut = new RecordingTypesafeClient()
+        RecordingTypeSafeClient sut = new RecordingTypeSafeClient()
                 .enqueueEvaluate(first)
                 .enqueueEvaluate(second);
 
@@ -51,7 +51,7 @@ class RecordingTypesafeClientTest {
     @Test
     void evaluateThrowsAnAssertionErrorWhenNothingIsQueued() {
         // Given
-        RecordingTypesafeClient sut = new RecordingTypesafeClient();
+        RecordingTypeSafeClient sut = new RecordingTypeSafeClient();
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         // When / Then
@@ -63,7 +63,7 @@ class RecordingTypesafeClientTest {
     @Test
     void evaluateAsyncFailsTheFutureWhenNothingIsQueued() {
         // Given
-        RecordingTypesafeClient sut = new RecordingTypesafeClient();
+        RecordingTypeSafeClient sut = new RecordingTypeSafeClient();
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         // When
@@ -80,7 +80,7 @@ class RecordingTypesafeClientTest {
     void listModelsReturnsTheNextQueuedResponse() {
         // Given
         List<ModelDetails> models = List.of(new ModelDetails("jev-latest", "Most recent stable release.", "2026-01-01"));
-        RecordingTypesafeClient sut = new RecordingTypesafeClient().enqueueModels(models);
+        RecordingTypeSafeClient sut = new RecordingTypeSafeClient().enqueueModels(models);
 
         // When
         List<ModelDetails> result = sut.listModels();

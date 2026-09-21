@@ -27,60 +27,60 @@ decision record.
 
 `core` cannot declare a compile dependency on `jackson2`/`jackson3` or on `client-jdk` —
 any of those choices would undo the whole point of splitting them out. `ServiceLoader` lets
-`TypesafeClient` stay agnostic to both while still getting real implementations automatically
+`TypeSafeClient` stay agnostic to both while still getting real implementations automatically
 the moment one codec module and one transport module are on the classpath, the same pattern the
 JDK itself uses for `java.sql.Driver` or `java.nio.file.spi.FileSystemProvider`. The tradeoff: a
-missing codec or transport module fails at `TypesafeClient.Builder.build()` time with a runtime
+missing codec or transport module fails at `TypeSafeClient.Builder.build()` time with a runtime
 `IllegalStateException`, not at compile time — deliberately, since a compile-time check here
 would mean picking one codec/transport as "the real dependency," which is exactly what this
 design avoids.
 
 ## Why `HttpTransport` exists (and why `client` isn't a separate module)
 
-`TypesafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
+`TypeSafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
 `HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
 mocked transport for tests can implement one interface (`post`/`get`, both already
 `CompletableFuture`-returning) instead of forking the retry/backoff logic.
 
-Once that abstraction exists, `TypesafeClient` itself has no HTTP-library dependency any more —
+Once that abstraction exists, `TypeSafeClient` itself has no HTTP-library dependency any more —
 its only import from `java.net` is `URI`, which every JDK module already has. That removed the
 original reason for a separate `client` module (keeping `core` free of `java.net.http`), so
-`TypesafeClient`/`ApiKey`/`TypesafeException` live in `core` next to the DTOs: one fewer module
+`TypeSafeClient`/`ApiKey`/`TypeSafeException` live in `core` next to the DTOs: one fewer module
 to version and depend on, with `core` exactly as dependency-free as before. See
 [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 
-## Why `TypesafeClient` is an interface, not a final class
+## Why `TypeSafeClient` is an interface, not a final class
 
-It started out `public final class TypesafeClient`. Mockito 5's default (inline) mock maker
+It started out `public final class TypeSafeClient`. Mockito 5's default (inline) mock maker
 already mocks final classes, so finality was never actually blocking a caller from unit-testing
-code that depends on `TypesafeClient` — but it did block a different, legitimate use: a
-decorator. `final` means nothing can `implements`/present itself as a `TypesafeClient`, so a
+code that depends on `TypeSafeClient` — but it did block a different, legitimate use: a
+decorator. `final` means nothing can `implements`/present itself as a `TypeSafeClient`, so a
 caller who wants to wrap one with caching, metrics, a circuit breaker, or anything else in the
 classic Decorator shape has no supertype to implement — they'd have to invent their own
 interface with the same three methods and get every call site to depend on that instead of on
-`TypesafeClient` directly.
+`TypeSafeClient` directly.
 
-Making it an interface costs nothing observable at existing call sites: `TypesafeClient.builder(key).build()`
+Making it an interface costs nothing observable at existing call sites: `TypeSafeClient.builder(key).build()`
 still type-checks and behaves identically, since `Builder.build()` always returned the interface
 type as far as callers could tell. What moved is the implementation — the retry/backoff/header/
-decode logic, previously `TypesafeClient`'s own body, now lives in `DefaultTypesafeClient`, the
-only concrete `TypesafeClient` this library produces. A consumer can now write
-`class CachingTypesafeClient implements TypesafeClient` and hand it anywhere a `TypesafeClient`
+decode logic, previously `TypeSafeClient`'s own body, now lives in `DefaultTypeSafeClient`, the
+only concrete `TypeSafeClient` this library produces. A consumer can now write
+`class CachingTypeSafeClient implements TypeSafeClient` and hand it anywhere a `TypeSafeClient`
 was expected.
 
-`Builder` moved with it, onto `DefaultTypesafeClient` rather than staying on the `TypesafeClient`
-interface: constructing a `DefaultTypesafeClient` — picking defaults, discovering a
+`Builder` moved with it, onto `DefaultTypeSafeClient` rather than staying on the `TypeSafeClient`
+interface: constructing a `DefaultTypeSafeClient` — picking defaults, discovering a
 `HttpTransport`/`JsonCodec` via `ServiceLoader` — is that class's own concern, not something a
-pure contract interface should carry. That required making `DefaultTypesafeClient` itself
+pure contract interface should carry. That required making `DefaultTypeSafeClient` itself
 public (a nested class can't be more accessible than its enclosing class), so it's no longer
-hidden — but `TypesafeClient.builder(apiKey)` still exists as a one-line delegating static method
-on the interface, so nothing at the call site changes; a consumer only sees `DefaultTypesafeClient`
+hidden — but `TypeSafeClient.builder(apiKey)` still exists as a one-line delegating static method
+on the interface, so nothing at the call site changes; a consumer only sees `DefaultTypeSafeClient`
 by name if they explicitly go looking for it.
 
-## Why `testkit` ships a `TypesafeClient` fake instead of "just mock it with Mockito"
+## Why `testkit` ships a `TypeSafeClient` fake instead of "just mock it with Mockito"
 
-Once `TypesafeClient` became an interface (see above), `Mockito.mock(TypesafeClient.class)` was
-already enough to stub `evaluate()`/`listModels()` — so `RecordingTypesafeClient` isn't there to
+Once `TypeSafeClient` became an interface (see above), `Mockito.mock(TypeSafeClient.class)` was
+already enough to stub `evaluate()`/`listModels()` — so `RecordingTypeSafeClient` isn't there to
 make something possible that wasn't. It's there so a consumer's test doesn't need a Mockito
 dependency at all, and so the two or three lines of "queue a response, assert on what was sent"
 every such test wants don't get rewritten by hand each time. It's deliberately a plain FIFO
@@ -110,7 +110,7 @@ codec's `State` handling is a serializer that writes the variant's raw value dir
 `evaluate`/`evaluateAsync` retry `408`, `429`, and any `5xx` up to 5 times, doubling the backoff
 from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other status — including a retryable
 one that outlasts the retry budget — surfaces immediately as
-`TypesafeException` rather than being swallowed or retried indefinitely: a caller should always
+`TypeSafeException` rather than being swallowed or retried indefinitely: a caller should always
 be able to tell "this request permanently failed" from "this request is still in flight,"
 and an unbounded retry loop against a struggling upstream only makes the overload worse.
 
@@ -118,7 +118,7 @@ and an unbounded retry loop against a struggling upstream only makes the overloa
 
 They started as `private static final` constants. Making them `Builder` options costs three
 setters and three fields, and buys two things: pointing at a staging endpoint without an
-environment-specific subclass, and fast unit tests — `TypesafeClientTest` doesn't need to wait
+environment-specific subclass, and fast unit tests — `TypeSafeClientTest` doesn't need to wait
 out a real 500ms+ backoff because nothing forces it to use the production default.
 
 ## Why `evaluateAsync` isn't just `evaluate` wrapped in `supplyAsync`

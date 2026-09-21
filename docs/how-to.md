@@ -7,29 +7,29 @@ For API details, see [reference.md](reference.md). For design rationale, see [ex
 
 ## Provide your API token
 
-`ApiKey` has a source for each case; `TypesafeClient.builder` takes whichever you build:
+`ApiKey` has a source for each case; `TypeSafeClient.builder` takes whichever you build:
 
 ```java
 // 1. Default file (~/.typesafe.apitoken)
 ApiKey token = ApiKey.fromDefaultFile();
-TypesafeClient client = TypesafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder(token).build();
 
 // 2. A specific file
 ApiKey token = ApiKey.fromFile(Path.of("/secrets/typesafe.token"));
-TypesafeClient client = TypesafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder(token).build();
 
 // 3. TYPESAFE_API_KEY environment variable
 ApiKey token = ApiKey.fromEnv();
-TypesafeClient client = TypesafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder(token).build();
 
 // 4. Any other in-memory value (e.g. a secrets manager)
 ApiKey token = new ApiKey(secretsManager.getSecret("typesafe-token"));
-TypesafeClient client = TypesafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder(token).build();
 ```
 
 ## Choose a JSON codec
 
-`TypesafeClient` doesn't depend on Jackson directly — it resolves a `JsonCodec` via
+`TypeSafeClient` doesn't depend on Jackson directly — it resolves a `JsonCodec` via
 `ServiceLoader` from whatever codec module is on your classpath. Add exactly one of:
 
 ```xml
@@ -38,19 +38,19 @@ TypesafeClient client = TypesafeClient.builder(token).build();
 <dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jackson3</artifactId></dependency>
 ```
 
-If neither is present, `TypesafeClient.Builder.build()` throws `IllegalStateException` with a
+If neither is present, `TypeSafeClient.Builder.build()` throws `IllegalStateException` with a
 message telling you to add one. To bypass discovery and wire a codec explicitly (e.g. in tests,
 or if you have your own `JsonCodec` implementation):
 
 ```java
-TypesafeClient client = TypesafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder(token)
         .jsonCodec(new Jackson2Codec())
         .build();
 ```
 
 ## Choose an HTTP transport
 
-Likewise, `TypesafeClient` doesn't depend on any HTTP library directly — it resolves an
+Likewise, `TypeSafeClient` doesn't depend on any HTTP library directly — it resolves an
 `HttpTransport` via `ServiceLoader`. Add:
 
 ```xml
@@ -61,7 +61,7 @@ If it's missing, `build()` throws `IllegalStateException`. To wire one explicitl
 your own `HttpTransport` (e.g. backed by Apache HttpClient or OkHttp):
 
 ```java
-TypesafeClient client = TypesafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder(token)
         .httpTransport(new JdkHttpTransport())
         .build();
 ```
@@ -176,18 +176,18 @@ client.evaluateAsync(request)
 
 ## Handle API errors
 
-A non-`200`, non-retryable response (or exhausted retries) throws `TypesafeException`:
+A non-`200`, non-retryable response (or exhausted retries) throws `TypeSafeException`:
 
 ```java
 try {
     client.evaluate(request);
-} catch (TypesafeException e) {
+} catch (TypeSafeException e) {
     System.err.println(e.statusCode() + ": " + e.body());
 }
 ```
 
 `408`, `429`, and any `5xx` are retried automatically with exponential backoff (5 attempts,
-starting at 500ms) before `TypesafeException` is thrown.
+starting at 500ms) before `TypeSafeException` is thrown.
 
 ## Use a custom `HttpClient`
 
@@ -196,7 +196,7 @@ starting at 500ms) before `TypesafeException` is thrown.
 
 ```java
 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-TypesafeClient client = TypesafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
+TypeSafeClient client = TypeSafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
 ## Configure the per-request timeout
@@ -207,7 +207,7 @@ distinct from `HttpClient`'s `connectTimeout` above. Override it with the `(Http
 constructor, or pass `null` to disable it entirely:
 
 ```java
-TypesafeClient client = TypesafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder(token)
         .httpTransport(new JdkHttpTransport(HttpClient.newHttpClient(), Duration.ofSeconds(30)))
         .build();
 ```
@@ -218,11 +218,11 @@ up to `maxRetries` (see below).
 
 ## Close the client when you're done with it
 
-`TypesafeClient` implements `AutoCloseable` and closes its `HttpTransport` — for
+`TypeSafeClient` implements `AutoCloseable` and closes its `HttpTransport` — for
 `JdkHttpTransport`, that releases the underlying `HttpClient`:
 
 ```java
-try (TypesafeClient client = TypesafeClient.builder(token).build()) {
+try (TypeSafeClient client = TypeSafeClient.builder(token).build()) {
     client.evaluate(request);
 }
 ```
@@ -233,7 +233,7 @@ need closing.
 ## Configure the endpoint or retry policy
 
 ```java
-TypesafeClient client = TypesafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder(token)
         .endpoint(URI.create("https://staging.typesafe.ai/v1/systemone"))
         .maxRetries(2)
         .initialBackoff(Duration.ofMillis(100))
@@ -248,18 +248,18 @@ TypesafeClient client = TypesafeClient.builder(token)
 - a connection failure or a request timeout (any `IOException` from the transport)
 
 Any other non-`200` status, or a retryable failure that's still failing after `maxRetries`,
-throws `TypesafeException` (or the `IOException`/`HttpTimeoutException` itself, for a
+throws `TypeSafeException` (or the `IOException`/`HttpTimeoutException` itself, for a
 connection/timeout failure).
 
-## Decorate `TypesafeClient` with your own cross-cutting concerns
+## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
-`TypesafeClient` is an interface, so wrap one in another implementation of the same interface —
+`TypeSafeClient` is an interface, so wrap one in another implementation of the same interface —
 the classic Decorator pattern — to add caching, metrics, a circuit breaker, or anything else,
-transparently to callers that just depend on `TypesafeClient`:
+transparently to callers that just depend on `TypeSafeClient`:
 
 ```java
-record CachingTypesafeClient(TypesafeClient delegate, Map<EvaluateRequest, EvaluateResponse> cache)
-        implements TypesafeClient {
+record CachingTypeSafeClient(TypeSafeClient delegate, Map<EvaluateRequest, EvaluateResponse> cache)
+        implements TypeSafeClient {
 
     @Override
     public EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException {
@@ -276,20 +276,20 @@ record CachingTypesafeClient(TypesafeClient delegate, Map<EvaluateRequest, Evalu
 
 }
 
-TypesafeClient client = new CachingTypesafeClient(TypesafeClient.builder(token).build(), new ConcurrentHashMap<>());
+TypeSafeClient client = new CachingTypeSafeClient(TypeSafeClient.builder(token).build(), new ConcurrentHashMap<>());
 ```
 
-## Test code that uses `TypesafeClient` without hitting the real API
+## Test code that uses `TypeSafeClient` without hitting the real API
 
 Two options:
 
-1. **Add `typesafe-java-testkit` (test scope) and use `RecordingTypesafeClient`, or mock
-   `TypesafeClient` directly.** Both work at the `EvaluateRequest`/`EvaluateResponse` level, with
+1. **Add `typesafe-java-testkit` (test scope) and use `RecordingTypeSafeClient`, or mock
+   `TypeSafeClient` directly.** Both work at the `EvaluateRequest`/`EvaluateResponse` level, with
    no setup — the simplest option for testing code that just calls `evaluate()`/`listModels()`
    and reacts to the result:
 
    ```java
-   RecordingTypesafeClient client = new RecordingTypesafeClient()
+   RecordingTypeSafeClient client = new RecordingTypeSafeClient()
            .enqueueEvaluate(response);
 
    codeUnderTest.run(client);
@@ -297,9 +297,9 @@ Two options:
    assertThat(client.evaluateRequests()).containsExactly(expectedRequest);
    ```
 
-   is equivalent to `Mockito.mock(TypesafeClient.class)` plus
-   `given(client.evaluate(request)).willReturn(response)` (works because `TypesafeClient` is an
-   interface) — pick whichever fits your test's style; `RecordingTypesafeClient` needs no Mockito
+   is equivalent to `Mockito.mock(TypeSafeClient.class)` plus
+   `given(client.evaluate(request)).willReturn(response)` (works because `TypeSafeClient` is an
+   interface) — pick whichever fits your test's style; `RecordingTypeSafeClient` needs no Mockito
    dependency and records every request for free, Mockito's `verify`/`ArgumentCaptor` give you
    more control over matching a specific request to a specific stub. `enqueueEvaluate(response)`
    queues a response to whichever `evaluate()`/`evaluateAsync()` call comes next (`enqueueModels`
@@ -310,17 +310,17 @@ Two options:
    *that* interface instead.
 
 Don't mock the `HttpTransport`/`JsonCodec` SPIs directly, though — they're lower-level than
-anything your code calls (they don't even appear in `TypesafeClient`'s public methods), and a
+anything your code calls (they don't even appear in `TypeSafeClient`'s public methods), and a
 test built on them breaks whenever this library's internals change for reasons that have nothing
 to do with your code.
 
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 
-`typesafe-java-core` has zero runtime dependencies — `TypesafeClient` talks to `HttpTransport`/
+`typesafe-java-core` has zero runtime dependencies — `TypeSafeClient` talks to `HttpTransport`/
 `JsonCodec`, never to a concrete HTTP or JSON library directly. If you only need to
 (de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
 them on a Kafka topic — depend on `typesafe-java-core` plus a codec module, and ignore
-`TypesafeClient` entirely:
+`TypeSafeClient` entirely:
 
 ```java
 JsonCodec codec = new Jackson2Codec();
@@ -330,7 +330,7 @@ EvaluateResponse response = codec.readValue(json, EvaluateResponse.class);
 
 (A Kafka producer/consumer using a raw-`byte[]` serializer converts once at that boundary —
 `json.getBytes(UTF_8)` / `new String(bytes, UTF_8)` — the same one-line conversion any
-non-`String`-based transport needs; `TypesafeClient` itself needs none, since `HttpTransport`
+non-`String`-based transport needs; `TypeSafeClient` itself needs none, since `HttpTransport`
 is `String`-based too.)
 
 ## Run a quick check from the command line

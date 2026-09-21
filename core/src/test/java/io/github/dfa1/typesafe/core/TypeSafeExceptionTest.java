@@ -4,12 +4,12 @@ import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class TypesafeExceptionTest {
+class TypeSafeExceptionTest {
 
     @Test
     void exposesStatusCodeAndBodyAndBuildsAMessageFromThem() {
         // When
-        TypesafeException result = new TypesafeException(500, "server error");
+        TypeSafeException result = new TypeSafeException(500, "server error");
 
         // Then
         assertThat(result.statusCode()).isEqualTo(500);

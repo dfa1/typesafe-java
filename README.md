@@ -17,7 +17,7 @@ Save a token to `~/.typesafe.apitoken` first — either way below picks it up au
 ```java
 ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apitoken
 // or: ApiKey.fromEnv();                 // reads the TYPESAFE_API_KEY environment variable
-TypesafeClient client = TypesafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
         State.text("Help! My payouts have been failing for 3 days."),
@@ -92,10 +92,10 @@ Maven, via the BOM (see the Maven Central badge above for the latest version):
 
 | Module | Contains |
 |---|---|
-| `core` | `TypesafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
+| `core` | `TypeSafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
 | `client-jdk` | `HttpTransport` backed by `java.net.http` |
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
-| `testkit` | `RecordingTypesafeClient`, a `TypesafeClient` test double for unit tests |
+| `testkit` | `RecordingTypeSafeClient`, a `TypeSafeClient` test double for unit tests |
 | `bom` | dependency management for the modules above |
 | `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |

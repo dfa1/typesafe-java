@@ -8,14 +8,14 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * An interface, not a final class, so a caller can wrap one behind a decorator (caching,
- * metrics, a circuit breaker, ...) that's itself substitutable anywhere a {@code TypesafeClient}
+ * metrics, a circuit breaker, ...) that's itself substitutable anywhere a {@code TypeSafeClient}
  * is expected. {@link #builder} is the only supported way to obtain a real one, backed by
- * {@link DefaultTypesafeClient}, the sole implementation this library ships.
+ * {@link DefaultTypeSafeClient}, the sole implementation this library ships.
  */
-public interface TypesafeClient extends AutoCloseable {
+public interface TypeSafeClient extends AutoCloseable {
 
-    static DefaultTypesafeClient.Builder builder(ApiKey apiKey) {
-        return DefaultTypesafeClient.builder(apiKey);
+    static DefaultTypeSafeClient.Builder builder(ApiKey apiKey) {
+        return DefaultTypeSafeClient.builder(apiKey);
     }
 
     /**
@@ -23,7 +23,7 @@ public interface TypesafeClient extends AutoCloseable {
      * budget is exhausted. Retries a {@code 408}/{@code 429}/any {@code 5xx} status, or a
      * connection failure, up to {@code maxRetries} times (exponential backoff, honoring a
      * {@code retry-after}/{@code retry-after-ms} response header when present); any other
-     * non-{@code 200} status throws {@link TypesafeException}.
+     * non-{@code 200} status throws {@link TypeSafeException}.
      *
      * @throws IOException a connection failure or timeout, once retries are exhausted
      * @throws InterruptedException if the calling thread is interrupted while waiting
@@ -33,7 +33,7 @@ public interface TypesafeClient extends AutoCloseable {
     /**
      * Asynchronous form of {@link #evaluate}: same retry policy, but returns immediately with a
      * {@link CompletableFuture} that completes with the response, or completes exceptionally
-     * with {@link TypesafeException} (a non-retryable or retries-exhausted status) or an
+     * with {@link TypeSafeException} (a non-retryable or retries-exhausted status) or an
      * {@link IOException} (a connection failure or timeout, once retries are exhausted).
      */
     CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request);

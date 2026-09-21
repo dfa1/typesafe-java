@@ -6,7 +6,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
-import io.github.dfa1.typesafe.core.TypesafeClient;
+import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 
@@ -33,9 +33,9 @@ import static org.assertj.core.api.Assertions.within;
  * rather than pinning down a specific answer.
  */
 @Tag("acceptance")
-abstract class AbstractTypesafeClientAcceptanceTest {
+abstract class AbstractTypeSafeClientAcceptanceTest {
 
-    private TypesafeClient sut;
+    private TypeSafeClient sut;
 
     protected abstract HttpTransport httpTransport();
 
@@ -43,7 +43,7 @@ abstract class AbstractTypesafeClientAcceptanceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        sut = TypesafeClient.builder(ApiKey.fromDefaultFile())
+        sut = TypeSafeClient.builder(ApiKey.fromDefaultFile())
                 .httpTransport(httpTransport())
                 .jsonCodec(jsonCodec())
                 .build();

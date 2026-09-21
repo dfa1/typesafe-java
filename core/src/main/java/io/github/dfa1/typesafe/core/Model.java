@@ -4,7 +4,7 @@ package io.github.dfa1.typesafe.core;
  * A model: either a symbolic alias the server resolves ({@link #LATEST}/{@link #PREVIEW}) or a
  * concrete, versioned id, e.g. {@code new Model("jev-1.13.0")}. Usable directly as an
  * {@link EvaluateRequest}'s model, and reported back by {@link EvaluateResponse#model()}. See
- * {@link TypesafeClient#listModels()} for descriptions and release dates.
+ * {@link TypeSafeClient#listModels()} for descriptions and release dates.
  *
  * @param name the model's id (e.g. {@code "jev-latest"}, {@code "jev-1.13.0"})
  */

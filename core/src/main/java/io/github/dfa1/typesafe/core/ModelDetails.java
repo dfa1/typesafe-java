@@ -2,7 +2,7 @@ package io.github.dfa1.typesafe.core;
 
 /**
  * Metadata about one model available to the account, as returned by
- * {@link TypesafeClient#listModels()}.
+ * {@link TypeSafeClient#listModels()}.
  *
  * @param name        model name or alias accepted by a request's {@code model} field (e.g.
  *                    {@code "jev-1.13.0"})

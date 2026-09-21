@@ -10,12 +10,12 @@ import java.util.stream.Collectors;
  * <a href="https://docs.typesafe.ai/api">docs.typesafe.ai/api</a>.
  *
  * @param model    the versioned model that actually processed the request (e.g.
- *                 {@code "jev-1.13.0"}) — see {@link TypesafeClient#listModels()} for its
+ *                 {@code "jev-1.13.0"}) — see {@link TypeSafeClient#listModels()} for its
  *                 description and release date
  * @param answers  one {@link Answer} per question, keyed identically to the request's
  *                 {@link EvaluateRequest#questions()}
  * @param usage    token accounting for the request
- * @param metadata not part of the response body itself — populated by {@link TypesafeClient}
+ * @param metadata not part of the response body itself — populated by {@link TypeSafeClient}
  *                 from response headers
  */
 public record EvaluateResponse(Model model, Map<String, Answer> answers, Usage usage, Metadata metadata) {

@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
-import io.github.dfa1.typesafe.core.TypesafeClient;
+import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
 import io.github.dfa1.typesafe.json.JsonCodec;
@@ -61,7 +61,7 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        try (TypesafeClient client = TypesafeClient.builder(ApiKey.fromDefaultFile())
+        try (TypeSafeClient client = TypeSafeClient.builder(ApiKey.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build()) {
@@ -71,7 +71,7 @@ public final class Main {
 
     /** The evaluate-and-print flow, taking an already-built client so it's testable without a
      *  network call. */
-    static int run(TypesafeClient client, JsonCodec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
+    static int run(TypeSafeClient client, JsonCodec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
             throws Exception {
         EvaluateRequest request = EvaluateRequest.of(State.text(parsed.state()), parsed.model(), parsed.questions());
 

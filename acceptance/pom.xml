@@ -12,7 +12,7 @@
 
   <name>TypeSafe Acceptance Tests</name>
   <description>
-    Tests TypesafeClient end-to-end against the live TypeSafe API, once per HttpTransport/
+    Tests TypeSafeClient end-to-end against the live TypeSafe API, once per HttpTransport/
     JsonCodec combination. Not published — exists only to run its own tests.
   </description>
 

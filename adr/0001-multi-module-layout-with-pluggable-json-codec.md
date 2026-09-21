@@ -9,11 +9,11 @@ Accepted
 ## Context
 
 The project started as a single module hard-wired to Jackson 2 (`ObjectMapper` built directly
-inside `TypesafeClient`, `@JsonTypeInfo`/`@JsonSubTypes` on the DTOs) and to
+inside `TypeSafeClient`, `@JsonTypeInfo`/`@JsonSubTypes` on the DTOs) and to
 `java.net.http.HttpClient`. We need to:
 
 - support both Jackson 2 and Jackson 3 consumers, and other HTTP libraries (Apache HttpClient,
-  OkHttp, a mock transport for tests), without forking `TypesafeClient`'s retry/backoff logic;
+  OkHttp, a mock transport for tests), without forking `TypeSafeClient`'s retry/backoff logic;
 - let the request/response DTOs be reused outside the HTTP client (e.g. to serialize the same
   payloads onto/from a Kafka topic) without pulling in a JSON or HTTP library at all.
 
@@ -21,14 +21,14 @@ inside `TypesafeClient`, `@JsonTypeInfo`/`@JsonSubTypes` on the DTOs) and to
 
 Split into five Maven modules:
 
-- **core** — `TypesafeClient`, `ApiToken`, `TypesafeException`, and the wire DTOs `Answer`,
+- **core** — `TypeSafeClient`, `ApiToken`, `TypeSafeException`, and the wire DTOs `Answer`,
   `Question`, `EvaluateRequest`/`EvaluateResponse`, `Usage`, `RequestId` — all in
   `io.github.dfa1.typesafe.core`; plus two SPIs:
   - `JsonCodec` (`io.github.dfa1.typesafe.json`) — `writeValueAsBytes`/`readValue`.
   - `HttpTransport` (`io.github.dfa1.typesafe.transport`) — `post`/`postAsync`, the single HTTP
-    call `TypesafeClient` needs.
+    call `TypeSafeClient` needs.
 
-  `core` has zero dependency on any JSON or HTTP library: `TypesafeClient` talks to
+  `core` has zero dependency on any JSON or HTTP library: `TypeSafeClient` talks to
   `HttpTransport`/`JsonCodec`, never to a concrete library directly. Its only `java.net` import
   is `URI`, which every JDK ships. The DTOs carry no serialization annotations either.
 - **jdk-http-client** — implements `HttpTransport` with `JdkHttpTransport`
@@ -41,11 +41,11 @@ Split into five Maven modules:
   (`addMixIn`) instead of annotations on the DTOs themselves.
 - **bom** — dependency-management POM listing the four artifacts above for consumers to import.
 
-There is no separate `client` module: once `TypesafeClient` depends only on the `HttpTransport`
+There is no separate `client` module: once `TypeSafeClient` depends only on the `HttpTransport`
 abstraction rather than `java.net.http` directly, keeping it apart from `core` no longer buys
 anything, so it lives with the DTOs and SPIs in `core`.
 
-`TypesafeClient.Builder` resolves both `HttpTransport` and `JsonCodec` via `ServiceLoader` at
+`TypeSafeClient.Builder` resolves both `HttpTransport` and `JsonCodec` via `ServiceLoader` at
 `build()` time (or explicit `Builder.httpTransport(...)`/`Builder.jsonCodec(...)` overrides) —
 the same pattern the JDK itself uses for `java.sql.Driver` or
 `java.nio.file.spi.FileSystemProvider`.
@@ -54,13 +54,13 @@ the same pattern the JDK itself uses for `java.sql.Driver` or
 
 - `core` can be depended on alone by any code that just needs to (de)serialize TypeSafe payloads
   (e.g. a Kafka producer), picking whichever `JsonCodec` module fits its runtime — it still pulls
-  in `TypesafeClient`/`ApiToken`/`HttpTransport` unused, but harmlessly, since `core` has zero
+  in `TypeSafeClient`/`ApiToken`/`HttpTransport` unused, but harmlessly, since `core` has zero
   transitive dependencies either way. Worth revisiting if `core` ever grows a real dependency of
   its own.
 - Adding a third JSON library or a different HTTP library later means adding one more codec or
   transport module; `core` doesn't change.
 - A consumer that forgets a codec or transport module gets a clear `IllegalStateException` from
-  `TypesafeClient.Builder.build()` at runtime, not a `NoClassDefFoundError` — deliberately a
+  `TypeSafeClient.Builder.build()` at runtime, not a `NoClassDefFoundError` — deliberately a
   runtime check, not a compile-time one, since a compile-time check would mean picking one
   codec/transport as "the real dependency," which is exactly what this design avoids.
 - The polymorphism mixins in `jackson2`/`jackson3` must be kept in sync by hand if a new

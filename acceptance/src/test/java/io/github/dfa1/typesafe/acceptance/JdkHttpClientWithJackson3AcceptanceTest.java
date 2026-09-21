@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import io.github.dfa1.typesafe.transport.HttpTransport;
 
-class JdkHttpClientWithJackson3AcceptanceTest extends AbstractTypesafeClientAcceptanceTest {
+class JdkHttpClientWithJackson3AcceptanceTest extends AbstractTypeSafeClientAcceptanceTest {
 
     @Override
     protected HttpTransport httpTransport() {

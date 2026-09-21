@@ -5,11 +5,11 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Sends the HTTP calls TypesafeClient needs (a JSON POST for evaluate, a GET for listing
+ * Sends the HTTP calls TypeSafeClient needs (a JSON POST for evaluate, a GET for listing
  * models) without tying it to a particular HTTP library. Every call is asynchronous;
- * {@code TypesafeClient}'s synchronous methods block on the returned future. Implementations
+ * {@code TypeSafeClient}'s synchronous methods block on the returned future. Implementations
  * are discovered via {@link java.util.ServiceLoader} (see typesafe-java-client-jdk) or
- * wired explicitly via {@code TypesafeClient.builder(...).httpTransport(...)}.
+ * wired explicitly via {@code TypeSafeClient.builder(...).httpTransport(...)}.
  */
 public interface HttpTransport extends AutoCloseable {
 

@@ -14,14 +14,14 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypesafeClient`, `ApiKey`, `TypesafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
 | `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-java-testkit` | `core` | `RecordingTypesafeClient` |
+| `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient` |
 | `typesafe-java-bom` | — | dependency management for the five above |
 
-`core` has zero runtime dependency on any HTTP or JSON library — `TypesafeClient` talks to
+`core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
 `HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
 alongside the DTOs without pulling anything extra in.
 
@@ -106,7 +106,7 @@ reports back — see [docs.typesafe.ai/models](https://docs.typesafe.ai/models):
 | `Model.PREVIEW` | `jev-preview` | Most recent release, official or not. |
 
 Any other id is pinned directly, e.g. `new Model("jev-1.13.0")` — including one taken from
-`ModelDetails.model()` (see `TypesafeClient.listModels()` below). Codecs serialize/deserialize a
+`ModelDetails.model()` (see `TypeSafeClient.listModels()` below). Codecs serialize/deserialize a
 `Model` as its bare `name` string — no `type` discriminator, no wrapping object.
 
 ### `EvaluateResponse`
@@ -144,7 +144,7 @@ no wrapping object.
 record ModelDetails(String name, String description, String releaseDate)
 ```
 
-One entry of `TypesafeClient.listModels()`'s result. `model()` returns this model's id as a
+One entry of `TypeSafeClient.listModels()`'s result. `model()` returns this model's id as a
 plain `Model`, usable directly as an `EvaluateRequest`'s model.
 
 ## JsonCodec SPI
@@ -184,20 +184,20 @@ public record HttpTransportResponse(int statusCode, Map<String, String> headers,
 ```
 
 Every call is asynchronous — there's no separate synchronous/async pair of methods per verb.
-`TypesafeClient.evaluate`/`listModels` (synchronous) block on the returned future internally;
+`TypeSafeClient.evaluate`/`listModels` (synchronous) block on the returned future internally;
 `evaluateAsync` returns it directly. An implementation whose underlying library is inherently
 synchronous (e.g. Apache HttpClient's classic API) still returns a `CompletableFuture`, already
 completed (or failed) by the time the call returns — see `JdkHttpTransport.get`/`post` below for
 the async-native shape most HTTP libraries actually provide.
 
-Bodies are `String`, not `byte[]`: `TypesafeClient` only ever sends/receives JSON over this SPI,
+Bodies are `String`, not `byte[]`: `TypeSafeClient` only ever sends/receives JSON over this SPI,
 and JSON text is UTF-8 by construction (RFC 8259), so there's no charset this layer needs to
 guess at. `JsonCodec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
-consumer, where messages are raw bytes); `TypesafeClient` converts once at the boundary between
+consumer, where messages are raw bytes); `TypeSafeClient` converts once at the boundary between
 the two SPIs. `HttpTransportResponse` copies `headers` defensively (`Map.copyOf`) so a caller
 that mutates the map it passed in afterward can't reach back into an already-returned response.
 
-The HTTP calls `TypesafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
+The HTTP calls `TypeSafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
 abstracted away from any particular HTTP library. `JdkHttpTransport` (in
 `typesafe-java-client-jdk`) is discovered via
 `ServiceLoader.load(HttpTransport.class)` through
@@ -215,14 +215,14 @@ default it to `JdkHttpTransport.DEFAULT_TIMEOUT` (`10` seconds).
 `io.github.dfa1.typesafe.testkit` (module `typesafe-java-testkit`).
 
 ```java
-public final class RecordingTypesafeClient implements TypesafeClient {
-    public RecordingTypesafeClient enqueueEvaluate(EvaluateResponse response);
-    public RecordingTypesafeClient enqueueModels(List<ModelDetails> models);
+public final class RecordingTypeSafeClient implements TypeSafeClient {
+    public RecordingTypeSafeClient enqueueEvaluate(EvaluateResponse response);
+    public RecordingTypeSafeClient enqueueModels(List<ModelDetails> models);
     public List<EvaluateRequest> evaluateRequests();
 }
 ```
 
-A `TypesafeClient` test double at the `EvaluateRequest`/`EvaluateResponse` level — for unit-testing
+A `TypeSafeClient` test double at the `EvaluateRequest`/`EvaluateResponse` level — for unit-testing
 code that calls `evaluate()`/`listModels()` and reacts to the result, without reaching for
 Mockito — see [how-to.md](how-to.md#test-code-that-uses-typesafeclient-without-hitting-the-real-api)
 for the recipe. `evaluateRequests()` records every `evaluate()`/`evaluateAsync()` call, in order.
@@ -248,23 +248,23 @@ record ApiKey(String value)
 - `toString()` never leaks `value`.
 - Constructor throws `IllegalArgumentException` on a blank value.
 
-### `TypesafeClient`
+### `TypeSafeClient`
 
 ```java
-static DefaultTypesafeClient.Builder builder(ApiKey apiKey)
+static DefaultTypeSafeClient.Builder builder(ApiKey apiKey)
 
 EvaluateResponse evaluate(EvaluateRequest request) throws IOException, InterruptedException
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
 List<ModelDetails> listModels() throws IOException, InterruptedException
 ```
 
-`TypesafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
+`TypeSafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
 caching layer, metrics, a circuit breaker, ...) implementing the same interface — anywhere a
-`TypesafeClient` is expected, a decorator around one works too. `builder(apiKey)` is a thin
-static factory on the interface that delegates to `DefaultTypesafeClient.builder(apiKey)` — the
+`TypeSafeClient` is expected, a decorator around one works too. `builder(apiKey)` is a thin
+static factory on the interface that delegates to `DefaultTypeSafeClient.builder(apiKey)` — the
 implementation class is public and owns its own `Builder`, since constructing a
-`DefaultTypesafeClient` (defaults, `ServiceLoader` discovery, ...) is squarely that class's
-concern, not the interface's. Nothing about the call site changes: `TypesafeClient.builder(key)`
+`DefaultTypeSafeClient` (defaults, `ServiceLoader` discovery, ...) is squarely that class's
+concern, not the interface's. Nothing about the call site changes: `TypeSafeClient.builder(key)`
 still works exactly as before.
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
@@ -279,13 +279,13 @@ Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
   timeout expiring — see below), backed off the same exponential schedule
 
 Any other non-`200` status, or a retryable failure still failing after `maxRetries`, throws
-`TypesafeException` — or, for a connection/timeout failure, the `IOException` itself.
+`TypeSafeException` — or, for a connection/timeout failure, the `IOException` itself.
 
-`TypesafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
+`TypeSafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
 so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use
 try-with-resources, or skip closing for a client that lives as long as the process.
 
-#### `TypesafeClient.Builder`
+#### `TypeSafeClient.Builder`
 
 | Method | Default |
 |---|---|
@@ -296,10 +296,10 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `initialBackoff(Duration)` | `500ms` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
 
-### `TypesafeException`
+### `TypeSafeException`
 
 ```java
-class TypesafeException extends RuntimeException {
+class TypeSafeException extends RuntimeException {
     int statusCode();
     String body();
 }

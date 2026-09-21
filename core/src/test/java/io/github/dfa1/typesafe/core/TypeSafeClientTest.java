@@ -26,7 +26,7 @@ import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
-class TypesafeClientTest {
+class TypeSafeClientTest {
 
     private static final URI ENDPOINT = URI.create("https://example.test/systemone");
     private static final Duration NO_BACKOFF = Duration.ZERO;
@@ -40,7 +40,7 @@ class TypesafeClientTest {
     @Test
     void evaluateDelegatesToTheConfiguredHttpTransportAndJsonCodec() throws Exception {
         // Given
-        TypesafeClient sut = TypesafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
@@ -73,7 +73,7 @@ class TypesafeClientTest {
     @Test
     void listModelsDelegatesToTheConfiguredHttpTransportAndJsonCodec() throws Exception {
         // Given
-        TypesafeClient sut = TypesafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
@@ -85,8 +85,8 @@ class TypesafeClientTest {
 
         given(httpTransport.get(modelsEndpoint, expectedHeaders))
                 .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "models-json")));
-        given(jsonCodec.readValue("models-json", DefaultTypesafeClient.ModelsResponse.class))
-                .willReturn(new DefaultTypesafeClient.ModelsResponse(models));
+        given(jsonCodec.readValue("models-json", DefaultTypeSafeClient.ModelsResponse.class))
+                .willReturn(new DefaultTypeSafeClient.ModelsResponse(models));
 
         // When
         List<ModelDetails> result = sut.listModels();
@@ -99,7 +99,7 @@ class TypesafeClientTest {
     @Test
     void closeClosesTheUnderlyingHttpTransport() {
         // Given
-        TypesafeClient sut = TypesafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .build();
@@ -114,7 +114,7 @@ class TypesafeClientTest {
     @Test
     void evaluateThrowsOnANonRetryableErrorStatus() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
@@ -123,9 +123,9 @@ class TypesafeClientTest {
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
-                .isInstanceOf(TypesafeException.class)
+                .isInstanceOf(TypeSafeException.class)
                 .satisfies(e -> {
-                    TypesafeException ex = (TypesafeException) e;
+                    TypeSafeException ex = (TypeSafeException) e;
                     assertThat(ex.statusCode()).isEqualTo(400);
                     assertThat(ex.body()).isEqualTo("bad request");
                 });
@@ -134,7 +134,7 @@ class TypesafeClientTest {
     @Test
     void evaluateRetriesOnRateLimitThenSucceeds() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -155,7 +155,7 @@ class TypesafeClientTest {
     @Test
     void evaluateThrowsAfterExhaustingRetries() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
@@ -164,15 +164,15 @@ class TypesafeClientTest {
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
-                .isInstanceOf(TypesafeException.class)
-                .satisfies(e -> assertThat(((TypesafeException) e).statusCode()).isEqualTo(529));
+                .isInstanceOf(TypeSafeException.class)
+                .satisfies(e -> assertThat(((TypeSafeException) e).statusCode()).isEqualTo(529));
         then(httpTransport).should(times(2)).post(any(), any(), any());
     }
 
     @Test
     void evaluateRetriesOnAnyServerErrorStatus() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -192,7 +192,7 @@ class TypesafeClientTest {
     @Test
     void evaluateRetriesOnRequestTimeoutStatus() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -212,7 +212,7 @@ class TypesafeClientTest {
     @Test
     void evaluateRetriesOnAConnectionFailureThenSucceeds() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -233,7 +233,7 @@ class TypesafeClientTest {
     @Test
     void evaluateThrowsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         IOException connectionFailure = new IOException("connection reset");
 
@@ -248,7 +248,7 @@ class TypesafeClientTest {
     @Test
     void evaluateRethrowsAnErrorFromTheTransportWithoutRetrying() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         Error transportError = new StackOverflowError("boom");
 
@@ -263,7 +263,7 @@ class TypesafeClientTest {
     @Test
     void evaluatePopulatesMetadataFromResponseHeaders() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         Map<String, String> responseHeaders = Map.of(
@@ -286,7 +286,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncSucceeds() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -306,7 +306,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncRetriesOnRateLimitThenSucceeds() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -329,7 +329,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncFailsAfterExhaustingRetries() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         given(jsonCodec.writeValueAsString(request)).willReturn("{}");
@@ -340,13 +340,13 @@ class TypesafeClientTest {
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
                 .isInstanceOf(ExecutionException.class)
-                .cause().isInstanceOf(TypesafeException.class);
+                .cause().isInstanceOf(TypeSafeException.class);
     }
 
     @Test
     void evaluateAsyncRetriesOnAConnectionFailureThenSucceeds() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
@@ -367,7 +367,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncFailsAfterExhaustingRetriesOnAConnectionFailure() throws Exception {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF, 1);
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         IOException connectionFailure = new IOException("connection reset");
 
@@ -385,7 +385,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncFailsFastWhenEncodingTheRequestThrows() {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         RuntimeException encodingFailure = new RuntimeException("boom");
 
@@ -400,7 +400,7 @@ class TypesafeClientTest {
     @Test
     void evaluateAsyncFailsFastWhenDecodingTheResponseThrows() {
         // Given
-        TypesafeClient sut = clientWith(NO_BACKOFF);
+        TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
         RuntimeException decodingFailure = new RuntimeException("boom");
 
@@ -419,7 +419,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoHttpTransportIsConfiguredOrDiscoverable() {
         // Given
-        DefaultTypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -430,7 +430,7 @@ class TypesafeClientTest {
     @Test
     void builderThrowsWhenNoJsonCodecIsConfiguredOrDiscoverable() {
         // Given
-        DefaultTypesafeClient.Builder sut = TypesafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -441,17 +441,17 @@ class TypesafeClientTest {
     @Test
     void isRetryableStatusAcceptsRequestTimeoutRateLimitAndAnyServerError() {
         // When / Then
-        assertThat(DefaultTypesafeClient.isRetryableStatus(408)).isTrue();
-        assertThat(DefaultTypesafeClient.isRetryableStatus(429)).isTrue();
-        assertThat(DefaultTypesafeClient.isRetryableStatus(500)).isTrue();
-        assertThat(DefaultTypesafeClient.isRetryableStatus(599)).isTrue();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(408)).isTrue();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(429)).isTrue();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(500)).isTrue();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(599)).isTrue();
     }
 
     @Test
     void isRetryableStatusRejectsOrdinaryClientErrors() {
         // When / Then
-        assertThat(DefaultTypesafeClient.isRetryableStatus(400)).isFalse();
-        assertThat(DefaultTypesafeClient.isRetryableStatus(404)).isFalse();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(400)).isFalse();
+        assertThat(DefaultTypeSafeClient.isRetryableStatus(404)).isFalse();
     }
 
     @Test
@@ -460,7 +460,7 @@ class TypesafeClientTest {
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "2"), "");
 
         // When
-        Optional<Duration> result = DefaultTypesafeClient.retryAfter(response);
+        Optional<Duration> result = DefaultTypeSafeClient.retryAfter(response);
 
         // Then
         assertThat(result).contains(Duration.ofSeconds(2));
@@ -473,7 +473,7 @@ class TypesafeClientTest {
                 new HttpTransportResponse(429, Map.of("retry-after-ms", "250", "retry-after", "5"), "");
 
         // When
-        Optional<Duration> result = DefaultTypesafeClient.retryAfter(response);
+        Optional<Duration> result = DefaultTypeSafeClient.retryAfter(response);
 
         // Then
         assertThat(result).contains(Duration.ofMillis(250));
@@ -482,16 +482,16 @@ class TypesafeClientTest {
     @Test
     void retryAfterIsEmptyWhenTheHeaderIsAnHttpDateOrAbsent() {
         // When / Then
-        assertThat(DefaultTypesafeClient.retryAfter(
+        assertThat(DefaultTypeSafeClient.retryAfter(
                 new HttpTransportResponse(429, Map.of("retry-after", "Wed, 21 Oct 2026 07:28:00 GMT"), "")))
                 .isEmpty();
-        assertThat(DefaultTypesafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
+        assertThat(DefaultTypeSafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
     }
 
     @Test
     void backoffForUsesTheRetryAfterHeaderWhenPresent() {
         // Given
-        DefaultTypesafeClient sut = clientWith(Duration.ofSeconds(10));
+        DefaultTypeSafeClient sut = clientWith(Duration.ofSeconds(10));
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "1"), "");
 
         // When
@@ -504,7 +504,7 @@ class TypesafeClientTest {
     @Test
     void backoffForFallsBackToExponentialWhenNoHeaderIsPresent() {
         // Given
-        DefaultTypesafeClient sut = clientWith(Duration.ofMillis(100));
+        DefaultTypeSafeClient sut = clientWith(Duration.ofMillis(100));
         HttpTransportResponse response = new HttpTransportResponse(429, Map.of(), "");
 
         // When
@@ -514,12 +514,12 @@ class TypesafeClientTest {
         assertThat(result).isEqualTo(Duration.ofMillis(400));
     }
 
-    private DefaultTypesafeClient clientWith(Duration backoff) {
+    private DefaultTypeSafeClient clientWith(Duration backoff) {
         return clientWith(backoff, 5);
     }
 
-    private DefaultTypesafeClient clientWith(Duration backoff, int maxRetries) {
-        return (DefaultTypesafeClient) TypesafeClient.builder(new ApiKey("secret"))
+    private DefaultTypeSafeClient clientWith(Duration backoff, int maxRetries) {
+        return (DefaultTypeSafeClient) TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)

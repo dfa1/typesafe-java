@@ -11,7 +11,7 @@
   <packaging>jar</packaging>
 
   <name>TypeSafe Testkit</name>
-  <description>RecordingTypesafeClient, a TypesafeClient test double for unit-testing code that
+  <description>RecordingTypeSafeClient, a TypeSafeClient test double for unit-testing code that
     calls evaluate()/listModels() without hitting the real API. Depends only on
     typesafe-java-core.
   </description>

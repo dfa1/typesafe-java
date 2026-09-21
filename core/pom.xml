@@ -12,7 +12,7 @@
 
   <name>TypeSafe Core</name>
   <description>
-    TypesafeClient, ApiKey, TypesafeException, the wire DTOs, and the JsonCodec/HttpTransport
+    TypeSafeClient, ApiKey, TypeSafeException, the wire DTOs, and the JsonCodec/HttpTransport
     SPIs. Zero dependency on any particular JSON or HTTP library — plug in
     typesafe-java-jackson2/typesafe-java-jackson3 and typesafe-java-client-jdk (or your
     own implementations). The DTOs and JsonCodec SPI alone are also reusable by any other
