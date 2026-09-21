@@ -253,29 +253,39 @@ connection/timeout failure).
 
 ## Test code that uses `TypesafeClient` without hitting the real API
 
-`TypesafeClient` only ever talks to `HttpTransport`/`JsonCodec`, so a test can mock both and
-verify the calls it makes:
+Don't mock `TypesafeClient` (or the `HttpTransport`/`JsonCodec` SPIs it talks to) directly in
+your own unit tests — they're types this library owns, not yours, so a test built on top of
+them breaks whenever this library's internals change, for reasons that have nothing to do with
+your code (see [Mockito's "don't mock types you don't own"](https://github.com/mockito/mockito/wiki/How-to-write-good-tests#dont-mock-a-type-you-dont-own)).
+Wrap `TypesafeClient` behind a narrow interface of your own that fits your domain, and mock
+*that* in unit tests of the code that calls it.
+
+To verify your wrapper itself calls `TypesafeClient` correctly — an integration-style test
+of the wiring, not a unit test of your business logic — add `typesafe-java-testkit`
+(test scope) and swap in `RecordingHttpTransport`, a `HttpTransport` test double that runs the
+real `TypesafeClient` (real retry/header/decode logic, real `JsonCodec`) against canned HTTP
+responses instead of the network:
 
 ```java
-@Mock HttpTransport httpTransport;
-@Mock JsonCodec jsonCodec;
+RecordingHttpTransport transport = new RecordingHttpTransport()
+        .respond(new HttpTransportResponse(200, Map.of(), responseBody));
 
 TypesafeClient client = TypesafeClient.builder(token)
-        .httpTransport(httpTransport)
-        .jsonCodec(jsonCodec)
+        .httpTransport(transport)
         .build();
-
-given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
-given(httpTransport.post(any(), any(), eq(requestBody)))
-        .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), responseBody)));
-given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
 
 client.evaluate(request);
 
-then(httpTransport).should().post(any(), any(), eq(requestBody));
+assertThat(transport.requests()).hasSize(1);
 ```
 
-See `TypesafeClientTest` in `core` for a complete example.
+Every call is recorded in `transport.requests()` in order, so count/order assertions are plain
+`AssertJ` list assertions — no `InOrder`/`times(n)` verification needed. Stub a response to a
+specific request with `respondTo(Predicate<RecordedRequest>, HttpTransportResponse)` instead of
+`respond(...)` (which matches any request); each stub is consumed by the first request that
+matches it, so registering the same predicate twice — e.g. once for a `500` and once for a
+`200` — simulates a retry. A request with no matching stub fails with an `AssertionError` naming
+the unmatched request. See `RecordingHttpTransportTest` in `testkit` for more examples.
 
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 

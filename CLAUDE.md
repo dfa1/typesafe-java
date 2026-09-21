@@ -28,7 +28,13 @@ jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `t
             (no discriminator — string/object/array on the wire) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3.
+testkit   — RecordingHttpTransport (+ RecordedRequest), a HttpTransport test double for
+            unit-testing code that calls TypesafeClient without hitting the real API, in
+            io.github.dfa1.typesafe.testkit. Depends only on core. Records every call in
+            arrival order (`requests()`); `respond(response)`/`respondTo(matcher, response)`
+            stub a response to any/a matching request, consumed by the first request that
+            matches — registering the same stub twice simulates a retry (e.g. 500 then 200).
+bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit.
 acceptance — live-API tests only; not published. `AbstractTypesafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
@@ -56,9 +62,9 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
             is given.
 ```
 
-Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`,
+Dependency rule: `client-jdk → core`, `jackson2 → core`, `jackson3 → core`, `testkit → core`,
 `acceptance → core, client-jdk, jackson2, jackson3` (test scope only), `cli → core,
-client-jdk, jackson3` — nothing production depends on `acceptance` or `cli`. See
+client-jdk, jackson3` — nothing production depends on `acceptance`, `cli`, or `testkit`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.
 

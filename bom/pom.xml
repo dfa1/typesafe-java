@@ -12,7 +12,7 @@
 
   <name>TypeSafe BOM</name>
   <description>Bill of Materials for typesafe-java. Import in dependencyManagement to get
-    consistent versions of core/client-jdk/jackson2/jackson3.
+    consistent versions of core/client-jdk/jackson2/jackson3/testkit.
   </description>
 
   <dependencyManagement>
@@ -38,6 +38,12 @@
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
         <artifactId>typesafe-java-jackson3</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-testkit</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

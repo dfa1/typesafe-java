@@ -49,6 +49,24 @@ original reason for a separate `client` module (keeping `core` free of `java.net
 to version and depend on, with `core` exactly as dependency-free as before. See
 [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
 
+## Why `testkit` is a first-party module instead of "just mock `HttpTransport` with Mockito"
+
+Mockito's own guidance is to avoid mocking a type you don't own: a hand-rolled mock of someone
+else's type can silently drift from that type's real contract, and it couples your tests to
+implementation details (exact method call sequences, argument matchers) that break whenever the
+owner refactors, for reasons that have nothing to do with the code under test. `HttpTransport`
+is this library's type, not a consumer's — so a consumer mocking it ad hoc in their own test
+suite hits exactly that problem.
+
+`RecordingHttpTransport` sidesteps it by having the library own both ends: it's a real
+`HttpTransport` implementation, released and versioned alongside `JdkHttpTransport`, so it stays
+in sync with the interface by construction rather than by a consumer's guesswork. It's
+deliberately not a full expectations-DSL (no queued request/response pairs asserted in strict
+order, no "unexpected call" failure mode beyond an unmatched stub) — recording every call in
+arrival order and letting a test assert on that list with plain AssertJ gets the same count/order
+guarantees MockRestServiceServer/MockWebServer provide, without a bespoke matcher language to
+learn or maintain.
+
 ## Why `State` is a sealed interface, not `Object`
 
 `EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `JsonCodec` can
