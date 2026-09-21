@@ -6,13 +6,17 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
+import io.github.dfa1.typesafe.testkit.FailingTypeSafeClient;
 import io.github.dfa1.typesafe.testkit.RecordingTypeSafeClient;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -192,6 +196,30 @@ class MappingTypeSafeClientTest {
 
         // Then
         assertThat(first).isEqualTo(second).isEqualTo(new SingleNoul(0.5));
+    }
+
+    @Test
+    void evaluateTypedPropagatesATypeSafeExceptionFromTheDelegateUnchanged() {
+        // Given
+        TypeSafeException.RateLimit rateLimit = new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2));
+        FailingTypeSafeClient delegate = new FailingTypeSafeClient(new RecordingTypeSafeClient(), 1, () -> rateLimit);
+        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class)).isSameAs(rateLimit);
+    }
+
+    @Test
+    void evaluateTypedAsyncPropagatesATypeSafeExceptionFromTheDelegateUnchanged() {
+        // Given
+        TypeSafeException.RateLimit rateLimit = new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2));
+        FailingTypeSafeClient delegate = new FailingTypeSafeClient(new RecordingTypeSafeClient(), 1, () -> rateLimit);
+        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluateTypedAsync(State.text("hi"), SingleNoul.class).get())
+                .isInstanceOf(ExecutionException.class)
+                .cause().isSameAs(rateLimit);
     }
 
     @Test
