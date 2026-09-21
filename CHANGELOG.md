@@ -58,6 +58,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`evaluate()`/`evaluateAsync()`/`listModels()` share one counter) — for unit-testing how
   calling code handles intermittent failures. Wraps any `TypeSafeClient`, including a
   `RecordingTypeSafeClient`.
+- `./mvnw verify` (and so CI) now fails on a broken `{@link}`/`{@see}` javadoc reference, via a
+  `maven-javadoc-plugin` execution bound to every module's `verify` phase with
+  `doclint=reference`. Narrower than the release profile's `attach-javadocs` execution (which
+  keeps `doclint=none` to avoid failing a release over doc-completeness gaps) — this one only
+  catches a dangling reference, the kind that renders unresolved in an IDE.
 
 ## [0.4.0] - 2026-09-21
 

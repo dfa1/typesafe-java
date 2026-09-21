@@ -184,6 +184,30 @@
             </execution>
           </executions>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-javadoc-plugin</artifactId>
+          <version>${maven-javadoc-plugin.version}</version>
+          <executions>
+            <execution>
+              <!-- Runs on every `verify` (so CI and a local build both catch it), unlike the
+                   release profile's `attach-javadocs` execution which sets doclint=none to
+                   avoid failing a release over doc-completeness noise. This one only checks
+                   `reference` (broken @link/@see targets, e.g. a class that got renamed or
+                   moved) since that's a real bug — a dangling link an IDE shows unresolved —
+                   not a style nit like a missing @param. -->
+              <id>javadoc-check</id>
+              <phase>verify</phase>
+              <goals>
+                <goal>javadoc</goal>
+              </goals>
+              <configuration>
+                <doclint>reference</doclint>
+                <quiet>true</quiet>
+              </configuration>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -194,6 +218,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
