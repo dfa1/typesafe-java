@@ -7,11 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- New `testkit` module (`typesafe-java-testkit`): `RecordingHttpTransport`, a `HttpTransport`
-  test double for unit-testing code that calls `TypesafeClient` without hitting the real API.
-  Records every call, in order, for count/order assertions, and lets a test stub a specific
-  response to a specific request (`respondTo(Predicate<RecordedRequest>, HttpTransportResponse)`)
-  instead of hand-rolling a Mockito `Answer`.
+- New `testkit` module: [`RecordingHttpTransport`](https://github.com/dfa1/typesafe-java/commit/01f7287),
+  a `HttpTransport` test double for unit-testing code that calls `TypesafeClient` without hitting
+  the real API.
 - `RequestId` now serializes/deserializes as its bare `value` string (e.g. `"req_..."`) instead
   of a wrapping `{"value": "req_..."}` object, matching how `Model` is already handled.
 - `cli`: stdout is now silent by default instead of always printing the full `EvaluateResponse`
