@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
   the client and applies a decorator to it in one call (e.g.
-  `builder(apiKey).build(MappingTypeSafeClient::new)`), returning `T` instead of the plain
+  `builder(apiKey).build(MappingTypeSafeClient::decorate)`), returning `T` instead of the plain
   `TypeSafeClient` — no cast needed to reach a decorator's own methods. Stack more than one
   decorator via `Function#andThen`. The plain `build()` is unchanged.
 - New `mapping` module: `MappingTypeSafeClient`, a `TypeSafeClient` decorator adding
@@ -22,7 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   duplicate `@Option` key) once per record type and caches the result; a missing or
   shape-mismatched answer in the response throws a clear `IllegalStateException` naming the
   component instead of a bare `NullPointerException`/`ClassCastException`. Depends only on
-  `core`; its own tests depend on `testkit`'s `RecordingTypeSafeClient` (test scope only).
+  `core`; its own tests depend on `testkit`'s `RecordingTypeSafeClient` (test scope only). Built
+  via the static factory `MappingTypeSafeClient.decorate(TypeSafeClient)`, not a public
+  constructor.
   Addresses the first half of [#2](https://github.com/dfa1/typesafe-java/issues/2) — the second
   half (`Question.noul` without an empty criteria map) already shipped earlier. `acceptance` now
   covers it too, against the live API.

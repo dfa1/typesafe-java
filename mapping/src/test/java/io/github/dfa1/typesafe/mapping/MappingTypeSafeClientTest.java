@@ -58,7 +58,7 @@ class MappingTypeSafeClientTest {
                         "culprit", new Answer.Choice("late_delivery", Map.of("late_delivery", 1.0), 1.0),
                         "spiciness", new Answer.Score(2.0, Map.of(), Map.of(), 1.0)),
                 new Usage(1, 1), null));
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
         State state = State.text("Help! My payouts have been failing for 3 days.");
 
         // When
@@ -84,7 +84,7 @@ class MappingTypeSafeClientTest {
                         "culprit", new Answer.Choice("wrong_toppings", Map.of("wrong_toppings", 1.0), 1.0),
                         "spiciness", new Answer.Score(0.5, Map.of(), Map.of(), 1.0)),
                 new Usage(1, 1), null));
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
         TicketUrgency result = sut.evaluateTypedAsync(State.text("hi"), TicketUrgency.class).get();
@@ -96,7 +96,7 @@ class MappingTypeSafeClientTest {
     @Test
     void evaluateTypedRejectsARecordWithAnUnannotatedComponent() {
         // Given
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(new RecordingTypeSafeClient());
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), NotAnnotated.class))
@@ -107,7 +107,7 @@ class MappingTypeSafeClientTest {
     @Test
     void evaluateTypedRejectsAComponentTypeMismatchedWithItsAnnotation() {
         // Given
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(new RecordingTypeSafeClient());
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), WrongComponentType.class))
@@ -118,7 +118,7 @@ class MappingTypeSafeClientTest {
     @Test
     void evaluateTypedRejectsAComponentCarryingMoreThanOneAnnotation() {
         // Given
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(new RecordingTypeSafeClient());
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), DoublyAnnotated.class))
@@ -129,7 +129,7 @@ class MappingTypeSafeClientTest {
     @Test
     void evaluateTypedRejectsADuplicateOptionKey() {
         // Given
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(new RecordingTypeSafeClient());
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), DuplicateOption.class))
@@ -142,7 +142,7 @@ class MappingTypeSafeClientTest {
         // Given
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient()
                 .enqueueEvaluate(new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null));
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class))
@@ -157,7 +157,7 @@ class MappingTypeSafeClientTest {
                 Model.LATEST,
                 Map.of("isUrgent", new Answer.Choice("x", Map.of("x", 1.0), 1.0)),
                 new Usage(1, 1), null));
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class))
@@ -172,7 +172,7 @@ class MappingTypeSafeClientTest {
         // Given
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient().enqueueEvaluate(new EvaluateResponse(
                 Model.LATEST, Map.of("isUrgent", new Answer.Noul(0.5)), new Usage(1, 1), null));
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
         sut.evaluateTyped(State.text("hi"), Model.PREVIEW, SingleNoul.class);
@@ -188,7 +188,7 @@ class MappingTypeSafeClientTest {
                 Model.LATEST, Map.of("isUrgent", new Answer.Noul(0.5)), new Usage(1, 1), null);
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient()
                 .enqueueEvaluate(response).enqueueEvaluate(response);
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
         SingleNoul first = sut.evaluateTyped(State.text("hi"), SingleNoul.class);
@@ -203,7 +203,7 @@ class MappingTypeSafeClientTest {
         // Given
         TypeSafeException.RateLimit rateLimit = new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2));
         FailingTypeSafeClient delegate = new FailingTypeSafeClient(new RecordingTypeSafeClient(), 1, () -> rateLimit);
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class)).isSameAs(rateLimit);
@@ -214,7 +214,7 @@ class MappingTypeSafeClientTest {
         // Given
         TypeSafeException.RateLimit rateLimit = new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2));
         FailingTypeSafeClient delegate = new FailingTypeSafeClient(new RecordingTypeSafeClient(), 1, () -> rateLimit);
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateTypedAsync(State.text("hi"), SingleNoul.class).get())
@@ -227,7 +227,7 @@ class MappingTypeSafeClientTest {
         // Given
         EvaluateResponse response = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient().enqueueEvaluate(response);
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
         EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
 
         // When
@@ -242,7 +242,7 @@ class MappingTypeSafeClientTest {
     void listModelsDelegatesStraightThroughUnchanged() {
         // Given
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient().enqueueModels(List.of());
-        MappingTypeSafeClient sut = new MappingTypeSafeClient(delegate);
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
         assertThat(sut.listModels()).isEmpty();

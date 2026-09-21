@@ -269,7 +269,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         }
 
         /** {@link #build()}, then applies {@code decorate} to the result — e.g.
-         *  {@code builder(apiKey).build(MappingTypeSafeClient::new)}. Stack more than one
+         *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. Stack more than one
          *  decorator via {@link Function#andThen}. */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
             return decorate.apply(build());

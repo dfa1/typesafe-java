@@ -264,7 +264,7 @@ through. The constructor throws `IllegalArgumentException` if `failEvery` isn't 
 
 ```java
 public final class MappingTypeSafeClient implements TypeSafeClient {
-    public MappingTypeSafeClient(TypeSafeClient delegate);
+    public static MappingTypeSafeClient decorate(TypeSafeClient delegate);
     public <T extends Record> T evaluateTyped(State state, Class<T> type);
     public <T extends Record> T evaluateTyped(State state, Model model, Class<T> type);
     public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Class<T> type);
@@ -368,7 +368,7 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `maxRetries(int)` | `5` |
 | `initialBackoff(Duration)` | `500ms` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
-| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::new`) in one call, returning `T` instead of the plain `TypeSafeClient`. Stack more than one via `Function#andThen`. |
+| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Stack more than one via `Function#andThen`. |
 
 ### `TypeSafeException`
 

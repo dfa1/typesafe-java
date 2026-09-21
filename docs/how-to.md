@@ -171,7 +171,7 @@ record TicketUrgency(
         @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) double spiciness) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::new);
+MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
 TicketUrgency result = client.evaluateTyped(State.text("..."), TicketUrgency.class);
 result.isUrgent();   // double, from Answer.Noul#noul()
 result.culprit();    // String, from Answer.Choice#choice()
@@ -339,7 +339,7 @@ Stack more than one decorator by composing the functions with `Function#andThen`
 
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
-Function<TypeSafeClient, MappingTypeSafeClient> mapping = MappingTypeSafeClient::new;
+Function<TypeSafeClient, MappingTypeSafeClient> mapping = MappingTypeSafeClient::decorate;
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token).build(caching.andThen(mapping));
 ```

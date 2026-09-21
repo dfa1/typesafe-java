@@ -108,7 +108,7 @@ record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
 MappingTypeSafeClient typedClient = TypeSafeClient.builder(ApiKey.fromDefaultFile())
-        .build(MappingTypeSafeClient::new);
+        .build(MappingTypeSafeClient::decorate);
 
 UrgencyCheck result = typedClient.evaluateTyped(
         State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);

@@ -139,10 +139,11 @@ What shipped instead is a single addition to the *existing* `Builder`:
 `build(Function<TypeSafeClient, T> decorate)`, one line (`decorate.apply(build())`) that applies
 a decorator to the client it just built and returns `T` instead of the plain `TypeSafeClient` —
 no cast needed to reach `evaluateTyped`. It's generic, so `core` never needs to know
-`MappingTypeSafeClient` exists, and it's purely additive: the plain `new
-MappingTypeSafeClient(anyDelegate)` constructor still works for every case this doesn't cover.
+`MappingTypeSafeClient` exists, and it's purely additive: the plain
+`MappingTypeSafeClient.decorate(anyDelegate)` static factory still works for every case this
+doesn't cover — there's no public constructor to call instead.
 Stacking more than one decorator needs no extra API either — `Function#andThen` (stdlib) composes
-them, so `builder(apiKey).build(caching.andThen(MappingTypeSafeClient::new))` already works.
+them, so `builder(apiKey).build(caching.andThen(MappingTypeSafeClient::decorate))` already works.
 
 ## Why `State` is a sealed interface, not `Object`
 

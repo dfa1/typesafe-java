@@ -45,8 +45,15 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
     private final TypeSafeClient delegate;
     private final Map<Class<?>, RecordMapping<?>> cache = new ConcurrentHashMap<>();
 
-    public MappingTypeSafeClient(TypeSafeClient delegate) {
+    private MappingTypeSafeClient(TypeSafeClient delegate) {
         this.delegate = delegate;
+    }
+
+    /** Wraps {@code delegate} in a {@link MappingTypeSafeClient}. Pass this as the {@code decorate}
+     *  function to {@link TypeSafeClient.Builder#build(java.util.function.Function)}, e.g.
+     *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
+    public static MappingTypeSafeClient decorate(TypeSafeClient delegate) {
+        return new MappingTypeSafeClient(delegate);
     }
 
     /** {@link #evaluateTyped(State, Model, Class)} against {@link Model#LATEST}. */

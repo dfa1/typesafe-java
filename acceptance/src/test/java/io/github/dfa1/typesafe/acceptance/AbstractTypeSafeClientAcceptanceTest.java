@@ -337,7 +337,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     @Test
     void judgesATouristsDiningChoicesLikeATraditionalItalianNonnaWould() {
         // Given
-        MappingTypeSafeClient typedClient = new MappingTypeSafeClient(sut);
+        MappingTypeSafeClient typedClient = MappingTypeSafeClient.decorate(sut);
         State state = State.text("""
                 A tourist visiting Rome sits down at a trattoria at 9:30pm for dinner. They order
                 a seafood spaghetti and ask the waiter to grate parmesan cheese generously over
@@ -363,7 +363,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     @Test
     void judgesATouristsDiningChoicesAsynchronouslyToo() throws Exception {
         // Given
-        MappingTypeSafeClient typedClient = new MappingTypeSafeClient(sut);
+        MappingTypeSafeClient typedClient = MappingTypeSafeClient.decorate(sut);
         State state = State.text("""
                 A tourist visits a historic pizzeria in Naples — the birthplace of pizza — and
                 orders a hawaiian pizza, insisting the chef pile on extra pineapple chunks.

@@ -33,7 +33,7 @@ Or skip the `Map`/cast with a typed record (`typesafe-java-mapping`):
 record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::new);
+MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
 UrgencyCheck result = client.evaluateTyped(
         State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
 result.isUrgent(); // e.g. 0.92
