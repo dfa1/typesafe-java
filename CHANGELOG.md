@@ -20,8 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   transport's raw `IOException`; the calling thread being interrupted while waiting now throws
   `TypeSafeException.Interrupted`, restoring the thread's interrupt status first. These three
   have no real HTTP response behind them, so `statusCode()`/`body()` are `-1`/`null` on all of
-  them. `TypeSafeException` itself remains the catch-all base class for any other status. See
-  [ADR 0002](adr/0002-no-checked-exceptions.md).
+  them. `TypeSafeException` itself remains the catch-all base class for any other status. Every
+  subclass constructor is public, so `testkit`'s `FailingTypeSafeClient` (or any test) can
+  simulate a specific one (e.g. `() -> new TypeSafeException.RateLimit(...)`) for callers to
+  catch. Mirrors the per-status hierarchy of the Python SDK
+  (`typesafe-ai/typesafe-sdk-python`'s `TypeSafeAPIError` subclasses), folding what Python keeps
+  as a separate checked-equivalent `TypeSafeAPIConnectionError`/`TypeSafeAPITimeoutError` family
+  into this same unchecked hierarchy instead. See [ADR 0002](adr/0002-no-checked-exceptions.md).
   [#7](https://github.com/dfa1/typesafe-java/issues/7)
 - New `client-okhttp` module: `OkHttpTransport`, an `HttpTransport` backed by OkHttp — an
   alternative to `client-jdk` for environments `java.net.http` doesn't cover, e.g. Android.

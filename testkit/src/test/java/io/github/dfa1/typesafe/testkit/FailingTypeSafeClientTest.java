@@ -9,6 +9,7 @@ import io.github.dfa1.typesafe.core.Usage;
 
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
@@ -65,6 +66,19 @@ class FailingTypeSafeClientTest {
         // When / Then
         assertThat(sut.evaluate(REQUEST)).isNotNull();
         assertThatThrownBy(sut::listModels).isInstanceOf(TypeSafeException.class);
+    }
+
+    @Test
+    void simulatesASpecificTypeSafeExceptionSubclassForCallersToCatch() {
+        // Given
+        RecordingTypeSafeClient delegate = new RecordingTypeSafeClient();
+        FailingTypeSafeClient sut = new FailingTypeSafeClient(
+                delegate, 1, () -> new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2)));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(REQUEST))
+                .isInstanceOf(TypeSafeException.RateLimit.class)
+                .satisfies(e -> assertThat(((TypeSafeException.RateLimit) e).retryAfter()).contains(Duration.ofSeconds(2)));
     }
 
     @Test

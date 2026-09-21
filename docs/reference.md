@@ -336,7 +336,11 @@ sealed class TypeSafeException extends RuntimeException {
 The base class is also the catch-all: constructed directly for a status with no dedicated
 subclass below. A `200` response the configured `JsonCodec` couldn't decode throws
 `TypeSafeException.ResponseDecoding` (`statusCode()` `200`, `getCause()` the codec's original
-exception) instead of that exception escaping directly.
+exception) instead of that exception escaping directly. This mirrors the per-status hierarchy of
+the Python SDK (`typesafe-ai/typesafe-sdk-python`'s `TypeSafeAPIError` subclasses); unlike
+Python, everything here — including connection/timeout/interruption failures — is a single
+unchecked hierarchy (see [ADR 0002](../adr/0002-no-checked-exceptions.md)), where Python keeps a
+separate checked-equivalent `TypeSafeAPIConnectionError`/`TypeSafeAPITimeoutError` family.
 
 | Subclass | Status |
 |---|---|

@@ -68,3 +68,9 @@ boundary didn't change. Only `DefaultTypeSafeClient.await()`, where a blocked `e
   sentinel values rather than `TypeSafeException` gaining an `Optional<Integer> statusCode()` or
   a parallel field-free base type — the simpler option, at the cost of those three accessors
   being meaningless (and documented as such) on those three subclasses.
+- Every subclass constructor is public (not just the base `TypeSafeException(int, String)`),
+  matching the base class rather than leaving subclass construction as an internal-only detail.
+  This lets `testkit`'s `FailingTypeSafeClient` — and any consumer's own tests — simulate a
+  specific subclass (`() -> new TypeSafeException.RateLimit("slow down", Duration.ofSeconds(2))`)
+  instead of only the generic base class, so a caller can unit-test its own `catch
+  (TypeSafeException.RateLimit e)` logic without hitting the real API.
