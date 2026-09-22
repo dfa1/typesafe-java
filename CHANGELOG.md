@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`cli`: add `--help`/`-h`** — prints usage and exits without calling the API, same as `--version`. [`898d2ee`](https://github.com/dfa1/typesafe-java/commit/898d2ee)
+
 ## [0.5.0] - 2026-09-22
 
 - `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
