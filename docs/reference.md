@@ -280,9 +280,14 @@ must carry exactly one of:
 
 | Annotation | Component type | Populated with |
 |---|---|---|
-| `@Noul(String value)` | `double` | `Answer.Noul#noul()` |
-| `@Choice(String value, Option[] options)` | `String` | `Answer.Choice#choice()` |
-| `@Score(String value, String[] levels)` | `double` | `Answer.Score#score()` |
+| `@Noul(String value)` | `double` or `Answer.Noul` | `Answer.Noul#noul()`, or the full `Answer.Noul` |
+| `@Choice(String value, Option[] options)` | `String` or `Answer.Choice` | `Answer.Choice#choice()`, or the full `Answer.Choice` |
+| `@Score(String value, String[] levels)` | `double` or `Answer.Score` | `Answer.Score#score()`, or the full `Answer.Score` |
+
+The scalar component type (`double`/`String`) is the common case — just the answer's headline
+value. Type the component as the full `Answer.Noul`/`Answer.Choice`/`Answer.Score` instead to
+also get `probabilities()`/`confidence()` (and, for `@Score`, `legend()`), which the scalar form
+drops — see [how-to.md](how-to.md#get-typed-answers-instead-of-mapstring-answer) for an example.
 
 `@Option(String value, String description default "")` only appears nested inside
 `@Choice#options()` — `Question.Choice#criteria()` is a `Map<String, String>` an annotation

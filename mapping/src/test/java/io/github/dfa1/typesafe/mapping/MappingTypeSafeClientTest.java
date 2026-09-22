@@ -48,6 +48,14 @@ class MappingTypeSafeClientTest {
     record SingleNoul(@Noul("Does this convey urgency?") double isUrgent) {
     }
 
+    record TicketUrgencyWithConfidence(
+            @Noul("Does this convey urgency?") Answer.Noul isUrgent,
+            @Choice(value = "Who's at fault?", options = {
+                    @Option("wrong_toppings"), @Option(value = "late_delivery", description = "Arrived late") })
+            Answer.Choice culprit,
+            @Score(value = "How spicy?", levels = { "Mild", "Medium", "Hot" }) Answer.Score spiciness) {
+    }
+
     @Test
     void evaluateTypedBuildsTheRequestFromAnnotatedComponentsAndMapsTheAnswersBack() {
         // Given
@@ -66,11 +74,11 @@ class MappingTypeSafeClientTest {
 
         // Then
         assertThat(result).isEqualTo(new TicketUrgency(0.9, "late_delivery", 2.0));
-        Question.Noul noul = (Question.Noul) delegate.evaluateRequests().get(0).questions().get("isUrgent");
+        Question.Noul noul = (Question.Noul) delegate.evaluateRequests().getFirst().questions().get("isUrgent");
         assertThat(noul.instructions()).isEqualTo("Does this convey urgency?");
-        Question.Choice choice = (Question.Choice) delegate.evaluateRequests().get(0).questions().get("culprit");
+        Question.Choice choice = (Question.Choice) delegate.evaluateRequests().getFirst().questions().get("culprit");
         assertThat(choice.criteria()).containsEntry("late_delivery", "Arrived late").containsEntry("wrong_toppings", "");
-        Question.Score score = (Question.Score) delegate.evaluateRequests().get(0).questions().get("spiciness");
+        Question.Score score = (Question.Score) delegate.evaluateRequests().getFirst().questions().get("spiciness");
         assertThat(score.criteria()).containsExactly("Mild", "Medium", "Hot");
     }
 
@@ -91,6 +99,27 @@ class MappingTypeSafeClientTest {
 
         // Then
         assertThat(result).isEqualTo(new TicketUrgency(0.1, "wrong_toppings", 0.5));
+    }
+
+    @Test
+    void evaluateTypedMapsToTheFullAnswerWhenTheComponentTypeIsAnAnswerSubtypeInsteadOfTheScalar() {
+        // Given
+        Answer.Noul noulAnswer = new Answer.Noul(0.9);
+        Answer.Choice choiceAnswer = new Answer.Choice("late_delivery", Map.of("late_delivery", 1.0), 0.8);
+        Answer.Score scoreAnswer = new Answer.Score(2.0, Map.of(), Map.of(), 0.7);
+        RecordingTypeSafeClient delegate = new RecordingTypeSafeClient().enqueueEvaluate(new EvaluateResponse(
+                Model.LATEST,
+                Map.of("isUrgent", noulAnswer, "culprit", choiceAnswer, "spiciness", scoreAnswer),
+                new Usage(1, 1), null));
+        MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
+
+        // When
+        TicketUrgencyWithConfidence result = sut.evaluateTyped(State.text("hi"), TicketUrgencyWithConfidence.class);
+
+        // Then
+        assertThat(result).isEqualTo(new TicketUrgencyWithConfidence(noulAnswer, choiceAnswer, scoreAnswer));
+        assertThat(result.culprit().confidence()).isEqualTo(0.8);
+        assertThat(result.spiciness().confidence()).isEqualTo(0.7);
     }
 
     @Test
@@ -178,7 +207,7 @@ class MappingTypeSafeClientTest {
         sut.evaluateTyped(State.text("hi"), Model.PREVIEW, SingleNoul.class);
 
         // Then
-        assertThat(delegate.evaluateRequests().get(0).model()).isEqualTo(Model.PREVIEW);
+        assertThat(delegate.evaluateRequests().getFirst().model()).isEqualTo(Model.PREVIEW);
     }
 
     @Test

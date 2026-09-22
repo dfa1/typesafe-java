@@ -179,7 +179,26 @@ result.culprit();    // String, from Answer.Choice#choice()
 
 Component type must match its annotation (`double` for `@Noul`/`@Score`, `String` for
 `@Choice`) — see [reference.md](reference.md#answer-mapping) for the full mapping table,
-including its validation and error-reporting rules. Since `MappingTypeSafeClient` is a
+including its validation and error-reporting rules.
+
+Need `probabilities()`/`confidence()` too (dropped by the scalar form above)? Type the
+component as the full `Answer.Noul`/`Answer.Choice`/`Answer.Score` instead of the scalar:
+
+```java
+record TicketUrgencyWithConfidence(
+        @Noul("Does this convey urgency?") Answer.Noul isUrgent,
+        @Choice(value = "Who's at fault?", options = {
+                @Option("wrong_toppings"), @Option(value = "late_delivery", description = "Arrived late")})
+        Answer.Choice culprit,
+        @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) Answer.Score spiciness) {
+}
+
+TicketUrgencyWithConfidence result = client.evaluateTyped(State.text("..."), TicketUrgencyWithConfidence.class);
+result.isUrgent().noul();         // same double, now via the full Answer.Noul
+result.culprit().confidence();    // double, from Answer.Choice#confidence()
+```
+
+Since `MappingTypeSafeClient` is a
 `TypeSafeClient` decorator, `evaluateTypedAsync` and the plain `evaluate`/`evaluateAsync`/
 `listModels`/`close` methods are all available on the same instance. Pass a `Model` as the
 second argument (`evaluateTyped(state, Model.PREVIEW, TicketUrgency.class)`) to pin one, the

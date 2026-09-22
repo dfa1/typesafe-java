@@ -12,12 +12,14 @@ import io.github.dfa1.typesafe.core.TypeSafeClient;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.RecordComponent;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * A {@link TypeSafeClient} decorator that reflects over a record's {@link Noul @Noul}/
@@ -25,10 +27,14 @@ import java.util.function.Function;
  * {@link EvaluateRequest}'s questions, then maps {@link EvaluateResponse#answers()} back into a
  * new instance of that same record — so a caller works with a typed record instead of
  * {@code Map<String, Answer>} and a manual {@code (Answer.Noul)}-style cast. Each component must
- * carry exactly one of the three annotations, matching its type: {@code double} for
- * {@code @Noul}/{@code @Score}, {@code String} for {@code @Choice}. A record type's reflection
- * metadata (its components' questions and its canonical constructor) is computed once and cached
- * for the lifetime of this instance, so repeated calls for the same record type don't re-walk it.
+ * carry exactly one of the three annotations, and its type must be either the annotation's
+ * scalar answer type ({@code double} for {@code @Noul}/{@code @Score}, {@code String} for
+ * {@code @Choice}) or the full matching {@link Answer} subtype ({@link Answer.Noul},
+ * {@link Answer.Choice}, {@link Answer.Score}) — the latter also carries
+ * {@code probabilities()}/{@code confidence()} (and, for {@code @Score}, {@code legend()}) that
+ * the scalar form drops. A record type's reflection metadata (its components' questions and its
+ * canonical constructor) is computed once and cached for the lifetime of this instance, so
+ * repeated calls for the same record type don't re-walk it.
  *
  * <p>A {@link io.github.dfa1.typesafe.core.TypeSafeException} the delegate throws (already final
  * — its own retries, if any, are already exhausted) propagates unchanged; this class never wraps
@@ -144,18 +150,25 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
                     component + " must carry exactly one of @Noul/@Choice/@Score, found " + annotationCount);
         }
         if (noul != null) {
-            requireType(component, double.class);
-            return new ComponentMapping(component.getName(), Question.noul(noul.value()),
-                    answer -> ((Answer.Noul) answer).noul());
+            Class<?> type = requireType(component, double.class, Answer.Noul.class);
+            Function<Answer, Object> answerValue = type == Answer.Noul.class
+                    ? answer -> (Answer.Noul) answer
+                    : answer -> ((Answer.Noul) answer).noul();
+            return new ComponentMapping(component.getName(), Question.noul(noul.value()), answerValue);
         }
         if (choice != null) {
-            requireType(component, String.class);
+            Class<?> type = requireType(component, String.class, Answer.Choice.class);
+            Function<Answer, Object> answerValue = type == Answer.Choice.class
+                    ? answer -> (Answer.Choice) answer
+                    : answer -> ((Answer.Choice) answer).choice();
             return new ComponentMapping(component.getName(), Question.choice(choice.value(), criteriaFor(choice, component)),
-                    answer -> ((Answer.Choice) answer).choice());
+                    answerValue);
         }
-        requireType(component, double.class);
-        return new ComponentMapping(component.getName(), Question.score(score.value(), List.of(score.levels())),
-                answer -> ((Answer.Score) answer).score());
+        Class<?> type = requireType(component, double.class, Answer.Score.class);
+        Function<Answer, Object> answerValue = type == Answer.Score.class
+                ? answer -> (Answer.Score) answer
+                : answer -> ((Answer.Score) answer).score();
+        return new ComponentMapping(component.getName(), Question.score(score.value(), List.of(score.levels())), answerValue);
     }
 
     private static Map<String, String> criteriaFor(Choice choice, RecordComponent component) {
@@ -168,11 +181,17 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
         return criteria;
     }
 
-    private static void requireType(RecordComponent component, Class<?> expected) {
-        if (component.getType() != expected) {
-            throw new IllegalArgumentException(
-                    component + " must be " + expected.getSimpleName() + ", got " + component.getType().getSimpleName());
+    /** Checks {@code component}'s type against {@code allowed} (its scalar answer type, or the
+     *  full matching {@link Answer} subtype), returning whichever one matched. */
+    private static Class<?> requireType(RecordComponent component, Class<?>... allowed) {
+        Class<?> actual = component.getType();
+        for (Class<?> candidate : allowed) {
+            if (actual == candidate) {
+                return candidate;
+            }
         }
+        String expected = Arrays.stream(allowed).map(Class::getSimpleName).collect(Collectors.joining(" or "));
+        throw new IllegalArgumentException(component + " must be " + expected + ", got " + actual.getSimpleName());
     }
 
     private static Map<String, Question> questionsFor(RecordMapping<?> mapping) {

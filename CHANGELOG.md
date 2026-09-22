@@ -15,11 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New `mapping` module: `MappingTypeSafeClient`, a `TypeSafeClient` decorator adding
   `evaluateTyped(State, [Model,] Class<T>)`/`evaluateTypedAsync(...)` for a caller-defined
   **record** whose components carry `@Noul`/`@Choice`/`@Score` (`@Noul`/`@Score` on a `double`
-  component, `@Choice` on a `String` one, with its options as a nested `@Option[]`). Reflects
-  over the record's components to build the request's questions and maps the response back into
-  a new instance of that same record — no `Map<String, Answer>` and manual `(Answer.Noul)`-style
-  cast at the call site. Validates each component (exactly one annotation, matching type, no
-  duplicate `@Option` key) once per record type and caches the result; a missing or
+  component, `@Choice` on a `String` one, with its options as a nested `@Option[]`). A component
+  may instead be typed as the full `Answer.Noul`/`Answer.Choice`/`Answer.Score`, to get
+  `probabilities()`/`confidence()`/`legend()` too — the scalar form only gives you the headline
+  value. Reflects over the record's components to build the request's questions and maps the
+  response back into a new instance of that same record — no `Map<String, Answer>` and manual
+  `(Answer.Noul)`-style cast at the call site. Validates each component (exactly one annotation,
+  matching type, no duplicate `@Option` key) once per record type and caches the result; a missing or
   shape-mismatched answer in the response throws a clear `IllegalStateException` naming the
   component instead of a bare `NullPointerException`/`ClassCastException`. Depends only on
   `core`; its own tests depend on `testkit`'s `RecordingTypeSafeClient` (test scope only). Built

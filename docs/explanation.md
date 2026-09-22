@@ -122,6 +122,15 @@ map to a `double` component (the raw `Answer.Noul#noul()`/`Answer.Score#score()`
 derived `boolean`/enum) deliberately: a probability-to-boolean threshold is a policy decision
 this library shouldn't make on a caller's behalf.
 
+The scalar mapping (`double`/`String`) drops `Answer`'s other fields — `probabilities()`,
+`confidence()`, and (for `Score`) `legend()` — which is fine for the common case but was a real
+gap for a caller who wants them: the only escape hatch was dropping `evaluateTyped` for a plain
+`evaluate()` call and going back to `Map<String, Answer>`. Rather than a second family of
+confidence-carrying annotations/types, each component's type is simply allowed to be the full
+`Answer.Noul`/`Answer.Choice`/`Answer.Score` as an alternative to the scalar —
+`componentMappingFor` picks an identity extraction instead of unwrapping the scalar when it sees
+the full type. Same annotation, same validation path, no new concepts.
+
 ## Why `MappingTypeSafeClient` doesn't have its own `Builder`
 
 The natural-looking ask — `MappingTypeSafeClient.builder(apiKey)...build()`, mirroring
