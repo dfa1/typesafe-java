@@ -18,7 +18,7 @@ class ApiKeyTest {
     @Test
     void loadsAndTrimsKeyFromFile(@TempDir Path dir) throws IOException {
         // Given
-        Path file = dir.resolve(".typesafe.apitoken");
+        Path file = dir.resolve(".typesafe.apikey");
         Files.writeString(file, "apikey_dummy_test_value\n");
 
         // When
@@ -58,7 +58,7 @@ class ApiKeyTest {
     @Test
     void fromDefaultFileReadsTheHomeDirectoryToken() throws IOException {
         // Given
-        Path defaultPath = Path.of(System.getProperty("user.home"), ".typesafe.apitoken");
+        Path defaultPath = Path.of(System.getProperty("user.home"), ".typesafe.apikey");
 
         if (Files.exists(defaultPath)) {
             // When

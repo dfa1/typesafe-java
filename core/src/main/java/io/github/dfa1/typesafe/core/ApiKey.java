@@ -7,7 +7,7 @@ import java.util.Objects;
 
 public record ApiKey(String value) {
 
-    private static final Path DEFAULT_PATH = Path.of(System.getProperty("user.home"), ".typesafe.apitoken");
+    private static final Path DEFAULT_PATH = Path.of(System.getProperty("user.home"), ".typesafe.apikey");
     private static final String ENV_VAR = "TYPESAFE_API_KEY";
 
     public ApiKey {

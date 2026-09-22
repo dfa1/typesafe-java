@@ -43,7 +43,7 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
 ## 2. Save your API token
 
 ```bash
-echo "your-token-here" > ~/.typesafe.apitoken
+echo "your-token-here" > ~/.typesafe.apikey
 ```
 
 `ApiKey.fromDefaultFile()` reads this file. (See

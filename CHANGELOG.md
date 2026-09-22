@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Breaking:** `ApiKey.fromDefaultFile()`'s default path is now `~/.typesafe.apikey`, not
+  `~/.typesafe.apitoken` — matching `ApiKey` itself and the `TYPESAFE_API_KEY` env var, both of
+  which already said "key," not "token." Checked against `typesafe-sdk-python`: it has no
+  file-based credential source at all (constructor argument or `TYPESAFE_API_KEY` only), so
+  there was no cross-SDK filename to preserve — this is a Java-only convenience, renamed purely
+  for internal consistency. Existing `~/.typesafe.apitoken` files need to be renamed (or
+  re-created) at the new path.
 - `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
   the client and applies a decorator to it in one call (e.g.
   `builder(apiKey).build(MappingTypeSafeClient::decorate)`), returning `T` instead of the plain

@@ -8,14 +8,14 @@
 Java 21 client for the [TypeSafe API](https://api.typesafe.ai). Send a state (any JSON value)
 plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 
-Save a token to `~/.typesafe.apitoken` first — either way below picks it up automatically.
+Save a token to `~/.typesafe.apikey` first — either way below picks it up automatically.
 
 ## Quickstart
 
 ### As a Java library
 
 ```java
-ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apitoken
+ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apikey
 // or: ApiKey.fromEnv();                 // reads the TYPESAFE_API_KEY environment variable
 TypeSafeClient client = TypeSafeClient.builder(token).build();
 
@@ -133,7 +133,7 @@ Structured by [Diataxis](https://diataxis.fr/):
 
 ```bash
 ./mvnw clean verify                                # build + unit tests, all modules
-./mvnw test -pl acceptance -am -DexcludedGroups=    # + live-API acceptance tests, needs ~/.typesafe.apitoken
+./mvnw test -pl acceptance -am -DexcludedGroups=    # + live-API acceptance tests, needs ~/.typesafe.apikey
 ```
 
 ## License

@@ -317,7 +317,7 @@ record ApiKey(String value)
 ```
 
 - `ApiKey.fromFile(Path)` — reads and trims the file contents.
-- `ApiKey.fromDefaultFile()` — reads `~/.typesafe.apitoken`.
+- `ApiKey.fromDefaultFile()` — reads `~/.typesafe.apikey`.
 - `ApiKey.fromEnv()` — reads the `TYPESAFE_API_KEY` environment variable; throws
   `IllegalStateException` if it's not set.
 - `toHttpHeaderValue()` — `"Bearer " + value`.

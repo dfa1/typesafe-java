@@ -1,5 +1,5 @@
 target/
-.typesafe.apitoken
+.typesafe.apikey
 .idea/
 *.iml
 dependency-reduced-pom.xml

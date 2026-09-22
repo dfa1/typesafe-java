@@ -121,7 +121,7 @@ named test class.
 
 Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
 combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at
-`~/.typesafe.apitoken`. Excluded from a routine `./mvnw test` via the `excludedGroups=acceptance`
+`~/.typesafe.apikey`. Excluded from a routine `./mvnw test` via the `excludedGroups=acceptance`
 property (surefire). Opt in with:
 
 ```bash

@@ -10,7 +10,7 @@ For API details, see [reference.md](reference.md). For design rationale, see [ex
 `ApiKey` has a source for each case; `TypeSafeClient.builder` takes whichever you build:
 
 ```java
-// 1. Default file (~/.typesafe.apitoken)
+// 1. Default file (~/.typesafe.apikey)
 ApiKey token = ApiKey.fromDefaultFile();
 TypeSafeClient client = TypeSafeClient.builder(token).build();
 
@@ -462,7 +462,7 @@ is optional — for a single question, `--noul "Is this urgent?"` is enough (the
 back keyed `noul`); name it explicitly if you're asking more than one question of the same
 type, since unnamed ones of the same type overwrite each other. `--model <id>` (e.g.
 `jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
-alias, any other id is pinned directly. Reads the token from `~/.typesafe.apitoken`.
+alias, any other id is pinned directly. Reads the token from `~/.typesafe.apikey`.
 
 Stdout is silent by default — reach for `--print`/`--verbose` below to see anything. `--verbose`
 prints the full `EvaluateResponse` as pretty-printed JSON to stdout, plus the outgoing request
@@ -497,7 +497,7 @@ java -jar cli/target/typesafe-java-cli-*-all.jar \
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/
 JsonCodec combination and are excluded from a routine build. Opt in once you have
-`~/.typesafe.apitoken` in place:
+`~/.typesafe.apikey` in place:
 
 ```bash
 ./mvnw test -pl acceptance -am -DexcludedGroups=
