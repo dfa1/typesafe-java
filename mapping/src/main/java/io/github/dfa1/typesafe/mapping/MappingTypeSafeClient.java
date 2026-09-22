@@ -120,6 +120,10 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
 
     @SuppressWarnings("unchecked")
     private <T extends Record> RecordMapping<T> mappingFor(Class<T> type) {
+        RecordMapping<T> mapping = (RecordMapping<T>) cache.get(type);
+        if (mapping != null) {
+            return mapping;
+        }
         return (RecordMapping<T>) cache.computeIfAbsent(type, ignored -> computeMapping(type));
     }
 
