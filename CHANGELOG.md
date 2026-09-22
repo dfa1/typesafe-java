@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-22
+
 - `DefaultTypeSafeClient.Builder` gained `build(Function<TypeSafeClient, T> decorate)`: builds
   the client and applies a decorator to it in one call (e.g.
   `builder(apiKey).build(MappingTypeSafeClient::decorate)`), returning `T` instead of the plain
