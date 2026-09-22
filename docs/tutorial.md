@@ -21,7 +21,7 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.3.0</version>
+      <version>0.5.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>

@@ -33,9 +33,15 @@ TypeSafeClient client = TypeSafeClient.builder(token).build();
 `ServiceLoader` from whatever codec module is on your classpath. Add exactly one of:
 
 ```xml
-<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jackson2</artifactId></dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-jackson2</artifactId>
+</dependency>
 <!-- or -->
-<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-jackson3</artifactId></dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-jackson3</artifactId>
+</dependency>
 ```
 
 If neither is present, `TypeSafeClient.Builder.build()` throws `IllegalStateException` with a
@@ -54,9 +60,15 @@ Likewise, `TypeSafeClient` doesn't depend on any HTTP library directly — it re
 `HttpTransport` via `ServiceLoader`. Add one of:
 
 ```xml
-<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-client-jdk</artifactId></dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-client-jdk</artifactId>
+</dependency>
 <!-- or, e.g. on Android, where java.net.http isn't available -->
-<dependency><groupId>io.github.dfa1.typesafe-java</groupId><artifactId>typesafe-java-client-okhttp</artifactId></dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-client-okhttp</artifactId>
+</dependency>
 ```
 
 If neither is present, `build()` throws `IllegalStateException`. Only add one — having both on
