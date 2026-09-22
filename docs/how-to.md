@@ -467,8 +467,8 @@ alias, any other id is pinned directly. Reads the token from `~/.typesafe.apikey
 Stdout is silent by default — reach for `--print`/`--verbose` below to see anything. `--verbose`
 prints the full `EvaluateResponse` as pretty-printed JSON to stdout, plus the outgoing request
 (also pretty-printed) and the response's request id to stderr; `--timing` prints how long the
-API took, to stderr. Run with `--version` alone to print the jar's version and exit without
-calling the API.
+API took, to stderr. Run with `--version` alone to print the jar's version, or `--help`/`-h`
+alone to print usage, and exit without calling the API.
 
 For scripting/CI, repeatable `--min <name>=<threshold>` gates on a `noul`/`score` answer's
 value, exiting `1` if any named answer comes back below its threshold (with a

@@ -374,6 +374,26 @@ class MainTest {
     }
 
     @Test
+    void runFromArgsPrintsUsageAndReturns0OnHelp() throws Exception {
+        // When
+        int result = Main.run(new String[] {"--help"}, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).contains("Usage: typesafe");
+    }
+
+    @Test
+    void runFromArgsPrintsUsageAndReturns0OnShortHelp() throws Exception {
+        // When
+        int result = Main.run(new String[] {"-h"}, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).contains("Usage: typesafe");
+    }
+
+    @Test
     void runFromArgsReturns1AndPrintsUsageWhenArgsAreInvalid() throws Exception {
         // When
         int result = Main.run(new String[] {"--bogus"}, out, err);

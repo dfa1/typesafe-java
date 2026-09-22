@@ -24,6 +24,8 @@ import java.util.Map;
  * against any number of {@code --noul}/{@code --choice}/{@code --score} questions. Prints
  * nothing to stdout by default — pass {@code --print <name>} for specific answers, or
  * {@code --verbose} for the full {@link EvaluateResponse} as pretty-printed JSON.
+ * {@code --help}/{@code -h} prints usage and exits without calling the API, same as
+ * {@code --version}.
  */
 @SuppressWarnings("java:S106") // System.out/err are this CLI's actual output, not application logging
 public final class Main {
@@ -33,7 +35,7 @@ public final class Main {
             + "[--choice [<name>=]<instructions>|<option1,option2,...>]... "
             + "[--score [<name>=]<instructions>|<level1,level2,...>]... "
             + "[--min <name>=<threshold>]... [--print <name>]... "
-            + "[--verbose] [--timing] | --version "
+            + "[--verbose] [--timing] | --version | --help "
             + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
             + "--min compares a noul/score answer's value, exits 1 if any is below its threshold; "
             + "--print prints just that answer's value; without --print, stdout is silent unless "
@@ -50,6 +52,10 @@ public final class Main {
     static int run(String[] args, PrintStream out, PrintStream err) throws Exception {
         if (args.length == 1 && "--version".equals(args[0])) {
             out.println(Main.class.getPackage().getImplementationVersion());
+            return 0;
+        }
+        if (args.length == 1 && ("--help".equals(args[0]) || "-h".equals(args[0]))) {
+            out.println(USAGE);
             return 0;
         }
 
