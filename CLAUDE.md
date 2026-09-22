@@ -169,6 +169,18 @@ public API, module structure, or a documented behavior updates whichever of thes
 apply, in the same commit — plus `CHANGELOG.md` under `[Unreleased]`. `adr/` and
 released `CHANGELOG.md` sections are exempt — they describe the past.
 
+Each `[Unreleased]` entry is one line: a bold title, a short one-sentence description, and a
+link to the commit or PR that made the change — not a multi-paragraph write-up. The `publish`
+workflow copies the released section verbatim into the GitHub release notes, so a long entry is
+a long release note.
+
+```
+- **Title** — one-sentence description of what changed. [`<short-sha>`](https://github.com/dfa1/typesafe-java/commit/<sha>)
+```
+
+A commit can't link to its own hash, so add the entry in a short follow-up commit once the
+change's hash is known (or link `(#<PR-number>)` instead, when the change landed as a PR).
+
 ## Releasing
 
 Prerequisites (one-time): namespace `io.github.dfa1` registered at central.sonatype.com
