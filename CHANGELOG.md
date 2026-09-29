@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`bom`: flatten the published POM** — drops the `typesafe-java` parent reference and writes managed versions out literally, so importing the BOM doesn't also pull in the parent build. [`37b1b78`](https://github.com/dfa1/typesafe-java/commit/37b1b78)
 - **`mapping`: fast-path `cache.get()` before `computeIfAbsent` in `mappingFor`** — avoids the lambda allocation and per-bin lock on the common cache-hit path. [`4bdac6a`](https://github.com/dfa1/typesafe-java/commit/4bdac6a)
 - **`cli`: add `--help`/`-h`** — prints usage and exits without calling the API, same as `--version`. [`898d2ee`](https://github.com/dfa1/typesafe-java/commit/898d2ee)
 
