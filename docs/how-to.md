@@ -366,6 +366,21 @@ TypeSafeClient client = TypeSafeClient.builder(token)
 
 Don't stack two retrying decorators: the attempts multiply (`(1 + 5) × (1 + 3)` calls, worst case).
 
+## Cap the total time of a call, retries included
+
+`JdkHttpTransport`'s timeout bounds one attempt; with retries, one `evaluate` can still take over
+a minute in the worst case. Wrap the built client in a `DeadlineTypeSafeClient` to bound the whole
+call:
+
+```java
+TypeSafeClient client = TypeSafeClient.builder(token)
+        .build(c -> new DeadlineTypeSafeClient(c, Duration.ofSeconds(20)));
+```
+
+Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further
+retry is started (an attempt already in flight isn't aborted; its response is ignored).
+`listModels` isn't bounded.
+
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
 `TypeSafeClient` is an interface, so wrap one in another implementation of the same interface —

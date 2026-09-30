@@ -396,8 +396,23 @@ A `TypeSafeClient` decorator: retries a `TypeSafeException.Connection`/`.Timeout
 `RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present, `initialBackoff` doubled per
 attempt otherwise. Any other exception propagates unchanged, as does the last one once retries run
 out. `evaluate`/`listModels` sleep on the calling thread; `evaluateAsync` schedules each retry via
-`CompletableFuture.delayedExecutor`. `Builder.build()` already applies one — set `maxRetries(0)`
-before wrapping another, or the attempts multiply.
+`CompletableFuture.delayedExecutor`, and stops scheduling them once the returned future is already
+done (e.g. timed out by `DeadlineTypeSafeClient`, or cancelled). `Builder.build()` already applies
+one — set `maxRetries(0)` before wrapping another, or the attempts multiply.
+
+### `DeadlineTypeSafeClient`
+
+```java
+public DeadlineTypeSafeClient(TypeSafeClient delegate, Duration deadline)
+```
+
+A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.build(c -> new
+DeadlineTypeSafeClient(c, d))` gives you), that's a total budget for the call: retries and backoffs
+count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
+already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
+instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is
+needed; `listModels` passes through unbounded.
 
 ### `TypeSafeException`
 

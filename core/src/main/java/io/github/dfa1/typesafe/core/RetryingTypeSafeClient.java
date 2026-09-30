@@ -39,7 +39,7 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
 
     @Override
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
-        return retryingAsync(() -> delegate.evaluateAsync(request), 0);
+        return retryingAsync(() -> delegate.evaluateAsync(request));
     }
 
     @Override
@@ -65,21 +65,39 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
         }
     }
 
-    private <T> CompletableFuture<T> retryingAsync(Supplier<CompletableFuture<T>> call, int attempt) {
-        return call.get()
-                .handle((result, error) -> {
-                    if (error == null) {
-                        return CompletableFuture.completedFuture(result);
+    private <T> CompletableFuture<T> retryingAsync(Supplier<CompletableFuture<T>> call) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        attemptAsync(call, 0, result);
+        return result;
+    }
+
+    /** Stops scheduling attempts once {@code result} is done — including when a caller completes
+     *  it first (e.g. {@link DeadlineTypeSafeClient}'s {@code orTimeout}, or {@code cancel}), so an
+     *  abandoned call doesn't keep hitting the API in the background. */
+    private <T> void attemptAsync(Supplier<CompletableFuture<T>> call, int attempt, CompletableFuture<T> result) {
+        CompletableFuture<T> future;
+        try {
+            future = call.get();
+        } catch (RuntimeException e) {
+            result.completeExceptionally(e);
+            return;
+        }
+        future.whenComplete((value, error) -> {
+            if (error == null) {
+                result.complete(value);
+                return;
+            }
+            Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+            if (cause instanceof TypeSafeException e && shouldRetry(e, attempt) && !result.isDone()) {
+                CompletableFuture.delayedExecutor(backoffFor(e, attempt).toMillis(), TimeUnit.MILLISECONDS).execute(() -> {
+                    if (!result.isDone()) {
+                        attemptAsync(call, attempt + 1, result);
                     }
-                    Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-                    if (cause instanceof TypeSafeException e && shouldRetry(e, attempt)) {
-                        return CompletableFuture
-                                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(backoffFor(e, attempt).toMillis(), TimeUnit.MILLISECONDS))
-                                .thenCompose(ignored -> retryingAsync(call, attempt + 1));
-                    }
-                    return CompletableFuture.<T>failedFuture(cause);
-                })
-                .thenCompose(stage -> stage);
+                });
+            } else {
+                result.completeExceptionally(cause);
+            }
+        });
     }
 
     private boolean shouldRetry(TypeSafeException e, int attempt) {

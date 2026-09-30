@@ -29,6 +29,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     private final ApiKey apiKey;
     private final URI endpoint;
     private final URI modelsEndpoint;
+
     private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec, URI endpoint) {
         this.apiKey = apiKey;
         this.transport = transport;
@@ -112,7 +113,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
      *  synchronous call surfaces the same exception an async one would fail with. An
      *  {@link InterruptedException} while waiting becomes {@link TypeSafeException.Interrupted},
      *  restoring the thread's interrupt status first. */
-    private static <T> T await(CompletableFuture<T> future) {
+    static <T> T await(CompletableFuture<T> future) {
         try {
             return future.get();
         } catch (ExecutionException e) {
