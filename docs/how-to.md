@@ -343,11 +343,11 @@ A client from `build()` makes exactly one attempt per call. Add retries with
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .wrap(RetryingTypeSafeClient::decorate)                                    // 5 retries, from 500ms
+        .decorateWith(RetryingTypeSafeClient::decorate)       // 5 retries, backoff from 500ms
         .build();
 
 TypeSafeClient tuned = TypeSafeClient.builder(token)
-        .wrap(c -> RetryingTypeSafeClient.decorate(c, 2, Duration.ofMillis(100)))  // 2 retries, from 100ms
+        .decorateWith(c -> RetryingTypeSafeClient.decorate(c, 2, Duration.ofMillis(100)))
         .build();
 ```
 
@@ -364,25 +364,40 @@ multiply the attempts, so `build()` throws `IllegalStateException` if it sees mo
 ## Cap the total time of a call, retries included
 
 `JdkHttpTransport`'s timeout bounds one attempt; with retries, one `evaluate` can still take over
-a minute in the worst case. Wrap the retrying client in a `DeadlineTypeSafeClient` to bound the
-whole call:
+a minute in the worst case. Decorate the retrying client with a `DeadlineTypeSafeClient` to bound
+the whole call:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .wrap(RetryingTypeSafeClient::decorate)
-        .wrap(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
+        .decorateWith(RetryingTypeSafeClient::decorate)
+        .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
         .build();
 ```
 
 Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further
 retry is started (an attempt already in flight isn't aborted; its response is ignored).
-`listModels` isn't bounded. Order matters: wrapped the other way round, the deadline applies to
+`listModels` isn't bounded. Order matters: added the other way round, the deadline applies to
 each attempt instead — see the next section.
 
 ## Choose the order of decorators
 
-Each `wrap(...)` goes around everything added before it; `build(...)`'s decorator goes around all
-of them. The order changes behavior:
+Each `decorateWith(...)` adds a decorator *around* everything added before it, and
+`build(...)`'s decorator goes around all of them. Reading the builder top to bottom is reading
+the stack from the inside out:
+
+```java
+TypeSafeClient.builder(token)
+        .decorateWith(RetryingTypeSafeClient::decorate)                                  // 1
+        .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))  // 2
+        .build(MappingTypeSafeClient::decorate);                                         // 3
+```
+
+```
+caller → Mapping (3) → Deadline (2) → Retrying (1) → DefaultTypeSafeClient → HTTP
+```
+
+A call passes through the outermost decorator first; its result (or failure) comes back through
+them in reverse. Which one is outside which changes behavior:
 
 | Stack (innermost → outermost) | Effect |
 |---|---|
@@ -393,6 +408,8 @@ of them. The order changes behavior:
 | your metrics → retrying | metrics count **attempts** |
 | `FailingTypeSafeClient` → retrying | injected failures are retried — handy for testing retry itself |
 | `MappingTypeSafeClient` anywhere but outermost | its own methods are unreachable; pass it to `build(...)`, which keeps its type |
+
+A good default, outermost first: mapping → metrics → deadline → cache → retrying.
 
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
@@ -431,17 +448,17 @@ CachingTypeSafeClient client = TypeSafeClient.builder(token)
         .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
 ```
 
-Stack more with `Builder#wrap(...)`: each call wraps what the previous ones built (the last
-added is outermost), with `build(...)`'s decorator outermost of all. `wrap(...)` loses the
-decorator's own type — `build()` returns `TypeSafeClient` — so put a decorator whose own methods
-you need (like `MappingTypeSafeClient`) in `build(...)`:
+Stack more with `Builder#decorateWith(...)` (see
+[Choose the order of decorators](#choose-the-order-of-decorators)). It returns the builder, so
+`build()` can only give back a `TypeSafeClient` — put a decorator whose own methods you need (like
+`MappingTypeSafeClient`) in `build(...)`:
 
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token)
-        .wrap(caching)
-        .wrap(RetryingTypeSafeClient::decorate)
+        .decorateWith(caching)
+        .decorateWith(RetryingTypeSafeClient::decorate)
         .build(MappingTypeSafeClient::decorate);
 ```
 

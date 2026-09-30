@@ -7,9 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`core`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
 - **`core`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
-- **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.wrap(RetryingTypeSafeClient::decorate)`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `wrap(...)`.
-- **`core`: `Builder.decorator(...)`** (renamed `wrap(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
+- **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.decorateWith(RetryingTypeSafeClient::decorate)`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `decorateWith(...)`.
+- **`core`: `Builder.decorator(...)`** (renamed `decorateWith(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
 - **`core`: `RetryingTypeSafeClient.decorate(...)`/`DeadlineTypeSafeClient.decorate(...)`** — static factories taking the client to wrap first, matching `MappingTypeSafeClient::decorate`; constructors are package-private.
 - **`core`: `DeadlineTypeSafeClient` caps a call's total time, retries included** — fails with `TypeSafeException.Timeout` past the deadline; `RetryingTypeSafeClient` stops retrying once its future is done.
 - **`core`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries itself, and `InternalServer` gains `retryAfter()`.

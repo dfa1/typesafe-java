@@ -373,9 +373,9 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
-| `wrap(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator `build()` wraps the client in, each around what the previous ones built (last added outermost) |
+| `decorateWith(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator around the built client; repeatable, each one around everything added before it (last added outermost). See [how-to](how-to.md#choose-the-order-of-decorators) |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
-| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `wrap(...)`. |
+| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `decorateWith(...)`. |
 
 ### `RetryingTypeSafeClient`
 
@@ -384,7 +384,7 @@ public static RetryingTypeSafeClient decorate(TypeSafeClient delegate)   // 5 re
 public static RetryingTypeSafeClient decorate(TypeSafeClient delegate, int maxRetries, Duration initialBackoff)
 ```
 
-An opt-in `TypeSafeClient` decorator, added via `Builder.wrap(RetryingTypeSafeClient::decorate)`
+An opt-in `TypeSafeClient` decorator, added via `Builder.decorateWith(RetryingTypeSafeClient::decorate)`
 (or a lambda for the tuned overload): retries a `TypeSafeException.Connection`/`.Timeout`, or a
 `TypeSafeException` with status `408`/`429`/any `5xx`, up to `maxRetries` times. Waits
 `RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present (the HTTP-date form of
@@ -402,8 +402,8 @@ public static DeadlineTypeSafeClient decorate(TypeSafeClient delegate, Duration 
 ```
 
 A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
-once `deadline` elapses. Outside a `RetryingTypeSafeClient` (`wrap(RetryingTypeSafeClient::decorate)` first, then
-`wrap(c -> DeadlineTypeSafeClient.decorate(c, d))`), that's a total budget for the call: retries and backoffs
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (`decorateWith(RetryingTypeSafeClient::decorate)` first, then
+`decorateWith(c -> DeadlineTypeSafeClient.decorate(c, d))`), that's a total budget for the call: retries and backoffs
 count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
 instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is

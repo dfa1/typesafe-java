@@ -22,7 +22,7 @@ import java.util.function.Function;
 
 /** The only {@link TypeSafeClient} implementation this library ships; built via {@link #builder}.
  *  One request, one response, no retries — add {@link RetryingTypeSafeClient} via
- *  {@link Builder#wrap(Function)} for those. */
+ *  {@link Builder#decorateWith(Function)} for those. */
 public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private final HttpTransport transport;
@@ -176,6 +176,22 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
     }
 
+    /**
+     * Configures and builds a {@link TypeSafeClient}. Every setting is optional: the transport and
+     * codec are discovered via {@link ServiceLoader} when not set, and the endpoint defaults to
+     * {@code https://api.typesafe.ai/v1/systemone}.
+     *
+     * <p>The client {@link #build()} returns makes exactly one attempt per call. Anything beyond
+     * that — retries, deadlines, caching, metrics — is a decorator, added with
+     * {@link #decorateWith}:
+     *
+     * <pre>{@code
+     * MappingTypeSafeClient client = TypeSafeClient.builder(apiKey)
+     *         .decorateWith(RetryingTypeSafeClient::decorate)
+     *         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
+     *         .build(MappingTypeSafeClient::decorate);
+     * }</pre>
+     */
     public static final class Builder {
         private static final URI DEFAULT_ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
 
@@ -183,7 +199,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         private HttpTransport transport;
         private JsonCodec jsonCodec;
         private URI endpoint = DEFAULT_ENDPOINT;
-        private final List<Function<TypeSafeClient, ? extends TypeSafeClient>> wrappers = new ArrayList<>();
+        private final List<Function<TypeSafeClient, ? extends TypeSafeClient>> decorators = new ArrayList<>();
 
         private Builder(ApiKey apiKey) {
             this.apiKey = apiKey;
@@ -204,32 +220,69 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             return this;
         }
 
-        /** Adds a decorator {@link #build()} wraps the client in, e.g.
-         *  {@code RetryingTypeSafeClient::decorate}. Each call wraps what the previous ones built,
-         *  so the last added is outermost. {@code build()} returns a plain {@link TypeSafeClient};
-         *  for a decorator whose own methods you need, pass it to {@link #build(Function)} instead. */
-        public Builder wrap(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
-            wrappers.add(decorator);
+        /**
+         * Adds a decorator around the client {@link #build()} creates. Each call adds rather than
+         * replaces: the decorator goes around everything added before it, so the <em>last</em> one
+         * added is the <em>outermost</em> — the first to see a call, the last to see its result.
+         *
+         * <pre>{@code
+         * builder(apiKey)
+         *         .decorateWith(RetryingTypeSafeClient::decorate)                                  // inner
+         *         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))  // outer
+         *         .build();
+         * // Deadline( Retrying( DefaultTypeSafeClient ) ): 20s for the whole call, retries included
+         * }</pre>
+         *
+         * <p>Order changes behavior. Swap the two above and the deadline bounds each attempt
+         * instead, and a timed-out attempt is retried. Likewise, a metrics decorator outside
+         * retrying counts logical calls, inside it counts attempts. The only order that's always
+         * wrong — {@link RetryingTypeSafeClient} added twice, multiplying the attempts — is
+         * rejected by {@link #build()}.
+         *
+         * <p>{@code build()} returns a plain {@link TypeSafeClient}, so a decorator added here is
+         * only reachable through that interface. For one whose own methods you need (e.g.
+         * {@code MappingTypeSafeClient#evaluateTyped}), pass it to {@link #build(Function)}
+         * instead: it goes outermost and keeps its type.
+         *
+         * @param decorator takes the client built so far and returns it decorated, e.g.
+         *                  {@code RetryingTypeSafeClient::decorate}
+         * @return this builder
+         */
+        public Builder decorateWith(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
+            decorators.add(decorator);
             return this;
         }
 
-        /** Throws {@link IllegalStateException} if no {@link HttpTransport}/{@link JsonCodec} is
-         *  set or discoverable, or if more than one {@link RetryingTypeSafeClient} was added
-         *  (the attempts would multiply). */
+        /**
+         * Builds the client, applying every {@link #decorateWith} decorator in the order added.
+         *
+         * @throws IllegalStateException if no {@link HttpTransport} or {@link JsonCodec} is set or
+         *         discoverable, or if more than one {@link RetryingTypeSafeClient} was added (the
+         *         attempts would multiply)
+         */
         public TypeSafeClient build() {
             return build(Function.<TypeSafeClient>identity());
         }
 
-        /** {@link #build()}, then applies {@code decorate} to the result as the outermost
-         *  decorator (outside every {@link #wrap}), returning its own type — e.g.
-         *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
+        /**
+         * {@link #build()}, then applies {@code decorate} as the outermost decorator — outside
+         * every {@link #decorateWith} one — and returns its own type, so its extra methods need no
+         * cast:
+         *
+         * <pre>{@code
+         * MappingTypeSafeClient client = builder(apiKey).build(MappingTypeSafeClient::decorate);
+         * }</pre>
+         *
+         * @throws IllegalStateException as {@link #build()}; a {@link RetryingTypeSafeClient}
+         *         passed here counts toward the at-most-once check too
+         */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
             TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
             int retrying = 0;
-            for (Function<TypeSafeClient, ? extends TypeSafeClient> wrapper : wrappers) {
-                client = wrapper.apply(client);
+            for (Function<TypeSafeClient, ? extends TypeSafeClient> decorator : decorators) {
+                client = decorator.apply(client);
                 retrying += client instanceof RetryingTypeSafeClient ? 1 : 0;
             }
             T result = decorate.apply(client);

@@ -551,7 +551,7 @@ class TypeSafeClientTest {
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(WrappingTypeSafeClient::new);
+                .decorateWith(WrappingTypeSafeClient::new);
 
         // When
         TypeSafeClient result = sut.build();
@@ -567,8 +567,8 @@ class TypeSafeClientTest {
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(WrappingTypeSafeClient::new)
-                .wrap(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(1)));
+                .decorateWith(WrappingTypeSafeClient::new)
+                .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(1)));
 
         // When
         WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
@@ -583,9 +583,9 @@ class TypeSafeClientTest {
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(RetryingTypeSafeClient::decorate)
-                .wrap(WrappingTypeSafeClient::new)
-                .wrap(RetryingTypeSafeClient::decorate);
+                .decorateWith(RetryingTypeSafeClient::decorate)
+                .decorateWith(WrappingTypeSafeClient::new)
+                .decorateWith(RetryingTypeSafeClient::decorate);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -600,7 +600,7 @@ class TypeSafeClientTest {
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(RetryingTypeSafeClient::decorate);
+                .decorateWith(RetryingTypeSafeClient::decorate);
 
         // When / Then
         assertThatThrownBy(() -> sut.build(RetryingTypeSafeClient::decorate))
@@ -729,7 +729,7 @@ class TypeSafeClientTest {
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(c -> RetryingTypeSafeClient.decorate(c, maxRetries, backoff))
+                .decorateWith(c -> RetryingTypeSafeClient.decorate(c, maxRetries, backoff))
                 .build();
     }
 }

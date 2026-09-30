@@ -151,7 +151,7 @@ no cast needed to reach `evaluateTyped`. It's generic, so `core` never needs to 
 `MappingTypeSafeClient` exists, and it's purely additive: the plain
 `MappingTypeSafeClient.decorate(anyDelegate)` static factory still works for every case this
 doesn't cover — there's no public constructor to call instead.
-Stacking more than one decorator goes through `Builder#wrap(...)` (see "Why retrying is a
+Stacking more than one decorator goes through `Builder#decorateWith(...)` (see "Why retrying is a
 decorator" below). It returns the builder, not the decorator's type, so `build()` can only return `TypeSafeClient` — which is why
 `build(Function<TypeSafeClient, T>)` stays: it's the one slot that keeps a decorator's own type
 (`MappingTypeSafeClient`'s `evaluateTyped`) without a cast.
@@ -214,14 +214,16 @@ the decorator never sees the raw response headers.
 It's also opt-in: `build()` returns a client that makes one attempt per call. Applying it by
 default would need an opt-out knob (`maxRetries(0)`), plus a second way to configure the same
 thing (builder setters *and* `decorate(...)`), plus a double-retry trap for anyone adding their
-own. One explicit `wrap(RetryingTypeSafeClient::decorate)` is cheaper than all three. Its
+own. One explicit `decorateWith(RetryingTypeSafeClient::decorate)` is cheaper than all three. Its
 parameters stay configurable for the same reason the endpoint is: fast unit tests don't have to
 wait out a real 500ms+ backoff.
 
 Stacking decorators was first left to `Function#andThen` inside `build(...)`, which works but is
-hard to discover. `Builder#wrap(...)` adds them one call at a time, each around what the previous
-ones built — the name says it adds rather than replaces, and makes last-added-outermost the
-natural reading. Every decorator's `decorate` takes the client to wrap first, the same shape as
+hard to discover. `Builder#decorateWith(...)` adds them one call at a time, each around what the
+previous ones built. The name went through `decorator(...)` (reads like a setter that replaces)
+and `wrap(...)` before landing here; `with(...)` was rejected because in Java a `with` method
+conventionally returns a copy with one value *replaced* (`LocalDate.withYear`), the opposite of
+what this does. `decorateWith` says it adds, and pairs with the `decorate` factories it takes. Every decorator's `decorate` takes the client to wrap first, the same shape as
 `MappingTypeSafeClient.decorate`, so the no-argument cases are method references
 (`RetryingTypeSafeClient::decorate`) and the rest are a lambda.
 
