@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   keep their `String`-taking overloads (sugar for `Content.text(...)`) and gain `Content`-taking
   ones for structured instructions, so existing plain-text call sites are unaffected — only code
   reading `Question.*#instructions()` as a `String`, or referencing the `State` type by name,
-  needs updating.
+  needs updating. [`9b98b79`](https://github.com/dfa1/typesafe-java/commit/9b98b79)
 
 ## [0.5.0] - 2026-09-22
 
