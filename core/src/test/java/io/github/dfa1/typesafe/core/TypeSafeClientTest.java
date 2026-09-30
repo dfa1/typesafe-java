@@ -542,7 +542,40 @@ class TypeSafeClientTest {
         WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
 
         // Then
-        assertThat(result.delegate).isInstanceOf(DefaultTypeSafeClient.class);
+        assertThat(result.delegate).isInstanceOf(RetryingTypeSafeClient.class);
+    }
+
+    @Test
+    void buildWithZeroMaxRetriesSkipsTheRetryingDecorator() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .maxRetries(0);
+
+        // When
+        TypeSafeClient result = sut.build();
+
+        // Then
+        assertThat(result).isInstanceOf(DefaultTypeSafeClient.class);
+    }
+
+    @Test
+    void evaluateThrowsInternalServerWithTheRetryAfterHeader() {
+        // Given
+        TypeSafeClient sut = clientWith(NO_BACKOFF, 0);
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
+
+        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(httpTransport.post(any(), any(), any()))
+                .willReturn(CompletableFuture.completedFuture(
+                        new HttpTransportResponse(503, Map.of("retry-after", "3"), "unavailable")));
+
+        // When / Then
+        assertThatThrownBy(() -> sut.evaluate(request))
+                .isInstanceOf(TypeSafeException.InternalServer.class)
+                .satisfies(e -> assertThat(((TypeSafeException.InternalServer) e).retryAfter())
+                        .contains(Duration.ofSeconds(3)));
     }
 
     @Test
@@ -559,7 +592,7 @@ class TypeSafeClientTest {
 
         // Then
         assertThat(result.delegate).isInstanceOf(WrappingTypeSafeClient.class);
-        assertThat(((WrappingTypeSafeClient) result.delegate).delegate).isInstanceOf(DefaultTypeSafeClient.class);
+        assertThat(((WrappingTypeSafeClient) result.delegate).delegate).isInstanceOf(RetryingTypeSafeClient.class);
     }
 
     /** Minimal decorator: just enough to prove {@code Builder#build(Function)} wires a decorator
@@ -590,22 +623,6 @@ class TypeSafeClientTest {
         public void close() {
             delegate.close();
         }
-    }
-
-    @Test
-    void isRetryableStatusAcceptsRequestTimeoutRateLimitAndAnyServerError() {
-        // When / Then
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(408)).isTrue();
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(429)).isTrue();
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(500)).isTrue();
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(599)).isTrue();
-    }
-
-    @Test
-    void isRetryableStatusRejectsOrdinaryClientErrors() {
-        // When / Then
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(400)).isFalse();
-        assertThat(DefaultTypeSafeClient.isRetryableStatus(404)).isFalse();
     }
 
     @Test
@@ -642,38 +659,12 @@ class TypeSafeClientTest {
         assertThat(DefaultTypeSafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
     }
 
-    @Test
-    void backoffForUsesTheRetryAfterHeaderWhenPresent() {
-        // Given
-        DefaultTypeSafeClient sut = clientWith(Duration.ofSeconds(10));
-        HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "1"), "");
-
-        // When
-        Duration result = sut.backoffFor(response, 0);
-
-        // Then
-        assertThat(result).isEqualTo(Duration.ofSeconds(1));
-    }
-
-    @Test
-    void backoffForFallsBackToExponentialWhenNoHeaderIsPresent() {
-        // Given
-        DefaultTypeSafeClient sut = clientWith(Duration.ofMillis(100));
-        HttpTransportResponse response = new HttpTransportResponse(429, Map.of(), "");
-
-        // When
-        Duration result = sut.backoffFor(response, 2);
-
-        // Then
-        assertThat(result).isEqualTo(Duration.ofMillis(400));
-    }
-
-    private DefaultTypeSafeClient clientWith(Duration backoff) {
+    private TypeSafeClient clientWith(Duration backoff) {
         return clientWith(backoff, 5);
     }
 
-    private DefaultTypeSafeClient clientWith(Duration backoff, int maxRetries) {
-        return (DefaultTypeSafeClient) TypeSafeClient.builder(new ApiKey("secret"))
+    private TypeSafeClient clientWith(Duration backoff, int maxRetries) {
+        return TypeSafeClient.builder(new ApiKey("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)

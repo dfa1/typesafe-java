@@ -350,6 +350,22 @@ Any other non-`200` status, or a retryable failure that's still failing after `m
 throws `TypeSafeException` — `TypeSafeException.Connection`/`.Timeout` for the latter (see
 [reference](reference.md#typesafeexception)).
 
+## Turn retries off, or put them somewhere else in a decorator stack
+
+Retrying is its own decorator, `RetryingTypeSafeClient`, which `build()` wraps the client in.
+`maxRetries(0)` skips it — one request, one response. To place it yourself — e.g. with a different
+budget, around the `CachingTypeSafeClient` from the next section — turn off the built-in one
+first and wrap your own:
+
+```java
+TypeSafeClient client = TypeSafeClient.builder(token)
+        .maxRetries(0)
+        .build(c -> new RetryingTypeSafeClient(
+                new CachingTypeSafeClient(c, new ConcurrentHashMap<>()), 3, Duration.ofMillis(200)));
+```
+
+Don't stack two retrying decorators: the attempts multiply (`(1 + 5) × (1 + 3)` calls, worst case).
+
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
 `TypeSafeClient` is an interface, so wrap one in another implementation of the same interface —

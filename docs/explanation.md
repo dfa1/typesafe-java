@@ -40,7 +40,7 @@ design avoids.
 `TypeSafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
 `HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
 mocked transport for tests can implement one interface (`post`/`get`, both already
-`CompletableFuture`-returning) instead of forking the retry/backoff logic.
+`CompletableFuture`-returning) instead of forking the client.
 
 Once that abstraction exists, `TypeSafeClient` itself has no HTTP-library dependency any more —
 its only import from `java.net` is `URI`, which every JDK module already has. That removed the
@@ -199,6 +199,17 @@ one that outlasts the retry budget — surfaces immediately as
 be able to tell "this request permanently failed" from "this request is still in flight,"
 and an unbounded retry loop against a struggling upstream only makes the overload worse.
 
+## Why retrying is a decorator, not part of `DefaultTypeSafeClient`
+
+Retry/backoff used to live inside `DefaultTypeSafeClient`, next to the request/response
+plumbing. That made it the one piece of cross-cutting behavior that *wasn't* a `TypeSafeClient`
+decorator like everything else here (`mapping`, `testkit`'s `FailingTypeSafeClient`, a caller's
+own cache) — so it couldn't be turned off, reordered relative to other decorators, or replaced
+without reimplementing the client. `RetryingTypeSafeClient` now does it purely in terms of the
+`TypeSafeException` the client throws, which is why `InternalServer` carries `retryAfter()` too:
+the decorator never sees the raw response headers. `Builder.build()` still applies it by default,
+so zero-config behavior didn't change.
+
 ## Why the endpoint, retry count, and backoff are configurable
 
 They started as `private static final` constants. Making them `Builder` options costs three
@@ -210,7 +221,8 @@ out a real 500ms+ backoff because nothing forces it to use the production defaul
 
 A naive `CompletableFuture.supplyAsync(() -> evaluate(request))` would burn one thread per
 in-flight request, blocked on `Thread.sleep` during backoff. `evaluateAsync` instead chains off
-`HttpTransport.post`'s returned future and schedules retries via `CompletableFuture.delayedExecutor`,
+`HttpTransport.post`'s returned future, and `RetryingTypeSafeClient.evaluateAsync` schedules
+retries via `CompletableFuture.delayedExecutor`,
 so a backoff wait never blocks a thread — the same retry policy, without the thread cost, which
 matters once callers are firing many requests concurrently. This only holds if the
 `HttpTransport` implementation's `post` is itself genuinely non-blocking (`JdkHttpTransport` is,

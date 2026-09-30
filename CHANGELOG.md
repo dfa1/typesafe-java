@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`core`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries; `build()` still wraps it by default, `maxRetries(0)` opts out, and `InternalServer` gains `retryAfter()`.
+
 ## [0.6.0] - 2026-09-30
 
 - **`bom`: flatten the published POM** — drops the `typesafe-java` parent reference and writes managed versions out literally, so importing the BOM doesn't also pull in the parent build. [`37b1b78`](https://github.com/dfa1/typesafe-java/commit/37b1b78)

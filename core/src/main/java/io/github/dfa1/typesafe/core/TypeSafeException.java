@@ -80,10 +80,22 @@ public sealed class TypeSafeException extends RuntimeException {
         }
     }
 
-    /** Any {@code 5xx}. */
+    /** Any {@code 5xx}, with the server's requested backoff when it sent one (e.g. a {@code 503}
+     *  with {@code retry-after}). */
     public static final class InternalServer extends TypeSafeException {
+        private final Duration retryAfter;
+
         public InternalServer(int statusCode, String body) {
+            this(statusCode, body, null);
+        }
+
+        public InternalServer(int statusCode, String body, Duration retryAfter) {
             super(statusCode, body);
+            this.retryAfter = retryAfter;
+        }
+
+        public Optional<Duration> retryAfter() {
+            return Optional.ofNullable(retryAfter);
         }
     }
 

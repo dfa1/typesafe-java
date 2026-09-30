@@ -353,8 +353,9 @@ concern, not the interface's. Nothing about the call site changes: `TypeSafeClie
 still works exactly as before.
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
-`/v1/models` on the same scheme/authority. All three methods retry up to `maxRetries` times
-(default `5`) on:
+`/v1/models` on the same scheme/authority. `build()` wraps the client in a
+`RetryingTypeSafeClient` (see below) unless `maxRetries(0)`, so all three methods retry up to
+`maxRetries` times (default `5`) on:
 
 - status `408`, `429`, or any `5xx` — honoring a `retry-after`/`retry-after-ms` response header
   when present (the HTTP-date form of `Retry-After` isn't parsed; that case falls back to
@@ -379,10 +380,24 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
-| `maxRetries(int)` | `5` |
+| `maxRetries(int)` | `5` — `0` skips the `RetryingTypeSafeClient` wrapper entirely |
 | `initialBackoff(Duration)` | `500ms` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
 | `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Stack more than one via `Function#andThen`. |
+
+### `RetryingTypeSafeClient`
+
+```java
+public RetryingTypeSafeClient(TypeSafeClient delegate, int maxRetries, Duration initialBackoff)
+```
+
+A `TypeSafeClient` decorator: retries a `TypeSafeException.Connection`/`.Timeout`, or a
+`TypeSafeException` with status `408`/`429`/any `5xx`, up to `maxRetries` times. Waits
+`RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present, `initialBackoff` doubled per
+attempt otherwise. Any other exception propagates unchanged, as does the last one once retries run
+out. `evaluate`/`listModels` sleep on the calling thread; `evaluateAsync` schedules each retry via
+`CompletableFuture.delayedExecutor`. `Builder.build()` already applies one — set `maxRetries(0)`
+before wrapping another, or the attempts multiply.
 
 ### `TypeSafeException`
 
@@ -410,7 +425,7 @@ separate checked-equivalent `TypeSafeAPIConnectionError`/`TypeSafeAPITimeoutErro
 | `TypeSafeException.NotFound` | `404` |
 | `TypeSafeException.UnprocessableEntity` | `422` |
 | `TypeSafeException.RateLimit` | `429` — `retryAfter()` returns the `retry-after`/`retry-after-ms` header as an `Optional<Duration>` |
-| `TypeSafeException.InternalServer` | any `5xx` |
+| `TypeSafeException.InternalServer` | any `5xx` — `retryAfter()` as for `RateLimit` (e.g. a `503` with `retry-after`) |
 | `TypeSafeException.ResponseDecoding` | `200`, but decoding the body failed |
 | `TypeSafeException.Connection` | no HTTP response — the transport couldn't reach TypeSafe, once retries are exhausted |
 | `TypeSafeException.Timeout` | a `Connection` specifically caused by a timeout |

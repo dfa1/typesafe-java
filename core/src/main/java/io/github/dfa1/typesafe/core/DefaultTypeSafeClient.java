@@ -17,11 +17,11 @@ import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-/** The only {@link TypeSafeClient} implementation this library ships; built via {@link #builder}. */
+/** The only {@link TypeSafeClient} implementation this library ships; built via {@link #builder}.
+ *  One request, one response: retries live in {@link RetryingTypeSafeClient}, which
+ *  {@link Builder#build()} wraps this in unless {@code maxRetries(0)}. */
 public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private final HttpTransport transport;
@@ -29,18 +29,12 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     private final ApiKey apiKey;
     private final URI endpoint;
     private final URI modelsEndpoint;
-    private final int maxRetries;
-    private final Duration initialBackoff;
-
-    private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec,
-                                   URI endpoint, int maxRetries, Duration initialBackoff) {
+    private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec, URI endpoint) {
         this.apiKey = apiKey;
         this.transport = transport;
         this.jsonCodec = jsonCodec;
         this.endpoint = endpoint;
         this.modelsEndpoint = URI.create(endpoint.getScheme() + "://" + endpoint.getAuthority() + "/v1/models");
-        this.maxRetries = maxRetries;
-        this.initialBackoff = initialBackoff;
     }
 
     public static Builder builder(ApiKey apiKey) {
@@ -61,40 +55,31 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
-        return sendWithRetry(() -> transport.post(endpoint, headers, body), this::toEvaluateResponse, 0);
+        return send(transport.post(endpoint, headers, body), this::toEvaluateResponse);
     }
 
     @Override
     public List<ModelDetails> listModels() {
         Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
-        return await(sendWithRetry(() -> transport.get(modelsEndpoint, headers), this::toModelDetails, 0));
+        return await(send(transport.get(modelsEndpoint, headers), this::toModelDetails));
     }
 
-    private <T> CompletableFuture<T> sendWithRetry(
-            Supplier<CompletableFuture<HttpTransportResponse>> call, Function<HttpTransportResponse, T> decode, int attempt) {
-        return call.get()
-                .handle((response, error) -> error == null
-                        ? handleResponse(response, call, decode, attempt)
-                        : retryOnConnectionFailure(error, call, decode, attempt))
-                .thenCompose(stage -> stage);
-    }
-
-    private <T> CompletableFuture<T> handleResponse(
-            HttpTransportResponse response, Supplier<CompletableFuture<HttpTransportResponse>> call,
-            Function<HttpTransportResponse, T> decode, int attempt) {
-        int status = response.statusCode();
-
-        if (status == 200) {
-            try {
-                return CompletableFuture.completedFuture(decode.apply(response));
-            } catch (RuntimeException e) {
-                return CompletableFuture.failedFuture(new TypeSafeException.ResponseDecoding(response.body(), e));
+    private <T> CompletableFuture<T> send(
+            CompletableFuture<HttpTransportResponse> call, Function<HttpTransportResponse, T> decode) {
+        return call.handle((response, error) -> {
+            if (error != null) {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+                throw new CompletionException(cause instanceof IOException io ? toConnectionException(io) : cause);
             }
-        }
-        if (isRetryableStatus(status) && attempt < maxRetries) {
-            return delayThenRetry(backoffFor(response, attempt), call, decode, attempt);
-        }
-        return CompletableFuture.failedFuture(toException(status, response));
+            if (response.statusCode() != 200) {
+                throw new CompletionException(toException(response.statusCode(), response));
+            }
+            try {
+                return decode.apply(response);
+            } catch (RuntimeException e) {
+                throw new CompletionException(new TypeSafeException.ResponseDecoding(response.body(), e));
+            }
+        });
     }
 
     /** Most specific {@link TypeSafeException} subclass for {@code status}, or the plain
@@ -109,39 +94,18 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             case 422 -> new TypeSafeException.UnprocessableEntity(body);
             case 429 -> new TypeSafeException.RateLimit(body, retryAfter(response).orElse(null));
             default -> status >= 500 && status < 600
-                    ? new TypeSafeException.InternalServer(status, body)
+                    ? new TypeSafeException.InternalServer(status, body, retryAfter(response).orElse(null))
                     : new TypeSafeException(status, body);
         };
     }
 
-    private <T> CompletableFuture<T> retryOnConnectionFailure(
-            Throwable error, Supplier<CompletableFuture<HttpTransportResponse>> call,
-            Function<HttpTransportResponse, T> decode, int attempt) {
-        Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-        if (cause instanceof IOException io) {
-            if (attempt < maxRetries) {
-                return delayThenRetry(initialBackoff.multipliedBy(1L << attempt), call, decode, attempt);
-            }
-            return CompletableFuture.failedFuture(toConnectionException(io));
-        }
-        return CompletableFuture.failedFuture(cause);
-    }
-
-    /** Wraps a transport's raw {@link IOException}, once retries are exhausted, as
+    /** Wraps a transport's raw {@link IOException} as
      *  {@link TypeSafeException.Timeout} when it's one of the JDK's timeout exception types,
      *  {@link TypeSafeException.Connection} otherwise. */
     private static TypeSafeException.Connection toConnectionException(IOException cause) {
         return cause instanceof HttpTimeoutException || cause instanceof InterruptedIOException
                 ? new TypeSafeException.Timeout(cause)
                 : new TypeSafeException.Connection(cause);
-    }
-
-    private <T> CompletableFuture<T> delayThenRetry(
-            Duration backoff, Supplier<CompletableFuture<HttpTransportResponse>> call,
-            Function<HttpTransportResponse, T> decode, int attempt) {
-        return CompletableFuture
-                .supplyAsync(() -> null, CompletableFuture.delayedExecutor(backoff.toMillis(), TimeUnit.MILLISECONDS))
-                .thenCompose(ignored -> sendWithRetry(call, decode, attempt + 1));
     }
 
     /** Blocks on {@code future}, unwrapping {@link ExecutionException} back to its cause so a
@@ -166,19 +130,8 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         }
     }
 
-    /** {@code 408}/{@code 429}/any {@code 5xx}: a client- or server-side hiccup worth retrying,
-     *  as opposed to a request TypeSafe rejected outright (e.g. {@code 400}, {@code 401}). */
-    static boolean isRetryableStatus(int status) {
-        return status == 408 || status == 429 || (status >= 500 && status < 600);
-    }
-
-    /** Honors a {@code retry-after}/{@code retry-after-ms} response header when present, falling
-     *  back to exponential backoff otherwise. Does not parse the HTTP-date form of
-     *  {@code Retry-After}; that form falls back to exponential backoff too. */
-    Duration backoffFor(HttpTransportResponse response, int attempt) {
-        return retryAfter(response).orElseGet(() -> initialBackoff.multipliedBy(1L << attempt));
-    }
-
+    /** The {@code retry-after-ms}/{@code retry-after} response header, preferring the former.
+     *  Doesn't parse the HTTP-date form of {@code Retry-After}; that form is empty. */
     static Optional<Duration> retryAfter(HttpTransportResponse response) {
         return response.header("retry-after-ms").flatMap(DefaultTypeSafeClient::parseNonNegativeLong).map(Duration::ofMillis)
                 .or(() -> response.header("retry-after").flatMap(DefaultTypeSafeClient::parseNonNegativeLong).map(Duration::ofSeconds));
@@ -265,7 +218,8 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         public TypeSafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint, maxRetries, initialBackoff);
+            TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
+            return maxRetries > 0 ? new RetryingTypeSafeClient(client, maxRetries, initialBackoff) : client;
         }
 
         /** {@link #build()}, then applies {@code decorate} to the result — e.g.

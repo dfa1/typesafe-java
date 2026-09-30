@@ -13,7 +13,10 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 core      — TypeSafeClient (interface; the only implementation, DefaultTypeSafeClient, is
             public and owns Builder — TypeSafeClient.builder(...) is a one-line delegate to
             DefaultTypeSafeClient.builder(...), so call sites don't change. A consumer can
-            implement TypeSafeClient itself to decorate one, e.g. with caching), ApiKey,
+            implement TypeSafeClient itself to decorate one, e.g. with caching).
+            DefaultTypeSafeClient does one request, one response; retry/backoff is the
+            RetryingTypeSafeClient decorator (classifies by TypeSafeException, not raw
+            responses), which Builder.build() wraps around it unless maxRetries(0). ApiKey,
             TypeSafeException, and the wire DTOs (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
             io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
@@ -67,7 +70,7 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
             on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
-bom       — dependency-management POM listing core/client-jdk/jackson2/jackson3/testkit/mapping.
+bom       — dependency-management POM listing core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping.
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
