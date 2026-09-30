@@ -379,6 +379,27 @@ retry is started (an attempt already in flight isn't aborted; its response is ig
 `listModels` isn't bounded. Order matters: added the other way round, the deadline applies to
 each attempt instead — see the next section.
 
+## Count the tokens you've used
+
+Every successful response reports its token usage (`EvaluateResponse#usage()`). To keep a running
+total, create a `TokenCounter` and add its decorator:
+
+```java
+TokenCounter tokens = new TokenCounter();
+TypeSafeClient client = TypeSafeClient.builder(token)
+        .decorateWith(RetryingTypeSafeClient::decorate)
+        .decorateWith(tokens::decorate)
+        .build();
+
+client.evaluate(request);
+System.out.println(tokens.inputTokens() + " in, " + tokens.outputTokens() + " out");
+```
+
+The counter is a separate object so you can still read it once its decorator is buried in a
+stack, and one counter can be shared across several clients (`tokens::decorate` on each). It's
+thread-safe. Only successful responses carry usage, so failed calls and retried attempts add
+nothing — its position in the stack doesn't matter.
+
 ## Choose the order of decorators
 
 Each `decorateWith(...)` adds a decorator *around* everything added before it, and
@@ -407,6 +428,7 @@ them in reverse. Which one is outside which changes behavior:
 | retrying → your metrics | metrics count **logical calls** (what the caller sees) |
 | your metrics → retrying | metrics count **attempts** |
 | `FailingTypeSafeClient` → retrying | injected failures are retried — handy for testing retry itself |
+| `TokenCounter` anywhere | same totals — only successful responses carry usage |
 | `MappingTypeSafeClient` anywhere but outermost | its own methods are unreachable; pass it to `build(...)`, which keeps its type |
 
 A good default, outermost first: mapping → metrics → deadline → cache → retrying.

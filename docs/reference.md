@@ -15,7 +15,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `TokenCounter`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
 | `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-client-okhttp` | `core` | `OkHttpTransport` (OkHttp) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
@@ -408,6 +408,23 @@ count against it, and `RetryingTypeSafeClient` starts no further attempt once it
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
 instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is
 needed; `listModels` passes through unbounded.
+
+### `TokenCounter`
+
+```java
+public final class TokenCounter {
+    public TypeSafeClient decorate(TypeSafeClient delegate);
+    public long inputTokens();
+    public long outputTokens();
+    public long totalTokens();
+}
+```
+
+Running total of `EvaluateResponse#usage()` across every successful `evaluate`/`evaluateAsync`
+through a client it decorated (`builder.decorateWith(tokens::decorate)`). One counter can
+decorate several clients; their usage sums. A failed call, or a response without `usage`, adds
+nothing. Thread-safe (`LongAdder`); a read concurrent with in-flight calls may not include them
+yet.
 
 ### `TypeSafeException`
 

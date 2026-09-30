@@ -21,7 +21,9 @@ core      — TypeSafeClient (interface; the only implementation, DefaultTypeSaf
             one goes outside the previous; build(Function) is outermost and keeps its type).
             Every decorator's static decorate(...) takes the delegate first, like
             MappingTypeSafeClient.decorate. build() throws if RetryingTypeSafeClient is added
-            more than once.
+            more than once. TokenCounter (LongAdder totals of EvaluateResponse#usage()) is an
+            object the caller keeps, handing out its decorator via tokens::decorate, so the
+            totals stay readable once the decorator is inside a stack.
             RetryingTypeSafeClient stops retrying once its returned future is done. ApiKey,
             TypeSafeException, and the wire DTOs (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in

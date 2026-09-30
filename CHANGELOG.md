@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`core`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.
 - **`core`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
 - **`core`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
 - **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.decorateWith(RetryingTypeSafeClient::decorate)`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `decorateWith(...)`.
