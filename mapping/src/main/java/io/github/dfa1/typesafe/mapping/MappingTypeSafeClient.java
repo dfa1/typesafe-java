@@ -6,7 +6,7 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 
 import java.lang.reflect.Constructor;
@@ -63,26 +63,26 @@ public final class MappingTypeSafeClient implements TypeSafeClient {
         return new MappingTypeSafeClient(delegate);
     }
 
-    /** {@link #evaluateTyped(State, Model, Class)} against {@link Model#LATEST}. */
-    public <T extends Record> T evaluateTyped(State state, Class<T> type) {
+    /** {@link #evaluateTyped(Content, Model, Class)} against {@link Model#LATEST}. */
+    public <T extends Record> T evaluateTyped(Content state, Class<T> type) {
         return evaluateTyped(state, Model.LATEST, type);
     }
 
     /** Evaluates {@code state} against {@code type}'s annotated components, blocking until a
      *  typed result arrives or the retry budget is exhausted (see {@link #evaluate}). */
-    public <T extends Record> T evaluateTyped(State state, Model model, Class<T> type) {
+    public <T extends Record> T evaluateTyped(Content state, Model model, Class<T> type) {
         RecordMapping<T> mapping = mappingFor(type);
         EvaluateResponse response = delegate.evaluate(EvaluateRequest.of(state, model, questionsFor(mapping)));
         return toRecord(response, mapping);
     }
 
-    /** {@link #evaluateTypedAsync(State, Model, Class)} against {@link Model#LATEST}. */
-    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Class<T> type) {
+    /** {@link #evaluateTypedAsync(Content, Model, Class)} against {@link Model#LATEST}. */
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(Content state, Class<T> type) {
         return evaluateTypedAsync(state, Model.LATEST, type);
     }
 
-    /** Asynchronous form of {@link #evaluateTyped(State, Model, Class)}. */
-    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Model model, Class<T> type) {
+    /** Asynchronous form of {@link #evaluateTyped(Content, Model, Class)}. */
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(Content state, Model model, Class<T> type) {
         RecordMapping<T> mapping = mappingFor(type);
         return delegate.evaluateAsync(EvaluateRequest.of(state, model, questionsFor(mapping)))
                 .thenApply(response -> toRecord(response, mapping));

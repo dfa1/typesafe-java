@@ -15,7 +15,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `State`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
+| `typesafe-java-core` | — | `Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
 | `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-client-okhttp` | `core` | `OkHttpTransport` (OkHttp) |
 | `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
@@ -34,7 +34,9 @@ All of the following live in `io.github.dfa1.typesafe.core`.
 
 ### `Question` (sealed interface)
 
-Static factories build one of three variants:
+Static factories build one of three variants. Each takes `instructions` as either a `String`
+(sugar for `Content.text(...)`) or a `Content` directly, for a structured question — e.g. an
+object holding the question in one field and data it refers to in others:
 
 | Factory | Fields | Meaning |
 |---|---|---|
@@ -42,6 +44,9 @@ Static factories build one of three variants:
 | `Question.noul(instructions)` | `instructions`, `criteria = null` | Same, when `instructions` needs no elaboration |
 | `Question.choice(instructions, Map<String,String> criteria)` | `instructions`, `criteria` | Pick the best-matching key in `criteria` |
 | `Question.score(instructions, List<String> criteria)` | `instructions`, `criteria` | Rank against an ordered list of labels |
+
+Each `Question` variant's `instructions` component is typed `Content`, not `String` — see
+[`Content`](#content-sealed-interface) below.
 
 ### `Answer` (sealed interface)
 
@@ -53,26 +58,29 @@ One variant per `Question` type, keyed by the same question name in `EvaluateRes
 | `Answer.Choice` | `choice(): String`, `probabilities(): Map<String,Double>`, `confidence(): double` |
 | `Answer.Score` | `score(): double`, `legend(): Map<String,String>`, `probabilities(): Map<String,Double>`, `confidence(): double` |
 
-### `State` (sealed interface)
+### `Content` (sealed interface)
 
 Exactly the three shapes documented at
 [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state) — no `type`
-discriminator on the wire; each variant serializes as its own raw JSON shape.
+discriminator on the wire; each variant serializes as its own raw JSON shape. Backs both
+`EvaluateRequest.state` (the content to evaluate) and `Question.instructions` (a question, or a
+structured question plus the data it refers to) — the two fields document the same three shapes
+independently, so one type covers both.
 
 | Factory | Wire shape | Example |
 |---|---|---|
-| `State.text(String value)` | JSON string | `"My card was charged twice."` |
-| `State.fields(Map<String, Object> fields)` | JSON object | `{"order_id": "A-104"}` |
-| `State.messages(List<String> values)` | JSON array | `["Hi", "My card was charged twice."]` |
+| `Content.text(String value)` | JSON string | `"My card was charged twice."` |
+| `Content.fields(Map<String, Object> fields)` | JSON object | `{"order_id": "A-104"}` |
+| `Content.messages(List<String> values)` | JSON array | `["Hi", "My card was charged twice."]` |
 
 ### `EvaluateRequest`
 
 ```java
-record EvaluateRequest(State state, Model model, Map<String, Question> questions)
+record EvaluateRequest(Content state, Model model, Map<String, Question> questions)
 ```
 
-`EvaluateRequest.of(State state, Map<String, Question> questions)` builds one with
-`model = Model.LATEST`. `EvaluateRequest.of(State state, Model model, Map<String, Question> questions)`
+`EvaluateRequest.of(Content state, Map<String, Question> questions)` builds one with
+`model = Model.LATEST`. `EvaluateRequest.of(Content state, Model model, Map<String, Question> questions)`
 picks a specific model.
 
 `EvaluateRequest.builder()` is the fluent alternative to `of(...)` plus hand-building the
@@ -87,7 +95,7 @@ EvaluateRequest request = EvaluateRequest.builder()
         .build();
 ```
 
-`state(String)` is sugar for `state(State.text(...))`; `state(State)` accepts any shape.
+`state(String)` is sugar for `state(Content.text(...))`; `state(Content)` accepts any shape.
 `model(Model)` defaults to `Model.LATEST` when omitted. Each question method (`noul`, `noul`
 with a criteria map, `choice`, `score`) takes the question's name first, then the same
 arguments as the matching `Question` factory. Reusing a name throws `IllegalArgumentException`
@@ -166,9 +174,10 @@ Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `ServiceLoader.load(JsonCodec.class)` and registered through
 `META-INF/services/io.github.dfa1.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
-Content is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by construction
-(RFC 8259) — a caller integrating with a raw-`byte[]` system (e.g. Kafka) converts once at that
-boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as `HttpTransport`.
+`readValue`'s `content` is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by
+construction (RFC 8259) — a caller integrating with a raw-`byte[]` system (e.g. Kafka) converts
+once at that boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as
+`HttpTransport`.
 
 ## HttpTransport SPI
 
@@ -265,10 +274,10 @@ through. The constructor throws `IllegalArgumentException` if `failEvery` isn't 
 ```java
 public final class MappingTypeSafeClient implements TypeSafeClient {
     public static MappingTypeSafeClient decorate(TypeSafeClient delegate);
-    public <T extends Record> T evaluateTyped(State state, Class<T> type);
-    public <T extends Record> T evaluateTyped(State state, Model model, Class<T> type);
-    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Class<T> type);
-    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(State state, Model model, Class<T> type);
+    public <T extends Record> T evaluateTyped(Content state, Class<T> type);
+    public <T extends Record> T evaluateTyped(Content state, Model model, Class<T> type);
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(Content state, Class<T> type);
+    public <T extends Record> CompletableFuture<T> evaluateTypedAsync(Content state, Model model, Class<T> type);
 }
 ```
 

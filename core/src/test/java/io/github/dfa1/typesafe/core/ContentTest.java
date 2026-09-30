@@ -7,7 +7,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class StateTest {
+class ContentTest {
 
     @Test
     void messagesCopiesTheGivenValues() {
@@ -15,7 +15,7 @@ class StateTest {
         List<String> values = new ArrayList<>(List.of("hi", "there"));
 
         // When
-        State.Messages result = State.messages(values);
+        Content.Messages result = Content.messages(values);
         values.add("mutated after the call");
 
         // Then

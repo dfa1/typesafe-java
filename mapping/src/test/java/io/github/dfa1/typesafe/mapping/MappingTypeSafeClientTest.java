@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.testkit.FailingTypeSafeClient;
@@ -67,7 +67,7 @@ class MappingTypeSafeClientTest {
                         "spiciness", new Answer.Score(2.0, Map.of(), Map.of(), 1.0)),
                 new Usage(1, 1), null));
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
-        State state = State.text("Help! My payouts have been failing for 3 days.");
+        Content state = Content.text("Help! My payouts have been failing for 3 days.");
 
         // When
         TicketUrgency result = sut.evaluateTyped(state, TicketUrgency.class);
@@ -75,7 +75,7 @@ class MappingTypeSafeClientTest {
         // Then
         assertThat(result).isEqualTo(new TicketUrgency(0.9, "late_delivery", 2.0));
         Question.Noul noul = (Question.Noul) delegate.evaluateRequests().getFirst().questions().get("isUrgent");
-        assertThat(noul.instructions()).isEqualTo("Does this convey urgency?");
+        assertThat(noul.instructions()).isEqualTo(Content.text("Does this convey urgency?"));
         Question.Choice choice = (Question.Choice) delegate.evaluateRequests().getFirst().questions().get("culprit");
         assertThat(choice.criteria()).containsEntry("late_delivery", "Arrived late").containsEntry("wrong_toppings", "");
         Question.Score score = (Question.Score) delegate.evaluateRequests().getFirst().questions().get("spiciness");
@@ -95,7 +95,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
-        TicketUrgency result = sut.evaluateTypedAsync(State.text("hi"), TicketUrgency.class).get();
+        TicketUrgency result = sut.evaluateTypedAsync(Content.text("hi"), TicketUrgency.class).get();
 
         // Then
         assertThat(result).isEqualTo(new TicketUrgency(0.1, "wrong_toppings", 0.5));
@@ -114,7 +114,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
-        TicketUrgencyWithConfidence result = sut.evaluateTyped(State.text("hi"), TicketUrgencyWithConfidence.class);
+        TicketUrgencyWithConfidence result = sut.evaluateTyped(Content.text("hi"), TicketUrgencyWithConfidence.class);
 
         // Then
         assertThat(result).isEqualTo(new TicketUrgencyWithConfidence(noulAnswer, choiceAnswer, scoreAnswer));
@@ -128,7 +128,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), NotAnnotated.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), NotAnnotated.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("@Noul/@Choice/@Score");
     }
@@ -139,7 +139,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), WrongComponentType.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), WrongComponentType.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must be double");
     }
@@ -150,7 +150,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), DoublyAnnotated.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), DoublyAnnotated.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("exactly one of @Noul/@Choice/@Score");
     }
@@ -161,7 +161,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(new RecordingTypeSafeClient());
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), DuplicateOption.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), DuplicateOption.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Duplicate @Option(\"a\")");
     }
@@ -174,7 +174,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), SingleNoul.class))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No answer for \"isUrgent\"");
     }
@@ -189,7 +189,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class))
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), SingleNoul.class))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("isUrgent")
                 .hasMessageContaining("Choice")
@@ -204,7 +204,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
-        sut.evaluateTyped(State.text("hi"), Model.PREVIEW, SingleNoul.class);
+        sut.evaluateTyped(Content.text("hi"), Model.PREVIEW, SingleNoul.class);
 
         // Then
         assertThat(delegate.evaluateRequests().getFirst().model()).isEqualTo(Model.PREVIEW);
@@ -220,8 +220,8 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When
-        SingleNoul first = sut.evaluateTyped(State.text("hi"), SingleNoul.class);
-        SingleNoul second = sut.evaluateTyped(State.text("hi"), SingleNoul.class);
+        SingleNoul first = sut.evaluateTyped(Content.text("hi"), SingleNoul.class);
+        SingleNoul second = sut.evaluateTyped(Content.text("hi"), SingleNoul.class);
 
         // Then
         assertThat(first).isEqualTo(second).isEqualTo(new SingleNoul(0.5));
@@ -235,7 +235,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTyped(State.text("hi"), SingleNoul.class)).isSameAs(rateLimit);
+        assertThatThrownBy(() -> sut.evaluateTyped(Content.text("hi"), SingleNoul.class)).isSameAs(rateLimit);
     }
 
     @Test
@@ -246,7 +246,7 @@ class MappingTypeSafeClientTest {
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
 
         // When / Then
-        assertThatThrownBy(() -> sut.evaluateTypedAsync(State.text("hi"), SingleNoul.class).get())
+        assertThatThrownBy(() -> sut.evaluateTypedAsync(Content.text("hi"), SingleNoul.class).get())
                 .isInstanceOf(ExecutionException.class)
                 .cause().isSameAs(rateLimit);
     }
@@ -257,7 +257,7 @@ class MappingTypeSafeClientTest {
         EvaluateResponse response = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         RecordingTypeSafeClient delegate = new RecordingTypeSafeClient().enqueueEvaluate(response);
         MappingTypeSafeClient sut = MappingTypeSafeClient.decorate(delegate);
-        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
         // When
         EvaluateResponse result = sut.evaluate(request);

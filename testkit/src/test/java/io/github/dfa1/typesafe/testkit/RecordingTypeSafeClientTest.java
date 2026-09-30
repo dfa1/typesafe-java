@@ -4,7 +4,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Usage;
 
 import org.junit.jupiter.api.Test;
@@ -22,7 +22,7 @@ class RecordingTypeSafeClientTest {
     @Test
     void evaluateReturnsTheNextQueuedResponseAndRecordsTheRequest() {
         // Given
-        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse response = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         RecordingTypeSafeClient sut = new RecordingTypeSafeClient().enqueueEvaluate(response);
 
@@ -37,7 +37,7 @@ class RecordingTypeSafeClientTest {
     @Test
     void queuedResponsesAreConsumedInOrder() {
         // Given
-        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse first = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
         EvaluateResponse second = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(2, 2), null);
         RecordingTypeSafeClient sut = new RecordingTypeSafeClient()
@@ -53,7 +53,7 @@ class RecordingTypeSafeClientTest {
     void evaluateThrowsAnAssertionErrorWhenNothingIsQueued() {
         // Given
         RecordingTypeSafeClient sut = new RecordingTypeSafeClient();
-        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -65,7 +65,7 @@ class RecordingTypeSafeClientTest {
     void evaluateAsyncFailsTheFutureWhenNothingIsQueued() {
         // Given
         RecordingTypeSafeClient sut = new RecordingTypeSafeClient();
-        EvaluateRequest request = EvaluateRequest.of(State.text("hi"), Map.of());
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
         // When
         var future = sut.evaluateAsync(request);

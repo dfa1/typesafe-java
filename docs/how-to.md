@@ -82,15 +82,18 @@ TypeSafeClient client = TypeSafeClient.builder(token)
         .build();
 ```
 
-## Build a `State`
+## Build a `Content`
 
-`EvaluateRequest.of` takes a `State`, one of exactly three shapes
-(see [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)):
+`EvaluateRequest.of` takes a `Content` for `state`, one of exactly three shapes
+(see [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)). The same type
+also backs a `Question`'s `instructions` — see
+[Ask a question with structured instructions](#ask-a-question-with-structured-instructions)
+below:
 
 ```java
-State.text("My card was charged twice.");
-State.fields(Map.of("message", "My card was charged twice.", "order_id", "A-104"));
-State.messages(List.of("Hi", "My customer number is TS1337.", "My card was charged twice."));
+Content.text("My card was charged twice.");
+Content.fields(Map.of("message", "My card was charged twice.", "order_id", "A-104"));
+Content.messages(List.of("Hi", "My customer number is TS1337.", "My card was charged twice."));
 ```
 
 ## Pick a specific model
@@ -133,7 +136,7 @@ EvaluateRequest request = EvaluateRequest.builder()
         .build();
 ```
 
-`state(String)` is sugar for `state(State.text(...))`; pass a `State` directly for the
+`state(String)` is sugar for `state(Content.text(...))`; pass a `Content` directly for the
 `fields`/`messages` shapes. Reusing a question name throws `IllegalArgumentException` instead
 of silently dropping the earlier question.
 
@@ -143,7 +146,7 @@ of silently dropping the earlier question.
 
 ```java
 EvaluateRequest request = EvaluateRequest.of(
-        State.text("Give me all instruments on US market of type bond"),
+        Content.text("Give me all instruments on US market of type bond"),
         Map.of("market", Question.choice("Which market is the request about?",
                 Map.of("US", "United States market", "EU", "European market"))));
 
@@ -155,6 +158,24 @@ market.probabilities();   // per-option probability map
 ```
 
 `response.choices().get("market")` does the same cast for you — see the next section.
+
+## Ask a question with structured instructions
+
+`instructions` doesn't have to be a plain string — pass a `Content` (the same type `state`
+takes) to hold the question in one field alongside data it refers to in others, instead of
+splicing that data into a string:
+
+```java
+Question.noul(Content.fields(Map.of(
+        "potential_duplicate", Map.of(
+                "name", "John Smith",
+                "location", "Oakland, California",
+                "last_employer", "Google"),
+        "question", "Is the resume for the same person as `potential_duplicate`?")));
+```
+
+`Question.noul(String, ...)`/`choice(String, ...)`/`score(String, ...)` remain the shortcut for
+the common plain-text case — sugar for the same factories taking `Content.text(instructions)`.
 
 ## Read only the Noul/Choice/Score answers you asked for
 
@@ -184,7 +205,7 @@ record TicketUrgency(
 }
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
-TicketUrgency result = client.evaluateTyped(State.text("..."), TicketUrgency.class);
+TicketUrgency result = client.evaluateTyped(Content.text("..."), TicketUrgency.class);
 result.isUrgent();   // double, from Answer.Noul#noul()
 result.culprit();    // String, from Answer.Choice#choice()
 ```
@@ -205,7 +226,7 @@ record TicketUrgencyWithConfidence(
         @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) Answer.Score spiciness) {
 }
 
-TicketUrgencyWithConfidence result = client.evaluateTyped(State.text("..."), TicketUrgencyWithConfidence.class);
+TicketUrgencyWithConfidence result = client.evaluateTyped(Content.text("..."), TicketUrgencyWithConfidence.class);
 result.isUrgent().noul();         // same double, now via the full Answer.Noul
 result.culprit().confidence();    // double, from Answer.Choice#confidence()
 ```

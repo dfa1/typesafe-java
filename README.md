@@ -20,7 +20,7 @@ ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apikey
 TypeSafeClient client = TypeSafeClient.builder(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
-        State.text("Help! My payouts have been failing for 3 days."),
+        Content.text("Help! My payouts have been failing for 3 days."),
         Map.of("is_urgent", Question.noul("Does this convey urgency?")));
 
 Answer.Noul answer = client.evaluate(request).nouls().get("is_urgent");
@@ -35,7 +35,7 @@ record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
 UrgencyCheck result = client.evaluateTyped(
-        State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
+        Content.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
 result.isUrgent(); // e.g. 0.92
 ```
 
@@ -81,7 +81,7 @@ Maven, via the BOM (see the Maven Central badge above for the latest version):
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.5.0</version>
+      <version>0.6.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>

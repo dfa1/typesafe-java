@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.json.JsonCodec;
 import io.github.dfa1.typesafe.mapping.Choice;
@@ -64,7 +64,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     void evaluatesANoulQuestionAgainstTheLiveApi() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("Help! My payouts have been failing for 3 days."),
+                Content.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
@@ -83,10 +83,37 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     }
 
     @Test
+    void evaluatesANoulQuestionWithStructuredInstructionsAgainstTheLiveApi() {
+        // Given
+        Content instructions = Content.fields(Map.of(
+                "potential_duplicate", Map.of(
+                        "name", "John Smith",
+                        "location", "Oakland, California",
+                        "last_employer", "Google"),
+                "resume", Map.of(
+                        "name", "Jonathan Smith",
+                        "location", "Oakland, CA",
+                        "last_employer", "Google Inc."),
+                "question", "Is `resume` the same person as `potential_duplicate`?"));
+        EvaluateRequest request = EvaluateRequest.of(
+                Content.text("Deduplicate incoming resumes against known candidates."),
+                Map.of("is_duplicate", Question.noul(instructions)));
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        assertThat(result.answers().get("is_duplicate")).isInstanceOfSatisfying(Answer.Noul.class, answer -> {
+            System.out.println("is_duplicate noul score = " + answer.noul());
+            assertThat(answer.noul()).isBetween(0.0, 1.0);
+        });
+    }
+
+    @Test
     void evaluatesAsyncAgainstTheLiveApi() throws Exception {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("Help! My payouts have been failing for 3 days."),
+                Content.text("Help! My payouts have been failing for 3 days."),
                 Map.of("is_urgent", Question.noul("Does this convey urgency?",
                         Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
@@ -102,7 +129,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     void noulRatesHowGruntledACustomerReallyIs() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("""
+                Content.text("""
                         I've been a customer for six years and this is, hands down, the single
                         worst support interaction I have ever had with any company, ever.
                         """),
@@ -128,7 +155,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
                 "late_delivery", "The order arrived very late",
                 "cold_food", "The food arrived cold");
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("""
+                Content.text("""
                         I ordered a pepperoni and mushroom pizza with a side of garlic bread.
                         Ninety minutes later a plain cheese pizza showed up, ice cold, with no
                         garlic bread in sight.
@@ -158,7 +185,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
         // Given
         List<String> heatLevels = List.of("Mild", "Medium", "Hot", "Face-melting");
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("""
+                Content.text("""
                         This chili is built around three varieties of ghost pepper, a splash of
                         pure capsaicin extract, and a garnish of raw habaneros for crunch.
                         """),
@@ -194,7 +221,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
                 "ASIA", "Asian markets");
         Map<String, String> instrumentTypes = Map.of("bond", "Bonds", "equity", "Equities", "fx", "FX instruments");
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("Give me all instruments on US market of type bond"),
+                Content.text("Give me all instruments on US market of type bond"),
                 Map.of(
                         "market", Question.choice("Which market is the request about?", markets),
                         "instrument_type", Question.choice("Which instrument type is the request about?",
@@ -245,7 +272,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
                 "technical_delivery_fault", "Feed/config/connectivity problem, entitlements are fine",
                 "billing_hold", "Account or billing issue is blocking delivery");
 
-        EvaluateRequest request = EvaluateRequest.of(State.text(state), Map.of(
+        EvaluateRequest request = EvaluateRequest.of(Content.text(state), Map.of(
                 "root_cause", Question.choice(
                         "Given the contract, account status, and delivery log, "
                                 + "what is the most likely reason this client isn't receiving XSWX data?",
@@ -285,7 +312,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
                 "other", "Anything else");
         List<String> frustrationLevels = List.of("Calm", "Annoyed", "Frustrated", "Furious");
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("My card was charged twice for the same order. This is the third "
+                Content.text("My card was charged twice for the same order. This is the third "
                         + "time this has happened and I'm about done with this company."),
                 Map.of(
                         "urgent", Question.noul("Is this urgent?"),
@@ -338,7 +365,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     void judgesATouristsDiningChoicesLikeATraditionalItalianNonnaWould() {
         // Given
         MappingTypeSafeClient typedClient = MappingTypeSafeClient.decorate(sut);
-        State state = State.text("""
+        Content state = Content.text("""
                 A tourist visiting Rome sits down at a trattoria at 9:30pm for dinner. They order
                 a seafood spaghetti and ask the waiter to grate parmesan cheese generously over
                 it. To finish the meal, they order a large cappuccino. Earlier that day, for
@@ -364,7 +391,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
     void judgesATouristsDiningChoicesAsynchronouslyToo() throws Exception {
         // Given
         MappingTypeSafeClient typedClient = MappingTypeSafeClient.decorate(sut);
-        State state = State.text("""
+        Content state = Content.text("""
                 A tourist visits a historic pizzeria in Naples — the birthplace of pizza — and
                 orders a hawaiian pizza, insisting the chef pile on extra pineapple chunks.
                 After finishing dinner around 10pm, they order a cappuccino to end the night.

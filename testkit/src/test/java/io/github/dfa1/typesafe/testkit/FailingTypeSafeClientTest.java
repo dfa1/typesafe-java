@@ -3,7 +3,7 @@ package io.github.dfa1.typesafe.testkit;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 
@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SuppressWarnings("resource")
 class FailingTypeSafeClientTest {
 
-    private static final EvaluateRequest REQUEST = EvaluateRequest.of(State.text("hi"), Map.of());
+    private static final EvaluateRequest REQUEST = EvaluateRequest.of(Content.text("hi"), Map.of());
 
     @Test
     void everyNthCallThrowsInsteadOfReachingTheDelegate() {

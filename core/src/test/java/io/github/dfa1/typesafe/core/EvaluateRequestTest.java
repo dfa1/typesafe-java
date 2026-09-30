@@ -13,7 +13,7 @@ class EvaluateRequestTest {
     @Test
     void defaultsToTheLatestModel() {
         // When
-        EvaluateRequest result = EvaluateRequest.of(State.text("state"), Map.of());
+        EvaluateRequest result = EvaluateRequest.of(Content.text("state"), Map.of());
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
@@ -22,7 +22,7 @@ class EvaluateRequestTest {
     @Test
     void picksAnExplicitModel() {
         // When
-        EvaluateRequest result = EvaluateRequest.of(State.text("state"), Model.PREVIEW, Map.of());
+        EvaluateRequest result = EvaluateRequest.of(Content.text("state"), Model.PREVIEW, Map.of());
 
         // Then
         assertThat(result.model()).isEqualTo(Model.PREVIEW);
@@ -38,7 +38,7 @@ class EvaluateRequestTest {
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
-        assertThat(result.state()).isEqualTo(State.text("Help! My payouts have been failing for 3 days."));
+        assertThat(result.state()).isEqualTo(Content.text("Help! My payouts have been failing for 3 days."));
         assertThat(result.questions()).containsEntry("is_urgent", Question.noul("Does this convey urgency?"));
     }
 
@@ -46,7 +46,7 @@ class EvaluateRequestTest {
     void builderAcceptsAStructuredStateAndAnExplicitModel() {
         // When
         EvaluateRequest result = EvaluateRequest.builder()
-                .state(State.fields(Map.of("order_id", "o-1")))
+                .state(Content.fields(Map.of("order_id", "o-1")))
                 .model(Model.PREVIEW)
                 .choice("category", "Pick one", Map.of("billing", ""))
                 .score("severity", "Rate it", List.of("low", "high"))
@@ -54,7 +54,7 @@ class EvaluateRequestTest {
 
         // Then
         assertThat(result.model()).isEqualTo(Model.PREVIEW);
-        assertThat(result.state()).isEqualTo(State.fields(Map.of("order_id", "o-1")));
+        assertThat(result.state()).isEqualTo(Content.fields(Map.of("order_id", "o-1")));
         assertThat(result.questions()).containsKeys("category", "severity");
     }
 

@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-09-30
+
 - **`bom`: flatten the published POM** — drops the `typesafe-java` parent reference and writes managed versions out literally, so importing the BOM doesn't also pull in the parent build. [`37b1b78`](https://github.com/dfa1/typesafe-java/commit/37b1b78)
 - **`mapping`: fast-path `cache.get()` before `computeIfAbsent` in `mappingFor`** — avoids the lambda allocation and per-bin lock on the common cache-hit path. [`4bdac6a`](https://github.com/dfa1/typesafe-java/commit/4bdac6a)
 - **`cli`: add `--help`/`-h`** — prints usage and exits without calling the API, same as `--version`. [`898d2ee`](https://github.com/dfa1/typesafe-java/commit/898d2ee)
+- **Breaking: `State` renamed to `Content`**, and `Question.Noul`/`Choice`/`Score`'s `instructions`
+  is now typed `Content` instead of `String` — `docs.typesafe.ai/api` documents `instructions` as
+  the same string/object/array shapes as `state`, so one type now backs both fields; `State`
+  read backwards once reused for a question's `instructions`. `Question.noul`/`choice`/`score`
+  keep their `String`-taking overloads (sugar for `Content.text(...)`) and gain `Content`-taking
+  ones for structured instructions, so existing plain-text call sites are unaffected — only code
+  reading `Question.*#instructions()` as a `String`, or referencing the `State` type by name,
+  needs updating.
 
 ## [0.5.0] - 2026-09-22
 

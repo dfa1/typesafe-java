@@ -14,7 +14,7 @@ core      — TypeSafeClient (interface; the only implementation, DefaultTypeSaf
             public and owns Builder — TypeSafeClient.builder(...) is a one-line delegate to
             DefaultTypeSafeClient.builder(...), so call sites don't change. A consumer can
             implement TypeSafeClient itself to decorate one, e.g. with caching), ApiKey,
-            TypeSafeException, and the wire DTOs (Answer, Question, State,
+            TypeSafeException, and the wire DTOs (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
             io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
             HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
@@ -39,8 +39,9 @@ client-okhttp — HttpTransport backed by OkHttp (artifact typesafe-java-client-
             case-insensitive lookup, but `OkHttpTransportTest` asserts through `header(...)`
             rather than the raw `headers()` map for exactly this reason.
 jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
-            discriminator for Answer/Question via private Jackson mixins (addMixIn); State
-            (no discriminator — string/object/array on the wire) via a custom serializer,
+            discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
+            (no discriminator — string/object/array on the wire; backs both
+            EvaluateRequest.state and Question.instructions) via a custom serializer,
             registered through META-INF/services.
 jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
 testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testkit, depending
@@ -55,7 +56,7 @@ testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testki
             `failEvery`-th call (evaluate/evaluateAsync/listModels share one counter) throws a
             supplied exception instead of reaching the delegate.
 mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSafeClient decorator
-            adding evaluateTyped(State, Class<T>)/evaluateTypedAsync(...) for a caller-defined
+            adding evaluateTyped(Content, Class<T>)/evaluateTypedAsync(...) for a caller-defined
             record T whose components carry @Noul/@Choice/@Score (each mirroring the matching
             Question factory's shape: @Noul/@Score take a double component, @Choice a String
             one; @Choice's options are a nested @Option[] since an annotation can't hold a Map).
@@ -85,7 +86,7 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
             uber-jar (maven-shade-plugin) is published separately under the `all` classifier
             (`typesafe-java-cli-VERSION-all.jar` — `java -jar` this one), so a normal
             dependency on `typesafe-java-cli` never pulls in unrelocated, bundled copies of
-            its dependencies. Flat flags: `--state <text>` (the only `State` shape it
+            its dependencies. Flat flags: `--state <text>` (the only `Content` shape it
             supports — plain text), repeatable
             `--noul`/`--choice`/`--score <name>=<instructions>[|opt1,opt2,...]`,
             optional `--model <id>`, `--verbose`/`--timing` (request id / response time to

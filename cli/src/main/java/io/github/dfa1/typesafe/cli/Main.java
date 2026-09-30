@@ -6,7 +6,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
@@ -79,7 +79,7 @@ public final class Main {
      *  network call. */
     static int run(TypeSafeClient client, JsonCodec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
             throws Exception {
-        EvaluateRequest request = EvaluateRequest.of(State.text(parsed.state()), parsed.model(), parsed.questions());
+        EvaluateRequest request = EvaluateRequest.of(Content.text(parsed.state()), parsed.model(), parsed.questions());
 
         if (parsed.verbose()) {
             err.println("request: " + codec.writeValueAsPrettyString(request));

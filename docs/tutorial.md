@@ -21,7 +21,7 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-bom</artifactId>
-      <version>0.5.0</version>
+      <version>0.6.0</version>
       <type>pom</type>
       <scope>import</scope>
     </dependency>
@@ -67,12 +67,12 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Answer;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 
 import java.util.Map;
 
 EvaluateRequest request = EvaluateRequest.of(
-        State.text("Help! My payouts have been failing for 3 days."),
+        Content.text("Help! My payouts have been failing for 3 days."),
         Map.of("is_urgent", Question.noul("Does this convey urgency?",
                 Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed"))));
 
@@ -111,7 +111,7 @@ MappingTypeSafeClient typedClient = TypeSafeClient.builder(ApiKey.fromDefaultFil
         .build(MappingTypeSafeClient::decorate);
 
 UrgencyCheck result = typedClient.evaluateTyped(
-        State.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
+        Content.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
 System.out.println("urgency score: " + result.isUrgent());
 ```
 

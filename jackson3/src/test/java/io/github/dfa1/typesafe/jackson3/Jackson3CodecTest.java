@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestId;
-import io.github.dfa1.typesafe.core.State;
+import io.github.dfa1.typesafe.core.Content;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -23,7 +23,7 @@ class Jackson3CodecTest {
     void serializesEachQuestionTypeWithItsDiscriminator() {
         // Given
         EvaluateRequest request = EvaluateRequest.of(
-                State.text("Help! My payouts have been failing for 3 days."),
+                Content.text("Help! My payouts have been failing for 3 days."),
                 Map.of(
                         "is_urgent", Question.noul("Does this convey urgency?",
                                 Map.of("true", "Explicitly time-sensitive", "false", "No urgency expressed")),
@@ -48,7 +48,7 @@ class Jackson3CodecTest {
     @Test
     void writeValueAsPrettyStringIndentsTheOutput() {
         // Given
-        State state = State.fields(Map.of("order_id", "A-104"));
+        Content state = Content.fields(Map.of("order_id", "A-104"));
 
         // When
         String result = sut.writeValueAsPrettyString(state);
@@ -58,12 +58,29 @@ class Jackson3CodecTest {
     }
 
     @Test
+    void serializesStructuredInstructionsAsARawJsonObject() {
+        // Given
+        Question.Noul question = Question.noul(Content.fields(Map.of(
+                "potential_duplicate", Map.of("name", "John Smith"),
+                "question", "Is the resume for the same person as `potential_duplicate`?")));
+
+        // When
+        String result = sut.writeValueAsString(question);
+
+        // Then
+        assertThat(result)
+                .contains("\"instructions\":{")
+                .contains("\"potential_duplicate\":{\"name\":\"John Smith\"}")
+                .doesNotContain("\"instructions\":\"");
+    }
+
+    @Test
     void serializesEachStateShapeAsItsRawJsonType() {
         // When / Then
-        assertThat(sut.writeValueAsString(State.text("hi"))).isEqualTo("\"hi\"");
-        assertThat(sut.writeValueAsString(State.fields(Map.of("order_id", "A-104"))))
+        assertThat(sut.writeValueAsString(Content.text("hi"))).isEqualTo("\"hi\"");
+        assertThat(sut.writeValueAsString(Content.fields(Map.of("order_id", "A-104"))))
                 .isEqualTo("{\"order_id\":\"A-104\"}");
-        assertThat(sut.writeValueAsString(State.messages(List.of("hi", "there"))))
+        assertThat(sut.writeValueAsString(Content.messages(List.of("hi", "there"))))
                 .isEqualTo("[\"hi\",\"there\"]");
     }
 

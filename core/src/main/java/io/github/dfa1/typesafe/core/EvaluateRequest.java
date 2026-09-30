@@ -13,14 +13,14 @@ import java.util.Map;
  * @param questions the questions to evaluate, keyed by caller-chosen names; matching answers
  *                  come back under the same keys in {@link EvaluateResponse#answers()}
  */
-public record EvaluateRequest(State state, Model model, Map<String, Question> questions) {
+public record EvaluateRequest(Content state, Model model, Map<String, Question> questions) {
 
     /** Builds a request against {@link Model#LATEST}. */
-    public static EvaluateRequest of(State state, Map<String, Question> questions) {
+    public static EvaluateRequest of(Content state, Map<String, Question> questions) {
         return of(state, Model.LATEST, questions);
     }
 
-    public static EvaluateRequest of(State state, Model model, Map<String, Question> questions) {
+    public static EvaluateRequest of(Content state, Model model, Map<String, Question> questions) {
         return new EvaluateRequest(state, model, questions);
     }
 
@@ -29,7 +29,7 @@ public record EvaluateRequest(State state, Model model, Map<String, Question> qu
     }
 
     public static final class Builder {
-        private State state;
+        private Content state;
         private Model model = Model.LATEST;
         private final Map<String, Question> questions = new LinkedHashMap<>();
 
@@ -37,11 +37,11 @@ public record EvaluateRequest(State state, Model model, Map<String, Question> qu
         }
 
         public Builder state(String value) {
-            this.state = State.text(value);
+            this.state = Content.text(value);
             return this;
         }
 
-        public Builder state(State state) {
+        public Builder state(Content state) {
             this.state = state;
             return this;
         }
