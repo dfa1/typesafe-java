@@ -16,9 +16,9 @@ final class ContentSerializer extends JsonSerializer<Content> {
     @Override
     public void serialize(Content value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         switch (value) {
-            case Content.Text text -> gen.writeString(text.value());
-            case Content.Fields fields -> gen.writeObject(fields.fields());
-            case Content.Messages messages -> gen.writeObject(messages.values());
+            case Content.Text(String text) -> gen.writeString(text);
+            case Content.Fields(var fields) -> gen.writeObject(fields);
+            case Content.Messages(var messages) -> gen.writeObject(messages);
         }
     }
 }

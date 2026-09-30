@@ -14,9 +14,9 @@ final class ContentSerializer extends ValueSerializer<Content> {
     @Override
     public void serialize(Content value, JsonGenerator gen, SerializationContext ctxt) {
         switch (value) {
-            case Content.Text text -> gen.writeString(text.value());
-            case Content.Fields fields -> gen.writePOJO(fields.fields());
-            case Content.Messages messages -> gen.writePOJO(messages.values());
+            case Content.Text(String text) -> gen.writeString(text);
+            case Content.Fields(var fields) -> gen.writePOJO(fields);
+            case Content.Messages(var messages) -> gen.writePOJO(messages);
         }
     }
 }
