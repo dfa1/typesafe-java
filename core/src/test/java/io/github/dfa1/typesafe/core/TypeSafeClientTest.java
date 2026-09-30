@@ -568,13 +568,43 @@ class TypeSafeClientTest {
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .wrap(WrappingTypeSafeClient::new)
-                .wrap(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(1)));
+                .wrap(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(1)));
 
         // When
         WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
 
         // Then
         assertThat(result.delegate).isInstanceOf(DeadlineTypeSafeClient.class);
+    }
+
+    @Test
+    void buildThrowsWhenRetryingIsWrappedTwice() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .wrap(RetryingTypeSafeClient::decorate)
+                .wrap(WrappingTypeSafeClient::new)
+                .wrap(RetryingTypeSafeClient::decorate);
+
+        // When / Then
+        assertThatThrownBy(sut::build)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("RetryingTypeSafeClient added 2 times");
+        then(httpTransport).should().close();
+    }
+
+    @Test
+    void buildThrowsWhenRetryingIsBothWrappedAndTheBuildDecorator() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .wrap(RetryingTypeSafeClient::decorate);
+
+        // When / Then
+        assertThatThrownBy(() -> sut.build(RetryingTypeSafeClient::decorate))
+                .isInstanceOf(IllegalStateException.class);
     }
 
     @Test
@@ -699,7 +729,7 @@ class TypeSafeClientTest {
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .wrap(RetryingTypeSafeClient.decorate(maxRetries, backoff))
+                .wrap(c -> RetryingTypeSafeClient.decorate(c, maxRetries, backoff))
                 .build();
     }
 }

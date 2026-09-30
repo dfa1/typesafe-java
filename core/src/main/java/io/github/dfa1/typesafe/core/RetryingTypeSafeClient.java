@@ -18,8 +18,8 @@ import java.util.function.Supplier;
  * exponential backoff from {@code initialBackoff} otherwise. Anything else propagates unchanged.
  *
  * <p>Add one via {@link DefaultTypeSafeClient.Builder#wrap(Function)}, e.g.
- * {@code builder(apiKey).wrap(RetryingTypeSafeClient.decorate()).build()}. Don't stack two:
- * the attempts multiply.
+ * {@code builder(apiKey).wrap(RetryingTypeSafeClient::decorate).build()}. Don't stack two: the
+ * attempts multiply, and {@code build()} rejects it.
  */
 public final class RetryingTypeSafeClient implements TypeSafeClient {
 
@@ -33,16 +33,17 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
         this.initialBackoff = initialBackoff;
     }
 
-    /** {@link #decorate(int, Duration)} with 5 retries, backoff starting at 500ms (500ms, 1s, 2s, 4s, 8s). */
-    public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate() {
-        return decorate(5, Duration.ofMillis(500));
+    /** Wraps {@code delegate} with 5 retries, backoff starting at 500ms (500ms, 1s, 2s, 4s, 8s).
+     *  Pass it to {@link DefaultTypeSafeClient.Builder#wrap(Function)} as
+     *  {@code wrap(RetryingTypeSafeClient::decorate)}. */
+    public static RetryingTypeSafeClient decorate(TypeSafeClient delegate) {
+        return decorate(delegate, 5, Duration.ofMillis(500));
     }
 
-    /** A decorator wrapping its delegate in a {@link RetryingTypeSafeClient}. Pass it to
-     *  {@link DefaultTypeSafeClient.Builder#wrap(Function)}, e.g.
-     *  {@code builder(apiKey).wrap(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
-    public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff) {
-        return delegate -> new RetryingTypeSafeClient(delegate, maxRetries, initialBackoff);
+    /** Wraps {@code delegate} with {@code maxRetries} retries, backoff starting at
+     *  {@code initialBackoff}, e.g. {@code wrap(c -> RetryingTypeSafeClient.decorate(c, 3, Duration.ofMillis(200)))}. */
+    public static RetryingTypeSafeClient decorate(TypeSafeClient delegate, int maxRetries, Duration initialBackoff) {
+        return new RetryingTypeSafeClient(delegate, maxRetries, initialBackoff);
     }
 
     @Override

@@ -11,7 +11,7 @@ import java.util.function.Function;
  * {@link TypeSafeClient} decorator that bounds how long one {@link #evaluate}/{@link #evaluateAsync}
  * call may take in total, failing it with {@link TypeSafeException.Timeout} once {@code deadline}
  * elapses. Placed outside a {@link RetryingTypeSafeClient} — e.g.
- * {@code builder(apiKey).wrap(RetryingTypeSafeClient.decorate()).wrap(DeadlineTypeSafeClient.decorate(deadline))} — that total
+ * {@code builder(apiKey).wrap(RetryingTypeSafeClient::decorate).wrap(c -> DeadlineTypeSafeClient.decorate(c, deadline))} — that total
  * includes every retry and backoff, and no further retry is started once it's hit. An attempt
  * already in flight isn't aborted; its response is just ignored.
  *
@@ -29,11 +29,11 @@ public final class DeadlineTypeSafeClient implements TypeSafeClient {
         this.deadline = deadline;
     }
 
-    /** A decorator wrapping its delegate in a {@link DeadlineTypeSafeClient}. Pass it to
+    /** Wraps {@code delegate} with {@code deadline}. Pass it to
      *  {@link DefaultTypeSafeClient.Builder#wrap(Function)}, e.g.
-     *  {@code builder(apiKey).wrap(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))}. */
-    public static Function<TypeSafeClient, DeadlineTypeSafeClient> decorate(Duration deadline) {
-        return delegate -> new DeadlineTypeSafeClient(delegate, deadline);
+     *  {@code wrap(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))}. */
+    public static DeadlineTypeSafeClient decorate(TypeSafeClient delegate, Duration deadline) {
+        return new DeadlineTypeSafeClient(delegate, deadline);
     }
 
     /** Runs through {@link #evaluateAsync}, so the deadline holds without a watchdog thread. */

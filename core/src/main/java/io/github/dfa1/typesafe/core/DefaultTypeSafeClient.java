@@ -9,6 +9,7 @@ import java.io.InterruptedIOException;
 import java.net.URI;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,7 +183,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         private HttpTransport transport;
         private JsonCodec jsonCodec;
         private URI endpoint = DEFAULT_ENDPOINT;
-        private Function<TypeSafeClient, TypeSafeClient> decorators = Function.identity();
+        private final List<Function<TypeSafeClient, ? extends TypeSafeClient>> wrappers = new ArrayList<>();
 
         private Builder(ApiKey apiKey) {
             this.apiKey = apiKey;
@@ -204,25 +205,41 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         }
 
         /** Adds a decorator {@link #build()} wraps the client in, e.g.
-         *  {@code RetryingTypeSafeClient.decorate()}. Each call wraps what the previous ones built,
+         *  {@code RetryingTypeSafeClient::decorate}. Each call wraps what the previous ones built,
          *  so the last added is outermost. {@code build()} returns a plain {@link TypeSafeClient};
          *  for a decorator whose own methods you need, pass it to {@link #build(Function)} instead. */
         public Builder wrap(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
-            this.decorators = decorators.andThen(decorator);
+            wrappers.add(decorator);
             return this;
         }
 
+        /** Throws {@link IllegalStateException} if no {@link HttpTransport}/{@link JsonCodec} is
+         *  set or discoverable, or if more than one {@link RetryingTypeSafeClient} was added
+         *  (the attempts would multiply). */
         public TypeSafeClient build() {
-            HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
-            JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            return decorators.apply(new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint));
+            return build(Function.<TypeSafeClient>identity());
         }
 
         /** {@link #build()}, then applies {@code decorate} to the result as the outermost
          *  decorator (outside every {@link #wrap}), returning its own type — e.g.
          *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
-            return decorate.apply(build());
+            HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
+            JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
+            TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
+            int retrying = 0;
+            for (Function<TypeSafeClient, ? extends TypeSafeClient> wrapper : wrappers) {
+                client = wrapper.apply(client);
+                retrying += client instanceof RetryingTypeSafeClient ? 1 : 0;
+            }
+            T result = decorate.apply(client);
+            retrying += result != client && result instanceof RetryingTypeSafeClient ? 1 : 0;
+            if (retrying > 1) {
+                result.close();
+                throw new IllegalStateException(
+                        "RetryingTypeSafeClient added " + retrying + " times; the attempts would multiply. Add it once.");
+            }
+            return result;
         }
 
         private static HttpTransport loadDefaultHttpTransport() {

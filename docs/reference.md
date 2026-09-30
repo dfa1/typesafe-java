@@ -374,35 +374,36 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
 | `wrap(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator `build()` wraps the client in, each around what the previous ones built (last added outermost) |
-| `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
+| `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
 | `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `wrap(...)`. |
 
 ### `RetryingTypeSafeClient`
 
 ```java
-public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate()   // 5 retries, from 500ms
-public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff)
+public static RetryingTypeSafeClient decorate(TypeSafeClient delegate)   // 5 retries, from 500ms
+public static RetryingTypeSafeClient decorate(TypeSafeClient delegate, int maxRetries, Duration initialBackoff)
 ```
 
-An opt-in `TypeSafeClient` decorator, added via `Builder.wrap(...)`: retries a `TypeSafeException.Connection`/`.Timeout`, or a
+An opt-in `TypeSafeClient` decorator, added via `Builder.wrap(RetryingTypeSafeClient::decorate)`
+(or a lambda for the tuned overload): retries a `TypeSafeException.Connection`/`.Timeout`, or a
 `TypeSafeException` with status `408`/`429`/any `5xx`, up to `maxRetries` times. Waits
 `RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present (the HTTP-date form of
 `Retry-After` isn't parsed), `initialBackoff` doubled per
 attempt otherwise. Any other exception propagates unchanged, as does the last one once retries run
 out. `evaluate`/`listModels` sleep on the calling thread; `evaluateAsync` schedules each retry via
 `CompletableFuture.delayedExecutor`, and stops scheduling them once the returned future is already
-done (e.g. timed out by `DeadlineTypeSafeClient`, or cancelled). Don't wrap twice: the attempts
-multiply.
+done (e.g. timed out by `DeadlineTypeSafeClient`, or cancelled). Add it once: `Builder.build()` throws
+`IllegalStateException` on more than one, since the attempts would multiply.
 
 ### `DeadlineTypeSafeClient`
 
 ```java
-public static Function<TypeSafeClient, DeadlineTypeSafeClient> decorate(Duration deadline)
+public static DeadlineTypeSafeClient decorate(TypeSafeClient delegate, Duration deadline)
 ```
 
 A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
-once `deadline` elapses. Outside a `RetryingTypeSafeClient` (`wrap(RetryingTypeSafeClient.decorate())` first, then
-`wrap(DeadlineTypeSafeClient.decorate(d))`), that's a total budget for the call: retries and backoffs
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (`wrap(RetryingTypeSafeClient::decorate)` first, then
+`wrap(c -> DeadlineTypeSafeClient.decorate(c, d))`), that's a total budget for the call: retries and backoffs
 count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
 instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is

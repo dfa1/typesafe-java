@@ -194,7 +194,7 @@ decision record.
 
 ## Why retries are bounded and exponential
 
-`RetryingTypeSafeClient.decorate()` retries `408`, `429`, and any `5xx` up to 5 times, doubling
+`RetryingTypeSafeClient::decorate` retries `408`, `429`, and any `5xx` up to 5 times, doubling
 the backoff from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other status — including a retryable
 one that outlasts the retry budget — surfaces immediately as
 `TypeSafeException` rather than being swallowed or retried indefinitely: a caller should always
@@ -214,14 +214,22 @@ the decorator never sees the raw response headers.
 It's also opt-in: `build()` returns a client that makes one attempt per call. Applying it by
 default would need an opt-out knob (`maxRetries(0)`), plus a second way to configure the same
 thing (builder setters *and* `decorate(...)`), plus a double-retry trap for anyone adding their
-own. One explicit `wrap(RetryingTypeSafeClient.decorate())` is cheaper than all three. Its
+own. One explicit `wrap(RetryingTypeSafeClient::decorate)` is cheaper than all three. Its
 parameters stay configurable for the same reason the endpoint is: fast unit tests don't have to
 wait out a real 500ms+ backoff.
 
 Stacking decorators was first left to `Function#andThen` inside `build(...)`, which works but is
 hard to discover. `Builder#wrap(...)` adds them one call at a time, each around what the previous
 ones built — the name says it adds rather than replaces, and makes last-added-outermost the
-natural reading.
+natural reading. Every decorator's `decorate` takes the client to wrap first, the same shape as
+`MappingTypeSafeClient.decorate`, so the no-argument cases are method references
+(`RetryingTypeSafeClient::decorate`) and the rest are a lambda.
+
+Order changes behavior (a deadline outside retrying is a total budget, inside it's per attempt),
+but only one order is ever wrong: two `RetryingTypeSafeClient`s, which multiply attempts.
+`build()` rejects that one, since it sees each decorator as it applies it. It can't see a
+`RetryingTypeSafeClient` hidden inside a caller's own decorator; every other ordering is a valid
+choice, so it's documented rather than enforced.
 
 ## Why `evaluateAsync` isn't just `evaluate` wrapped in `supplyAsync`
 

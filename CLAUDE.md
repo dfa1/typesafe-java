@@ -17,8 +17,11 @@ core      — TypeSafeClient (interface; the only implementation, DefaultTypeSaf
             DefaultTypeSafeClient does one request, one response, no retries by default.
             Retry/backoff is the opt-in RetryingTypeSafeClient decorator (classifies by
             TypeSafeException, not raw responses); DeadlineTypeSafeClient caps a call's total
-            time. Both are added via Builder.wrap(RetryingTypeSafeClient.decorate()) etc. (each
+            time. Both are added via Builder.wrap(RetryingTypeSafeClient::decorate) etc. (each
             wrap is outside the previous; build(Function) is outermost and keeps its type).
+            Every decorator's static decorate(...) takes the delegate first, like
+            MappingTypeSafeClient.decorate. build() throws if RetryingTypeSafeClient is added
+            more than once.
             RetryingTypeSafeClient stops retrying once its returned future is done. ApiKey,
             TypeSafeException, and the wire DTOs (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in

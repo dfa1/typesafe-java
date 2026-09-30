@@ -343,11 +343,11 @@ A client from `build()` makes exactly one attempt per call. Add retries with
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .wrap(RetryingTypeSafeClient.decorate())                              // 5 retries, from 500ms
+        .wrap(RetryingTypeSafeClient::decorate)                                    // 5 retries, from 500ms
         .build();
 
 TypeSafeClient tuned = TypeSafeClient.builder(token)
-        .wrap(RetryingTypeSafeClient.decorate(2, Duration.ofMillis(100)))     // 2 retries, from 100ms
+        .wrap(c -> RetryingTypeSafeClient.decorate(c, 2, Duration.ofMillis(100)))  // 2 retries, from 100ms
         .build();
 ```
 
@@ -358,8 +358,8 @@ TypeSafeClient tuned = TypeSafeClient.builder(token)
 - a connection failure or a request timeout (`TypeSafeException.Connection`/`.Timeout`)
 
 Any other failure, or a retryable one that's still failing once retries run out, throws
-`TypeSafeException` (see [reference](reference.md#typesafeexception)). Don't wrap twice: the
-attempts multiply.
+`TypeSafeException` (see [reference](reference.md#typesafeexception)). Add it once: two would
+multiply the attempts, so `build()` throws `IllegalStateException` if it sees more than one.
 
 ## Cap the total time of a call, retries included
 
@@ -369,15 +369,30 @@ whole call:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .wrap(RetryingTypeSafeClient.decorate())
-        .wrap(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
+        .wrap(RetryingTypeSafeClient::decorate)
+        .wrap(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
         .build();
 ```
 
 Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further
 retry is started (an attempt already in flight isn't aborted; its response is ignored).
 `listModels` isn't bounded. Order matters: wrapped the other way round, the deadline applies to
-each attempt instead.
+each attempt instead — see the next section.
+
+## Choose the order of decorators
+
+Each `wrap(...)` goes around everything added before it; `build(...)`'s decorator goes around all
+of them. The order changes behavior:
+
+| Stack (innermost → outermost) | Effect |
+|---|---|
+| retrying → deadline | the deadline is a **total** budget, retries included |
+| deadline → retrying | the deadline is **per attempt**; a timed-out attempt is retried |
+| retrying → retrying | attempts multiply — `build()` rejects this |
+| retrying → your metrics | metrics count **logical calls** (what the caller sees) |
+| your metrics → retrying | metrics count **attempts** |
+| `FailingTypeSafeClient` → retrying | injected failures are retried — handy for testing retry itself |
+| `MappingTypeSafeClient` anywhere but outermost | its own methods are unreachable; pass it to `build(...)`, which keeps its type |
 
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
@@ -426,7 +441,7 @@ Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeCl
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token)
         .wrap(caching)
-        .wrap(RetryingTypeSafeClient.decorate())
+        .wrap(RetryingTypeSafeClient::decorate)
         .build(MappingTypeSafeClient::decorate);
 ```
 
