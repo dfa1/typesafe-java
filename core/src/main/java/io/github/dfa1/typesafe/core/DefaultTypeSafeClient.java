@@ -186,6 +186,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         private URI endpoint = DEFAULT_ENDPOINT;
         private int maxRetries = DEFAULT_MAX_RETRIES;
         private Duration initialBackoff = DEFAULT_INITIAL_BACKOFF;
+        private Function<TypeSafeClient, TypeSafeClient> decorators = Function.identity();
 
         private Builder(ApiKey apiKey) {
             this.apiKey = apiKey;
@@ -216,16 +217,28 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             return this;
         }
 
+        /** Adds a decorator {@link #build()} wraps the client in, e.g.
+         *  {@code DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20))}. Applied in call
+         *  order, each around the previous one (so the last added is outermost), all outside the
+         *  built-in {@link RetryingTypeSafeClient}. {@code build()} returns a plain
+         *  {@link TypeSafeClient}; for a decorator whose own methods you need, pass it to
+         *  {@link #build(Function)} instead. */
+        public Builder decorator(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
+            this.decorators = decorators.andThen(decorator);
+            return this;
+        }
+
         public TypeSafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
             TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
-            return maxRetries > 0 ? new RetryingTypeSafeClient(client, maxRetries, initialBackoff) : client;
+            TypeSafeClient retrying = maxRetries > 0 ? new RetryingTypeSafeClient(client, maxRetries, initialBackoff) : client;
+            return decorators.apply(retrying);
         }
 
-        /** {@link #build()}, then applies {@code decorate} to the result — e.g.
-         *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. Stack more than one
-         *  decorator via {@link Function#andThen}. */
+        /** {@link #build()}, then applies {@code decorate} to the result as the outermost
+         *  decorator, returning its own type — e.g.
+         *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
             return decorate.apply(build());
         }

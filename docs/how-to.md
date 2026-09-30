@@ -360,7 +360,9 @@ and wrap your own:
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
         .maxRetries(0)
-        .build(caching.andThen(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200))));
+        .decorator(caching)
+        .decorator(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))
+        .build();
 ```
 
 Don't stack two retrying decorators: the attempts multiply (`(1 + 5) × (1 + 3)` calls, worst case).
@@ -373,7 +375,8 @@ call:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .build(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)));
+        .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
+        .build();
 ```
 
 Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further
@@ -417,13 +420,18 @@ CachingTypeSafeClient client = TypeSafeClient.builder(token)
         .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
 ```
 
-Stack more than one decorator by composing the functions with `Function#andThen`:
+Stack more with `Builder#decorator(...)`: each call wraps the previous one (the last added is
+outermost), all outside the built-in retrying decorator, with `build(...)`'s decorator outermost
+of all. `decorator(...)` loses the decorator's own type — `build()` returns `TypeSafeClient` — so
+put a decorator whose own methods you need (like `MappingTypeSafeClient`) in `build(...)`:
 
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
-Function<TypeSafeClient, MappingTypeSafeClient> mapping = MappingTypeSafeClient::decorate;
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token).build(caching.andThen(mapping));
+MappingTypeSafeClient client = TypeSafeClient.builder(token)
+        .decorator(caching)
+        .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
+        .build(MappingTypeSafeClient::decorate);
 ```
 
 ## Test code that uses `TypeSafeClient` without hitting the real API

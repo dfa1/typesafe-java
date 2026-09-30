@@ -382,8 +382,9 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
 | `maxRetries(int)` | `5` — `0` skips the `RetryingTypeSafeClient` wrapper entirely |
 | `initialBackoff(Duration)` | `500ms` |
+| `decorator(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator `build()` wraps the client in: in call order (last added outermost), all outside the built-in `RetryingTypeSafeClient` |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
-| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Stack more than one via `Function#andThen`. |
+| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `decorator(...)`. |
 
 ### `RetryingTypeSafeClient`
 
@@ -407,7 +408,7 @@ public static Function<TypeSafeClient, DeadlineTypeSafeClient> decorate(Duration
 ```
 
 A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
-once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.build(DeadlineTypeSafeClient.decorate(d))`
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.decorator(DeadlineTypeSafeClient.decorate(d))`
 gives you), that's a total budget for the call: retries and backoffs
 count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout

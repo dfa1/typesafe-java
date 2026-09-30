@@ -151,8 +151,12 @@ no cast needed to reach `evaluateTyped`. It's generic, so `core` never needs to 
 `MappingTypeSafeClient` exists, and it's purely additive: the plain
 `MappingTypeSafeClient.decorate(anyDelegate)` static factory still works for every case this
 doesn't cover — there's no public constructor to call instead.
-Stacking more than one decorator needs no extra API either — `Function#andThen` (stdlib) composes
-them, so `builder(apiKey).build(caching.andThen(MappingTypeSafeClient::decorate))` already works.
+Stacking more than one decorator was first left to `Function#andThen`
+(`build(caching.andThen(MappingTypeSafeClient::decorate))`), which works but is hard to discover
+from the builder. `Builder#decorator(...)` now adds them one call at a time. It returns the
+builder, not the decorator's type, so `build()` can only return `TypeSafeClient` — which is why
+`build(Function<TypeSafeClient, T>)` stays: it's the one slot that keeps a decorator's own type
+(`MappingTypeSafeClient`'s `evaluateTyped`) without a cast.
 
 ## Why `Content` is a sealed interface, not `Object`
 

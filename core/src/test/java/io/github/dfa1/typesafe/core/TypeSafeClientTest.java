@@ -546,6 +546,38 @@ class TypeSafeClientTest {
     }
 
     @Test
+    void buildAppliesADecoratorOutsideTheRetryingOne() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .decorator(WrappingTypeSafeClient::new);
+
+        // When
+        TypeSafeClient result = sut.build();
+
+        // Then
+        assertThat(result).isInstanceOf(WrappingTypeSafeClient.class);
+        assertThat(((WrappingTypeSafeClient) result).delegate).isInstanceOf(RetryingTypeSafeClient.class);
+    }
+
+    @Test
+    void buildAppliesDecoratorsInCallOrderWithTheBuildDecoratorOutermost() {
+        // Given
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .decorator(WrappingTypeSafeClient::new)
+                .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(1)));
+
+        // When
+        WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
+
+        // Then
+        assertThat(result.delegate).isInstanceOf(DeadlineTypeSafeClient.class);
+    }
+
+    @Test
     void buildWithZeroMaxRetriesSkipsTheRetryingDecorator() {
         // Given
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))

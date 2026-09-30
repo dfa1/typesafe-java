@@ -33,9 +33,9 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
         this.initialBackoff = initialBackoff;
     }
 
-    /** A decorator wrapping its delegate in a {@link RetryingTypeSafeClient}. Pass it as the
-     *  {@code decorate} argument to {@link DefaultTypeSafeClient.Builder#build(Function)}, e.g.
-     *  {@code builder(apiKey).maxRetries(0).build(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
+    /** A decorator wrapping its delegate in a {@link RetryingTypeSafeClient}. Pass it to
+     *  {@link DefaultTypeSafeClient.Builder#decorator(Function)}, e.g.
+     *  {@code builder(apiKey).maxRetries(0).decorator(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
     public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff) {
         return delegate -> new RetryingTypeSafeClient(delegate, maxRetries, initialBackoff);
     }
