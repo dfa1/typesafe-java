@@ -388,7 +388,7 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 ### `RetryingTypeSafeClient`
 
 ```java
-public RetryingTypeSafeClient(TypeSafeClient delegate, int maxRetries, Duration initialBackoff)
+public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff)
 ```
 
 A `TypeSafeClient` decorator: retries a `TypeSafeException.Connection`/`.Timeout`, or a
@@ -403,12 +403,12 @@ one — set `maxRetries(0)` before wrapping another, or the attempts multiply.
 ### `DeadlineTypeSafeClient`
 
 ```java
-public DeadlineTypeSafeClient(TypeSafeClient delegate, Duration deadline)
+public static Function<TypeSafeClient, DeadlineTypeSafeClient> decorate(Duration deadline)
 ```
 
 A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
-once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.build(c -> new
-DeadlineTypeSafeClient(c, d))` gives you), that's a total budget for the call: retries and backoffs
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.build(DeadlineTypeSafeClient.decorate(d))`
+gives you), that's a total budget for the call: retries and backoffs
 count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
 instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is

@@ -354,14 +354,13 @@ throws `TypeSafeException` — `TypeSafeException.Connection`/`.Timeout` for the
 
 Retrying is its own decorator, `RetryingTypeSafeClient`, which `build()` wraps the client in.
 `maxRetries(0)` skips it — one request, one response. To place it yourself — e.g. with a different
-budget, around the `CachingTypeSafeClient` from the next section — turn off the built-in one
-first and wrap your own:
+budget, around the `caching` decorator from the next section — turn off the built-in one first
+and wrap your own:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
         .maxRetries(0)
-        .build(c -> new RetryingTypeSafeClient(
-                new CachingTypeSafeClient(c, new ConcurrentHashMap<>()), 3, Duration.ofMillis(200)));
+        .build(caching.andThen(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200))));
 ```
 
 Don't stack two retrying decorators: the attempts multiply (`(1 + 5) × (1 + 3)` calls, worst case).
@@ -374,7 +373,7 @@ call:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .build(c -> new DeadlineTypeSafeClient(c, Duration.ofSeconds(20)));
+        .build(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)));
 ```
 
 Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further

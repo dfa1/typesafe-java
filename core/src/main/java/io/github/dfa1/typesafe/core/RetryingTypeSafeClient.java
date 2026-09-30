@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -26,10 +27,17 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
     private final int maxRetries;
     private final Duration initialBackoff;
 
-    public RetryingTypeSafeClient(TypeSafeClient delegate, int maxRetries, Duration initialBackoff) {
+    RetryingTypeSafeClient(TypeSafeClient delegate, int maxRetries, Duration initialBackoff) {
         this.delegate = delegate;
         this.maxRetries = maxRetries;
         this.initialBackoff = initialBackoff;
+    }
+
+    /** A decorator wrapping its delegate in a {@link RetryingTypeSafeClient}. Pass it as the
+     *  {@code decorate} argument to {@link DefaultTypeSafeClient.Builder#build(Function)}, e.g.
+     *  {@code builder(apiKey).maxRetries(0).build(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
+    public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff) {
+        return delegate -> new RetryingTypeSafeClient(delegate, maxRetries, initialBackoff);
     }
 
     @Override
