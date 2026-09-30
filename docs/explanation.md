@@ -141,7 +141,7 @@ a `FailingTypeSafeClient` for testing, a test double) — a builder that constru
 `DefaultTypeSafeClient` internally would bake in "wrap a fresh default client" as the only path,
 against the entire reason the decorator shape exists (see "Why `TypeSafeClient` is an interface,
 not a final class" above). It would also duplicate `DefaultTypeSafeClient.Builder`'s whole
-surface (`httpTransport`, `jsonCodec`, `endpoint`, `maxRetries`, `initialBackoff`) as forwarding
+surface (`httpTransport`, `jsonCodec`, `endpoint`, ...) as forwarding
 methods that go stale the moment the original gains an option this copy doesn't.
 
 What shipped instead is a single addition to the *existing* `Builder`:
@@ -151,10 +151,8 @@ no cast needed to reach `evaluateTyped`. It's generic, so `core` never needs to 
 `MappingTypeSafeClient` exists, and it's purely additive: the plain
 `MappingTypeSafeClient.decorate(anyDelegate)` static factory still works for every case this
 doesn't cover — there's no public constructor to call instead.
-Stacking more than one decorator was first left to `Function#andThen`
-(`build(caching.andThen(MappingTypeSafeClient::decorate))`), which works but is hard to discover
-from the builder. `Builder#decorator(...)` now adds them one call at a time. It returns the
-builder, not the decorator's type, so `build()` can only return `TypeSafeClient` — which is why
+Stacking more than one decorator goes through `Builder#wrap(...)` (see "Why retrying is a
+decorator" below). It returns the builder, not the decorator's type, so `build()` can only return `TypeSafeClient` — which is why
 `build(Function<TypeSafeClient, T>)` stays: it's the one slot that keeps a decorator's own type
 (`MappingTypeSafeClient`'s `evaluateTyped`) without a cast.
 
@@ -196,8 +194,8 @@ decision record.
 
 ## Why retries are bounded and exponential
 
-`evaluate`/`evaluateAsync` retry `408`, `429`, and any `5xx` up to 5 times, doubling the backoff
-from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other status — including a retryable
+`RetryingTypeSafeClient.decorate()` retries `408`, `429`, and any `5xx` up to 5 times, doubling
+the backoff from an initial 500ms each time (500ms, 1s, 2s, 4s, 8s). Any other status — including a retryable
 one that outlasts the retry budget — surfaces immediately as
 `TypeSafeException` rather than being swallowed or retried indefinitely: a caller should always
 be able to tell "this request permanently failed" from "this request is still in flight,"
@@ -211,15 +209,19 @@ decorator like everything else here (`mapping`, `testkit`'s `FailingTypeSafeClie
 own cache) — so it couldn't be turned off, reordered relative to other decorators, or replaced
 without reimplementing the client. `RetryingTypeSafeClient` now does it purely in terms of the
 `TypeSafeException` the client throws, which is why `InternalServer` carries `retryAfter()` too:
-the decorator never sees the raw response headers. `Builder.build()` still applies it by default,
-so zero-config behavior didn't change.
+the decorator never sees the raw response headers.
 
-## Why the endpoint, retry count, and backoff are configurable
+It's also opt-in: `build()` returns a client that makes one attempt per call. Applying it by
+default would need an opt-out knob (`maxRetries(0)`), plus a second way to configure the same
+thing (builder setters *and* `decorate(...)`), plus a double-retry trap for anyone adding their
+own. One explicit `wrap(RetryingTypeSafeClient.decorate())` is cheaper than all three. Its
+parameters stay configurable for the same reason the endpoint is: fast unit tests don't have to
+wait out a real 500ms+ backoff.
 
-They started as `private static final` constants. Making them `Builder` options costs three
-setters and three fields, and buys two things: pointing at a staging endpoint without an
-environment-specific subclass, and fast unit tests — `TypeSafeClientTest` doesn't need to wait
-out a real 500ms+ backoff because nothing forces it to use the production default.
+Stacking decorators was first left to `Function#andThen` inside `build(...)`, which works but is
+hard to discover. `Builder#wrap(...)` adds them one call at a time, each around what the previous
+ones built — the name says it adds rather than replaces, and makes last-added-outermost the
+natural reading.
 
 ## Why `evaluateAsync` isn't just `evaluate` wrapped in `supplyAsync`
 

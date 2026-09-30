@@ -10,16 +10,16 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * {@link TypeSafeClient} decorator that retries a {@code 408}/{@code 429}/any {@code 5xx}
+ * Opt-in {@link TypeSafeClient} decorator that retries a {@code 408}/{@code 429}/any {@code 5xx}
  * {@link TypeSafeException}, or a {@link TypeSafeException.Connection} (including
  * {@link TypeSafeException.Timeout}), up to {@code maxRetries} times. Waits the server's
  * {@code retry-after}/{@code retry-after-ms} when the exception carries one
  * ({@link TypeSafeException.RateLimit#retryAfter()}/{@link TypeSafeException.InternalServer#retryAfter()}),
  * exponential backoff from {@code initialBackoff} otherwise. Anything else propagates unchanged.
  *
- * <p>{@link DefaultTypeSafeClient.Builder#build()} already wraps the client in one of these
- * (configured via {@code maxRetries}/{@code initialBackoff}). To wrap your own instead, set
- * {@code maxRetries(0)} on the builder first — stacking two multiplies the attempts.
+ * <p>Add one via {@link DefaultTypeSafeClient.Builder#wrap(Function)}, e.g.
+ * {@code builder(apiKey).wrap(RetryingTypeSafeClient.decorate()).build()}. Don't stack two:
+ * the attempts multiply.
  */
 public final class RetryingTypeSafeClient implements TypeSafeClient {
 
@@ -33,9 +33,14 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
         this.initialBackoff = initialBackoff;
     }
 
+    /** {@link #decorate(int, Duration)} with 5 retries, backoff starting at 500ms (500ms, 1s, 2s, 4s, 8s). */
+    public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate() {
+        return decorate(5, Duration.ofMillis(500));
+    }
+
     /** A decorator wrapping its delegate in a {@link RetryingTypeSafeClient}. Pass it to
-     *  {@link DefaultTypeSafeClient.Builder#decorator(Function)}, e.g.
-     *  {@code builder(apiKey).maxRetries(0).decorator(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
+     *  {@link DefaultTypeSafeClient.Builder#wrap(Function)}, e.g.
+     *  {@code builder(apiKey).wrap(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))}. */
     public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff) {
         return delegate -> new RetryingTypeSafeClient(delegate, maxRetries, initialBackoff);
     }

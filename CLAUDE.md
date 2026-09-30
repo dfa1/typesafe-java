@@ -14,10 +14,11 @@ core      — TypeSafeClient (interface; the only implementation, DefaultTypeSaf
             public and owns Builder — TypeSafeClient.builder(...) is a one-line delegate to
             DefaultTypeSafeClient.builder(...), so call sites don't change. A consumer can
             implement TypeSafeClient itself to decorate one, e.g. with caching).
-            DefaultTypeSafeClient does one request, one response; retry/backoff is the
-            RetryingTypeSafeClient decorator (classifies by TypeSafeException, not raw
-            responses), which Builder.build() wraps around it unless maxRetries(0);
-            DeadlineTypeSafeClient caps a call's total time (opt-in, via Builder.decorator(...)) and
+            DefaultTypeSafeClient does one request, one response, no retries by default.
+            Retry/backoff is the opt-in RetryingTypeSafeClient decorator (classifies by
+            TypeSafeException, not raw responses); DeadlineTypeSafeClient caps a call's total
+            time. Both are added via Builder.wrap(RetryingTypeSafeClient.decorate()) etc. (each
+            wrap is outside the previous; build(Function) is outermost and keeps its type).
             RetryingTypeSafeClient stops retrying once its returned future is done. ApiKey,
             TypeSafeException, and the wire DTOs (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in

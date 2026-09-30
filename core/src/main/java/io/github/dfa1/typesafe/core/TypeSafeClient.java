@@ -18,12 +18,11 @@ public interface TypeSafeClient extends AutoCloseable {
     }
 
     /**
-     * Evaluates {@code request} synchronously, blocking until a response arrives or the retry
-     * budget is exhausted. A client from {@link #builder} retries a {@code 408}/{@code 429}/any
-     * {@code 5xx} status, or a connection failure, up to {@code maxRetries} times (see
-     * {@link RetryingTypeSafeClient}). All of the
+     * Evaluates {@code request} synchronously, blocking until a response arrives. A client from
+     * {@link #builder} makes exactly one attempt; wrap it in {@link RetryingTypeSafeClient} to
+     * retry. All of the
      * following throw {@link TypeSafeException}: any other non-{@code 200} status; a connection
-     * failure/timeout once retries are exhausted ({@link TypeSafeException.Connection}/
+     * failure/timeout ({@link TypeSafeException.Connection}/
      * {@link TypeSafeException.Timeout}); the calling thread being interrupted while waiting
      * ({@link TypeSafeException.Interrupted}, which restores the thread's interrupt status
      * before throwing).
@@ -31,7 +30,7 @@ public interface TypeSafeClient extends AutoCloseable {
     EvaluateResponse evaluate(EvaluateRequest request);
 
     /**
-     * Asynchronous form of {@link #evaluate}: same retry policy, but returns immediately with a
+     * Asynchronous form of {@link #evaluate}: returns immediately with a
      * {@link CompletableFuture} that completes with the response, or completes exceptionally
      * with {@link TypeSafeException}.
      */

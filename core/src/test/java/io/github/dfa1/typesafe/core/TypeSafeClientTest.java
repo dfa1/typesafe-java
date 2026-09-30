@@ -542,23 +542,23 @@ class TypeSafeClientTest {
         WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
 
         // Then
-        assertThat(result.delegate).isInstanceOf(RetryingTypeSafeClient.class);
+        assertThat(result.delegate).isInstanceOf(DefaultTypeSafeClient.class);
     }
 
     @Test
-    void buildAppliesADecoratorOutsideTheRetryingOne() {
+    void buildWrapsTheClientInAWrapper() {
         // Given
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .decorator(WrappingTypeSafeClient::new);
+                .wrap(WrappingTypeSafeClient::new);
 
         // When
         TypeSafeClient result = sut.build();
 
         // Then
         assertThat(result).isInstanceOf(WrappingTypeSafeClient.class);
-        assertThat(((WrappingTypeSafeClient) result).delegate).isInstanceOf(RetryingTypeSafeClient.class);
+        assertThat(((WrappingTypeSafeClient) result).delegate).isInstanceOf(DefaultTypeSafeClient.class);
     }
 
     @Test
@@ -567,8 +567,8 @@ class TypeSafeClientTest {
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .decorator(WrappingTypeSafeClient::new)
-                .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(1)));
+                .wrap(WrappingTypeSafeClient::new)
+                .wrap(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(1)));
 
         // When
         WrappingTypeSafeClient result = sut.build(WrappingTypeSafeClient::new);
@@ -578,12 +578,11 @@ class TypeSafeClientTest {
     }
 
     @Test
-    void buildWithZeroMaxRetriesSkipsTheRetryingDecorator() {
+    void buildWithoutWrappersReturnsAPlainDefaultTypeSafeClient() {
         // Given
         DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
                 .httpTransport(httpTransport)
-                .jsonCodec(jsonCodec)
-                .maxRetries(0);
+                .jsonCodec(jsonCodec);
 
         // When
         TypeSafeClient result = sut.build();
@@ -624,7 +623,7 @@ class TypeSafeClientTest {
 
         // Then
         assertThat(result.delegate).isInstanceOf(WrappingTypeSafeClient.class);
-        assertThat(((WrappingTypeSafeClient) result.delegate).delegate).isInstanceOf(RetryingTypeSafeClient.class);
+        assertThat(((WrappingTypeSafeClient) result.delegate).delegate).isInstanceOf(DefaultTypeSafeClient.class);
     }
 
     /** Minimal decorator: just enough to prove {@code Builder#build(Function)} wires a decorator
@@ -700,8 +699,7 @@ class TypeSafeClientTest {
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
-                .initialBackoff(backoff)
-                .maxRetries(maxRetries)
+                .wrap(RetryingTypeSafeClient.decorate(maxRetries, backoff))
                 .build();
     }
 }

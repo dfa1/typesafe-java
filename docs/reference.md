@@ -353,20 +353,13 @@ concern, not the interface's. Nothing about the call site changes: `TypeSafeClie
 still works exactly as before.
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
-`/v1/models` on the same scheme/authority. `build()` wraps the client in a
-`RetryingTypeSafeClient` (see below) unless `maxRetries(0)`, so all three methods retry up to
-`maxRetries` times (default `5`) on:
-
-- status `408`, `429`, or any `5xx` — honoring a `retry-after`/`retry-after-ms` response header
-  when present (the HTTP-date form of `Retry-After` isn't parsed; that case falls back to
-  backoff), otherwise exponential backoff from `initialBackoff` (default `500ms`, doubled each
-  attempt)
-- any `IOException` from the transport (a connection failure, or `JdkHttpTransport`'s request
-  timeout expiring — see below), backed off the same exponential schedule
+`/v1/models` on the same scheme/authority. A client from `build()` makes exactly one attempt per
+call — no retries unless wrapped in a `RetryingTypeSafeClient` (see below). Any `IOException` from
+the transport becomes `TypeSafeException.Connection`, or `.Timeout` for a timeout.
 
 None of the three methods declares a checked exception — every failure is an unchecked
-`TypeSafeException` (see below), including a connection failure/timeout still failing after
-`maxRetries`, and the calling thread being interrupted while waiting. See
+`TypeSafeException` (see below), including a connection failure/timeout and the calling thread
+being interrupted while waiting. See
 [ADR 0002](../adr/0002-no-checked-exceptions.md) for why.
 
 `TypeSafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
@@ -380,26 +373,26 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
 | `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
-| `maxRetries(int)` | `5` — `0` skips the `RetryingTypeSafeClient` wrapper entirely |
-| `initialBackoff(Duration)` | `500ms` |
-| `decorator(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator `build()` wraps the client in: in call order (last added outermost), all outside the built-in `RetryingTypeSafeClient` |
+| `wrap(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator `build()` wraps the client in, each around what the previous ones built (last added outermost) |
 | `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable |
-| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `decorator(...)`. |
+| `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `wrap(...)`. |
 
 ### `RetryingTypeSafeClient`
 
 ```java
+public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate()   // 5 retries, from 500ms
 public static Function<TypeSafeClient, RetryingTypeSafeClient> decorate(int maxRetries, Duration initialBackoff)
 ```
 
-A `TypeSafeClient` decorator: retries a `TypeSafeException.Connection`/`.Timeout`, or a
+An opt-in `TypeSafeClient` decorator, added via `Builder.wrap(...)`: retries a `TypeSafeException.Connection`/`.Timeout`, or a
 `TypeSafeException` with status `408`/`429`/any `5xx`, up to `maxRetries` times. Waits
-`RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present, `initialBackoff` doubled per
+`RateLimit#retryAfter()`/`InternalServer#retryAfter()` when present (the HTTP-date form of
+`Retry-After` isn't parsed), `initialBackoff` doubled per
 attempt otherwise. Any other exception propagates unchanged, as does the last one once retries run
 out. `evaluate`/`listModels` sleep on the calling thread; `evaluateAsync` schedules each retry via
 `CompletableFuture.delayedExecutor`, and stops scheduling them once the returned future is already
-done (e.g. timed out by `DeadlineTypeSafeClient`, or cancelled). `Builder.build()` already applies
-one — set `maxRetries(0)` before wrapping another, or the attempts multiply.
+done (e.g. timed out by `DeadlineTypeSafeClient`, or cancelled). Don't wrap twice: the attempts
+multiply.
 
 ### `DeadlineTypeSafeClient`
 
@@ -408,8 +401,8 @@ public static Function<TypeSafeClient, DeadlineTypeSafeClient> decorate(Duration
 ```
 
 A `TypeSafeClient` decorator that fails `evaluate`/`evaluateAsync` with `TypeSafeException.Timeout`
-once `deadline` elapses. Outside a `RetryingTypeSafeClient` (what `builder.decorator(DeadlineTypeSafeClient.decorate(d))`
-gives you), that's a total budget for the call: retries and backoffs
+once `deadline` elapses. Outside a `RetryingTypeSafeClient` (`wrap(RetryingTypeSafeClient.decorate())` first, then
+`wrap(DeadlineTypeSafeClient.decorate(d))`), that's a total budget for the call: retries and backoffs
 count against it, and `RetryingTypeSafeClient` starts no further attempt once it's hit. An attempt
 already in flight isn't aborted. Inside a `RetryingTypeSafeClient`, it's a per-attempt timeout
 instead (`Timeout` is retryable). `evaluate` runs through `evaluateAsync`, so no watchdog thread is
@@ -443,7 +436,7 @@ separate checked-equivalent `TypeSafeAPIConnectionError`/`TypeSafeAPITimeoutErro
 | `TypeSafeException.RateLimit` | `429` — `retryAfter()` returns the `retry-after`/`retry-after-ms` header as an `Optional<Duration>` |
 | `TypeSafeException.InternalServer` | any `5xx` — `retryAfter()` as for `RateLimit` (e.g. a `503` with `retry-after`) |
 | `TypeSafeException.ResponseDecoding` | `200`, but decoding the body failed |
-| `TypeSafeException.Connection` | no HTTP response — the transport couldn't reach TypeSafe, once retries are exhausted |
+| `TypeSafeException.Connection` | no HTTP response — the transport couldn't reach TypeSafe |
 | `TypeSafeException.Timeout` | a `Connection` specifically caused by a timeout |
 | `TypeSafeException.Interrupted` | the calling thread was interrupted while waiting for a response |
 

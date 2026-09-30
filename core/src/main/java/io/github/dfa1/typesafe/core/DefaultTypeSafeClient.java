@@ -20,8 +20,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 
 /** The only {@link TypeSafeClient} implementation this library ships; built via {@link #builder}.
- *  One request, one response: retries live in {@link RetryingTypeSafeClient}, which
- *  {@link Builder#build()} wraps this in unless {@code maxRetries(0)}. */
+ *  One request, one response, no retries — add {@link RetryingTypeSafeClient} via
+ *  {@link Builder#wrap(Function)} for those. */
 public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private final HttpTransport transport;
@@ -177,15 +177,11 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     public static final class Builder {
         private static final URI DEFAULT_ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
-        private static final int DEFAULT_MAX_RETRIES = 5;
-        private static final Duration DEFAULT_INITIAL_BACKOFF = Duration.ofMillis(500);
 
         private final ApiKey apiKey;
         private HttpTransport transport;
         private JsonCodec jsonCodec;
         private URI endpoint = DEFAULT_ENDPOINT;
-        private int maxRetries = DEFAULT_MAX_RETRIES;
-        private Duration initialBackoff = DEFAULT_INITIAL_BACKOFF;
         private Function<TypeSafeClient, TypeSafeClient> decorators = Function.identity();
 
         private Builder(ApiKey apiKey) {
@@ -207,23 +203,11 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             return this;
         }
 
-        public Builder maxRetries(int maxRetries) {
-            this.maxRetries = maxRetries;
-            return this;
-        }
-
-        public Builder initialBackoff(Duration initialBackoff) {
-            this.initialBackoff = initialBackoff;
-            return this;
-        }
-
         /** Adds a decorator {@link #build()} wraps the client in, e.g.
-         *  {@code DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20))}. Applied in call
-         *  order, each around the previous one (so the last added is outermost), all outside the
-         *  built-in {@link RetryingTypeSafeClient}. {@code build()} returns a plain
-         *  {@link TypeSafeClient}; for a decorator whose own methods you need, pass it to
-         *  {@link #build(Function)} instead. */
-        public Builder decorator(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
+         *  {@code RetryingTypeSafeClient.decorate()}. Each call wraps what the previous ones built,
+         *  so the last added is outermost. {@code build()} returns a plain {@link TypeSafeClient};
+         *  for a decorator whose own methods you need, pass it to {@link #build(Function)} instead. */
+        public Builder wrap(Function<TypeSafeClient, ? extends TypeSafeClient> decorator) {
             this.decorators = decorators.andThen(decorator);
             return this;
         }
@@ -231,13 +215,11 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         public TypeSafeClient build() {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
             JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
-            TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
-            TypeSafeClient retrying = maxRetries > 0 ? new RetryingTypeSafeClient(client, maxRetries, initialBackoff) : client;
-            return decorators.apply(retrying);
+            return decorators.apply(new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint));
         }
 
         /** {@link #build()}, then applies {@code decorate} to the result as the outermost
-         *  decorator, returning its own type — e.g.
+         *  decorator (outside every {@link #wrap}), returning its own type — e.g.
          *  {@code builder(apiKey).build(MappingTypeSafeClient::decorate)}. */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
             return decorate.apply(build());

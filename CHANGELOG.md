@@ -7,10 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **`core`: `Builder.decorator(...)`** — stacks decorators from the builder (last added outermost, all outside the built-in retrying one); `build(Function)` stays for a type-preserving outermost decorator.
+- **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.wrap(RetryingTypeSafeClient.decorate())`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `wrap(...)`.
+- **`core`: `Builder.decorator(...)`** (renamed `wrap(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
 - **`core`: `RetryingTypeSafeClient.decorate(...)`/`DeadlineTypeSafeClient.decorate(...)`** — static factories returning a `Function` for `Builder.build(...)`/`andThen`, matching `MappingTypeSafeClient::decorate`; constructors are package-private.
 - **`core`: `DeadlineTypeSafeClient` caps a call's total time, retries included** — fails with `TypeSafeException.Timeout` past the deadline; `RetryingTypeSafeClient` stops retrying once its future is done.
-- **`core`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries; `build()` still wraps it by default, `maxRetries(0)` opts out, and `InternalServer` gains `retryAfter()`.
+- **`core`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries itself, and `InternalServer` gains `retryAfter()`.
 
 ## [0.6.0] - 2026-09-30
 

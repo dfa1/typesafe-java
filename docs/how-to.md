@@ -250,8 +250,8 @@ its label, `probabilities()` per ordinal, and a `confidence()`.
 
 ## Call the API asynchronously
 
-`evaluateAsync` returns a `CompletableFuture<EvaluateResponse>` and shares the same retry logic
-as `evaluate`:
+`evaluateAsync` returns a `CompletableFuture<EvaluateResponse>`, failing the same way `evaluate`
+throws:
 
 ```java
 client.evaluateAsync(request)
@@ -261,7 +261,7 @@ client.evaluateAsync(request)
 
 ## Handle API errors
 
-A non-`200`, non-retryable response (or exhausted retries) throws `TypeSafeException`, one of
+A non-`200` response throws `TypeSafeException`, one of
 its per-status subclasses (see [reference](reference.md#typesafeexception)) when the status
 matches one, or the base class itself otherwise:
 
@@ -283,9 +283,8 @@ try {
 
 `evaluate`/`evaluateAsync`/`listModels` declare no checked exception — every failure above,
 including a connection failure/timeout and the calling thread being interrupted, is an unchecked
-`TypeSafeException` (see [ADR 0002](../adr/0002-no-checked-exceptions.md)). `408`, `429`, any
-`5xx`, and a connection/timeout failure are all retried automatically with exponential backoff
-(5 attempts, starting at 500ms) before any exception is thrown.
+`TypeSafeException` (see [ADR 0002](../adr/0002-no-checked-exceptions.md)). Nothing is retried
+unless you [add retries](#retry-transient-failures).
 
 ## Use a custom `HttpClient`
 
@@ -310,9 +309,9 @@ TypeSafeClient client = TypeSafeClient.builder(token)
         .build();
 ```
 
-A timed-out request is retried automatically the same as a connection failure, up to
-`maxRetries` (see below); once retries are exhausted it surfaces as `TypeSafeException.Timeout`,
-not the transport's raw `HttpTimeoutException`.
+A timed-out request surfaces as `TypeSafeException.Timeout`, not the transport's raw
+`HttpTimeoutException` — retried like a connection failure if you
+[add retries](#retry-transient-failures).
 
 ## Close the client when you're done with it
 
@@ -329,59 +328,56 @@ try (TypeSafeClient client = TypeSafeClient.builder(token).build()) {
 A client that lives for the whole process (e.g. a singleton in a long-running service) doesn't
 need closing.
 
-## Configure the endpoint or retry policy
+## Configure the endpoint
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
         .endpoint(URI.create("https://staging.typesafe.ai/v1/systemone"))
-        .maxRetries(2)
-        .initialBackoff(Duration.ofMillis(100))
         .build();
 ```
 
-`evaluate`/`evaluateAsync`/`listModels` all retry (up to `maxRetries`, default `5`) on:
+## Retry transient failures
 
-- `408`, `429`, or any `5xx` status — honoring a `retry-after`/`retry-after-ms` response header
-  when present, falling back to exponential backoff from `initialBackoff` (default `500ms`,
-  doubled each attempt) otherwise
-- a connection failure or a request timeout (any `IOException` from the transport)
-
-Any other non-`200` status, or a retryable failure that's still failing after `maxRetries`,
-throws `TypeSafeException` — `TypeSafeException.Connection`/`.Timeout` for the latter (see
-[reference](reference.md#typesafeexception)).
-
-## Turn retries off, or put them somewhere else in a decorator stack
-
-Retrying is its own decorator, `RetryingTypeSafeClient`, which `build()` wraps the client in.
-`maxRetries(0)` skips it — one request, one response. To place it yourself — e.g. with a different
-budget, around the `caching` decorator from the next section — turn off the built-in one first
-and wrap your own:
+A client from `build()` makes exactly one attempt per call. Add retries with
+`RetryingTypeSafeClient`:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .maxRetries(0)
-        .decorator(caching)
-        .decorator(RetryingTypeSafeClient.decorate(3, Duration.ofMillis(200)))
+        .wrap(RetryingTypeSafeClient.decorate())                              // 5 retries, from 500ms
+        .build();
+
+TypeSafeClient tuned = TypeSafeClient.builder(token)
+        .wrap(RetryingTypeSafeClient.decorate(2, Duration.ofMillis(100)))     // 2 retries, from 100ms
         .build();
 ```
 
-Don't stack two retrying decorators: the attempts multiply (`(1 + 5) × (1 + 3)` calls, worst case).
+`evaluate`/`evaluateAsync`/`listModels` then retry on:
+
+- `408`, `429`, or any `5xx` status — honoring a `retry-after`/`retry-after-ms` response header
+  when present, falling back to exponential backoff (doubled each attempt) otherwise
+- a connection failure or a request timeout (`TypeSafeException.Connection`/`.Timeout`)
+
+Any other failure, or a retryable one that's still failing once retries run out, throws
+`TypeSafeException` (see [reference](reference.md#typesafeexception)). Don't wrap twice: the
+attempts multiply.
 
 ## Cap the total time of a call, retries included
 
 `JdkHttpTransport`'s timeout bounds one attempt; with retries, one `evaluate` can still take over
-a minute in the worst case. Wrap the built client in a `DeadlineTypeSafeClient` to bound the whole
-call:
+a minute in the worst case. Wrap the retrying client in a `DeadlineTypeSafeClient` to bound the
+whole call:
 
 ```java
 TypeSafeClient client = TypeSafeClient.builder(token)
-        .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
+        .wrap(RetryingTypeSafeClient.decorate())
+        .wrap(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
         .build();
 ```
 
 Past the deadline, `evaluate`/`evaluateAsync` fail with `TypeSafeException.Timeout` and no further
 retry is started (an attempt already in flight isn't aborted; its response is ignored).
-`listModels` isn't bounded.
+`listModels` isn't bounded. Order matters: wrapped the other way round, the deadline applies to
+each attempt instead.
 
 ## Decorate `TypeSafeClient` with your own cross-cutting concerns
 
@@ -420,17 +416,17 @@ CachingTypeSafeClient client = TypeSafeClient.builder(token)
         .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
 ```
 
-Stack more with `Builder#decorator(...)`: each call wraps the previous one (the last added is
-outermost), all outside the built-in retrying decorator, with `build(...)`'s decorator outermost
-of all. `decorator(...)` loses the decorator's own type — `build()` returns `TypeSafeClient` — so
-put a decorator whose own methods you need (like `MappingTypeSafeClient`) in `build(...)`:
+Stack more with `Builder#wrap(...)`: each call wraps what the previous ones built (the last
+added is outermost), with `build(...)`'s decorator outermost of all. `wrap(...)` loses the
+decorator's own type — `build()` returns `TypeSafeClient` — so put a decorator whose own methods
+you need (like `MappingTypeSafeClient`) in `build(...)`:
 
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
 
 MappingTypeSafeClient client = TypeSafeClient.builder(token)
-        .decorator(caching)
-        .decorator(DeadlineTypeSafeClient.decorate(Duration.ofSeconds(20)))
+        .wrap(caching)
+        .wrap(RetryingTypeSafeClient.decorate())
         .build(MappingTypeSafeClient::decorate);
 ```
 

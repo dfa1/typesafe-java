@@ -109,7 +109,7 @@ public sealed class TypeSafeException extends RuntimeException {
     }
 
     /** No HTTP response at all — the transport couldn't reach TypeSafe (refused connection, DNS
-     *  failure, reset, ...) even after retries. {@code statusCode()} is {@code -1} and
+     *  failure, reset, ...). {@code statusCode()} is {@code -1} and
      *  {@code body()} is {@code null}: there's no response to carry either. {@link Timeout} is
      *  thrown instead when the failure was specifically a timeout. */
     public static non-sealed class Connection extends TypeSafeException {
@@ -123,7 +123,7 @@ public sealed class TypeSafeException extends RuntimeException {
         }
     }
 
-    /** The request timed out waiting for TypeSafe to respond, after retries were exhausted. */
+    /** The request timed out waiting for TypeSafe to respond. */
     public static final class Timeout extends Connection {
         public Timeout(Throwable cause) {
             super("TypeSafe API request timed out: " + cause.getMessage(), cause);
