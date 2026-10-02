@@ -28,7 +28,7 @@ class LayaEngineTest {
 
     @BeforeAll
     static void load() throws IOException {
-        sut = LayaEngine.load(Engines.dir("laya")); // the fixture's logits are fp32
+        sut = LayaEngine.load(Engines.LAYA.dir()); // the fixture's logits are fp32
         fixture = Files.readString(Path.of("src/test/resources/laya/fixture.json"));
     }
 

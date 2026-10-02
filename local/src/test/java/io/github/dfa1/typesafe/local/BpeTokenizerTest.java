@@ -17,11 +17,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 class BpeTokenizerTest {
 
     @ParameterizedTest
-    @CsvSource({"laya, laya", "qwen, qwen"})
+    @CsvSource({"laya, LAYA", "qwen, QWEN"})
     @SuppressWarnings("unchecked")
-    void matchesHuggingFaceTokenizersOnEveryString(String name, String engine) throws Exception {
+    void matchesHuggingFaceTokenizersOnEveryString(String name, Engines engine) throws Exception {
         // Given
-        BpeTokenizer sut = BpeTokenizer.load(Engines.dir(engine).resolve("tokenizer.json"));
+        BpeTokenizer sut = BpeTokenizer.load(engine.dir().resolve("tokenizer.json"));
         List<Object> expected = (List<Object>) Json.parse(Files.readString(Path.of("src/test/resources/tokenizer/expected-" + name + ".json")));
         List<String> mismatches = new ArrayList<>();
 

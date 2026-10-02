@@ -9,8 +9,10 @@ import io.github.dfa1.typesafe.jackson2.Jackson2Codec;
 import io.github.dfa1.typesafe.json.JsonCodec;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,7 +20,7 @@ import java.util.Map;
 
 /**
  * How closely a local engine agrees with the real hosted JEV on the {@link JevCases}. JEV's
- * answers are cached under {@code src/test/resources/jev/} (first run calls the TypeSafe API,
+ * answers are cached in {@code src/test/resources/jev/<suite>.jsonl} (first run calls the TypeSafe API,
  * needs {@code ~/.typesafe.apikey}); later runs only evaluate locally. Run:
  * {@code mvn test-compile exec:exec -Dexec.classpathScope=test -Dexec.executable=java
  * "-Dexec.args=-cp %classpath io.github.dfa1.typesafe.local.JevComparison laya"} (or qwen; append -gpu for WebGPU).
@@ -77,7 +79,7 @@ public final class JevComparison {
 
         List<EvaluateResponse> local = new ArrayList<>();
         long start;
-        try (TypeSafeClient client = Engines.client(model)) {
+        try (TypeSafeClient client = Engines.of(model).client()) {
             client.evaluate(cases.getFirst().request()); // warm-up, not timed
             start = System.nanoTime();
             for (JevCases.Case c : cases) {
@@ -146,23 +148,28 @@ public final class JevComparison {
         }
     }
 
-    /** JEV's answers, from the cache or (first run, per missing case) the real TypeSafe API. */
+    /** JEV's answers, one JSON line per request in jev/<suite>.jsonl; requests missing from the cache (first run,
+     *  or cases added to a suite) are fetched from the real TypeSafe API and appended. */
     private static List<EvaluateResponse> jevAnswers(JsonCodec codec, List<JevCases.Case> cases) throws IOException {
         Files.createDirectories(CACHE);
         List<EvaluateResponse> result = new ArrayList<>();
+        Map<String, List<String>> cached = new LinkedHashMap<>();
         TypeSafeClient api = null;
         try {
             for (JevCases.Case c : cases) {
-                Path file = CACHE.resolve(c.file());
-                if (!Files.exists(file)) {
+                Path file = CACHE.resolve(c.suite() + ".jsonl");
+                List<String> lines = cached.computeIfAbsent(c.suite(), k -> readLines(file));
+                if (c.index() >= lines.size()) {
                     if (api == null) {
                         api = TypeSafeClient.builder(ApiKey.fromDefaultFile()).jsonCodec(codec).build();
                     }
                     EvaluateResponse r = api.evaluate(c.request());
                     // metadata (request id, timing) is per call, not part of the answer
-                    Files.writeString(file, codec.writeValueAsPrettyString(new EvaluateResponse(r.model(), r.answers(), r.usage(), null)));
+                    String line = codec.writeValueAsString(new EvaluateResponse(r.model(), r.answers(), r.usage(), null));
+                    Files.writeString(file, line + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                    lines.add(line);
                 }
-                result.add(codec.readValue(Files.readString(file), EvaluateResponse.class));
+                result.add(codec.readValue(lines.get(c.index()), EvaluateResponse.class));
             }
         } finally {
             if (api != null) {
@@ -170,6 +177,14 @@ public final class JevComparison {
             }
         }
         return result;
+    }
+
+    private static List<String> readLines(Path file) {
+        try {
+            return Files.exists(file) ? new ArrayList<>(Files.readAllLines(file)) : new ArrayList<>();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     static double mae(double[] a, double[] b) {

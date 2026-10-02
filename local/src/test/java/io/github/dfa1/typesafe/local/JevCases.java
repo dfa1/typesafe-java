@@ -14,9 +14,6 @@ import java.util.function.Function;
 final class JevCases {
 
     record Case(String suite, int index, EvaluateRequest request) {
-        String file() {
-            return "%s-%02d.json".formatted(suite, index);
-        }
     }
 
     private JevCases() {

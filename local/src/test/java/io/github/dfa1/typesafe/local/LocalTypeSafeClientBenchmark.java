@@ -24,7 +24,7 @@ import java.util.Map;
  * Requests/s per engine and questions per request; questions/s = score x {@code questions}. Run:
  * {@code mvn test-compile exec:exec -Dexec.classpathScope=test -Dexec.executable=java
  * "-Dexec.args=-cp %classpath org.openjdk.jmh.Main LocalTypeSafeClientBenchmark"} (narrow with
- * e.g. {@code -p engine=laya -p questions=3}).
+ * e.g. {@code -p engine=LAYA -p questions=3}).
  */
 @State(Scope.Benchmark)
 @BenchmarkMode(Mode.Throughput)
@@ -33,8 +33,8 @@ import java.util.Map;
 @Fork(1)
 public class LocalTypeSafeClientBenchmark {
 
-    @Param({"laya", "laya-gpu", "qwen", "qwen-gpu"})
-    public String engine;
+    @Param({"LAYA", "LAYA_GPU", "QWEN", "QWEN_GPU"})
+    public Engines engine;
 
     @Param({"1", "3", "10"})
     public int questions;
@@ -44,7 +44,7 @@ public class LocalTypeSafeClientBenchmark {
 
     @Setup
     public void load() {
-        sut = Engines.client(engine);
+        sut = engine.client();
         Map<String, String> kinds = new LinkedHashMap<>();
         kinds.put("billing", "payments, charges, invoices, refunds");
         kinds.put("bug", "the product crashes, errors or misbehaves");

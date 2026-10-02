@@ -23,7 +23,7 @@ class LocalTypeSafeClientModelTest {
 
     @BeforeAll
     static void load() {
-        sut = Engines.client(System.getProperty("engine", "laya"));
+        sut = Engines.of(System.getProperty("engine", "laya")).client();
     }
 
     @AfterAll
