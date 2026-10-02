@@ -72,6 +72,19 @@ class EvaluateRequestTest {
     }
 
     @Test
+    void builderKeepsTheOrderQuestionsWereAddedIn() {
+        // Given
+        EvaluateRequest.Builder sut = EvaluateRequest.builder().state("x");
+        ContentTest.SHUFFLED_KEYS.forEach(name -> sut.noul(name, "Is it " + name + "?"));
+
+        // When
+        EvaluateRequest result = sut.build();
+
+        // Then
+        assertThat(result.questions().keySet()).containsExactlyElementsOf(ContentTest.SHUFFLED_KEYS);
+    }
+
+    @Test
     void builderRejectsADuplicateQuestionName() {
         // Given
         EvaluateRequest.Builder sut = EvaluateRequest.builder()

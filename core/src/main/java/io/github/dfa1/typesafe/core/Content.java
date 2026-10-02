@@ -1,5 +1,7 @@
 package io.github.dfa1.typesafe.core;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -20,9 +22,18 @@ public sealed interface Content permits Content.Text, Content.Fields, Content.Me
         return new Text(value);
     }
 
-    /** @param fields named fields, e.g. a message alongside an order id */
+    /**
+     * @param fields named fields, e.g. a message alongside an order id; copied in the caller's iteration order (a
+     *               {@code LinkedHashMap} stays ordered), so the same request serializes the same way on every run —
+     *               {@code Map.copyOf} would reshuffle keys per JVM
+     * @throws NullPointerException for a {@code null} key or value
+     */
     static Fields fields(Map<String, Object> fields) {
-        return new Fields(Map.copyOf(fields));
+        Map<String, Object> copy = new LinkedHashMap<>(fields);
+        if (copy.containsKey(null) || copy.containsValue(null)) {
+            throw new NullPointerException("fields must not contain null keys or values");
+        }
+        return new Fields(Collections.unmodifiableMap(copy));
     }
 
     /** @param values a sequence of text values, e.g. a conversation's messages in order */

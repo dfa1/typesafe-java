@@ -70,7 +70,7 @@ independently, so one type covers both.
 | Factory | Wire shape | Example |
 |---|---|---|
 | `Content.text(String value)` | JSON string | `"My card was charged twice."` |
-| `Content.fields(Map<String, Object> fields)` | JSON object | `{"order_id": "A-104"}` |
+| `Content.fields(Map<String, Object> fields)` | JSON object, keys in the map's iteration order | `{"order_id": "A-104"}` |
 | `Content.messages(List<String> values)` | JSON array | `["Hi", "My card was charged twice."]` |
 
 ### `EvaluateRequest`
