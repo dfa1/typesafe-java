@@ -9,6 +9,8 @@ import java.util.function.BiFunction;
 public enum Engines {
     LAYA("laya-fp32", false, LayaEngine::load),
     LAYA_GPU("laya-fp32", true, LayaEngine::load),
+    LAYA_FP16("laya-fp16", false, LayaEngine::load),
+    LAYA_FP16_GPU("laya-fp16", true, LayaEngine::load),
     QWEN("qwen2.5-1.5b", false, QwenEngine::load),
     QWEN_GPU("qwen2.5-1.5b", true, QwenEngine::load);
 

@@ -626,6 +626,7 @@ Download a model directory once:
 ```bash
 cd local
 scripts/laya/download.sh               # ~/.cache/typesafe-local/laya-fp32 (onnx-community's export, 1.7 GB)
+scripts/laya/download.sh fp16          # optional: ~/.cache/typesafe-local/laya-fp16 (0.85 GB, see below)
 scripts/qwen/download.sh               # ~/.cache/typesafe-local/qwen2.5-1.5b (1.8 GB)
 ```
 
@@ -640,7 +641,8 @@ try (TypeSafeClient client = LocalTypeSafeClient.laya(Path.of(System.getProperty
 ```
 
 Laya is the recommended engine: about 55 ms for a one-question request and about 165 ms for three on an Apple M5
-CPU. Qwen is about the same size and roughly 10× slower, slightly better on choices. Measured against the real
+CPU. The fp16 variant gives the same answers in half the download, but ONNX Runtime's CPU kernels convert fp16 on the
+fly, so it's 2–3× slower on a CPU; it only pays off on a GPU. Qwen is about the same size and roughly 10× slower, slightly better on choices. Measured against the real
 `jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 64% of choices, with a mean score error
 of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
 

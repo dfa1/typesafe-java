@@ -79,8 +79,8 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
 local     — LocalTypeSafeClient (io.github.dfa1.typesafe.local): a TypeSafeClient evaluating in-process on ONNX
-            Runtime, from a model directory the caller prepares (local/scripts: download.sh for Laya fp32 =
-            onnx-community's export, Qwen download; ~/.cache/typesafe-local by convention; export_onnx.py
+            Runtime, from a model directory the caller prepares (local/scripts: download.sh [fp16] for Laya =
+            onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — Qwen download; ~/.cache/typesafe-local by convention; export_onnx.py
             only regenerates the PyTorch fixture). No int8 Laya: dynamic int8 gave CPU-dependent answers,
             silently flat distributions on some x86 CPUs. Two engines behind
             a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a

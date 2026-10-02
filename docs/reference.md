@@ -333,7 +333,7 @@ A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model 
 
 | Engine | Model | How it answers |
 |---|---|---|
-| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's fp32 export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX) | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
+| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX): fp32, or fp16 (half the size, same answers, slower on CPU) | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
 | `qwen` | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
 
 - `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);

@@ -1,7 +1,7 @@
 name: Local engines
 
 # Agreement with Jev and throughput of typesafe-java-local's engines, as a table in the job summary.
-# Model directories are cached: Laya fp32 and Qwen 4-bit, both onnx-community exports (~3.5 GB).
+# Model directories are cached: Laya fp32 (+ fp16 on macOS, for the GPU) and Qwen 4-bit, all onnx-community exports.
 on:
   workflow_dispatch:
   push:
@@ -38,6 +38,7 @@ jobs:
         working-directory: local
         run: |
           scripts/laya/download.sh
+          if [ "$RUNNER_OS" = macOS ]; then scripts/laya/download.sh fp16; fi
           scripts/qwen/download.sh
 
       - name: Build
@@ -50,7 +51,9 @@ jobs:
         working-directory: local
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
-          for e in laya qwen; do
+          ENGINES="laya qwen"
+          if [ "$RUNNER_OS" = macOS ]; then ENGINES="$ENGINES laya-fp16-gpu"; fi
+          for e in $ENGINES; do
             java -cp "$CP" io.github.dfa1.typesafe.local.JevComparison $e | tee -a ../jev.txt
           done
 
@@ -59,7 +62,7 @@ jobs:
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
           ENGINES=LAYA,QWEN
-          if [ "$RUNNER_OS" = macOS ]; then ENGINES=$ENGINES,LAYA_GPU,QWEN_GPU; fi  # WebGPU on Metal
+          if [ "$RUNNER_OS" = macOS ]; then ENGINES=$ENGINES,LAYA_GPU,LAYA_FP16_GPU,QWEN_GPU; fi  # WebGPU on Metal
           java -cp "$CP" org.openjdk.jmh.Main LocalTypeSafeClientBenchmark \
             -p engine=$ENGINES -p questions=1,3 -wi 1 -w 5 -i 3 -r 5 -f 1 -rf json -rff ../jmh.json
 
