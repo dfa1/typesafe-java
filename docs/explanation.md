@@ -15,11 +15,13 @@ is prompted and its next-token logits over the candidate answers (`Yes`/`No`, op
 after one prefill. Neither generates, so there's no output to parse and the result is deterministic. Laya is the
 recommended engine: four times smaller than Qwen, about ten times faster, and closer to Jev on yes/no and scores.
 
-The module depends only on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
-`tokenizer.json`, checked id for id against HuggingFace `tokenizers`. JSON is a minimal reader, enough for
-`tokenizer.json` and Laya's config. The alternatives were an 18 MB native tokenizer library, or a Java ML library whose
-tokenizer silently dropped newlines and special tokens. Model files come from a directory the caller prepares, never
-from a download at run time: the client works offline and a deployment pins exactly the files it runs. Laya's ONNX is
+The module depends on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
+`tokenizer.json`, checked id for id against HuggingFace `tokenizers`. The alternatives were an 18 MB native tokenizer
+library, or a Java ML library whose tokenizer silently dropped newlines and special tokens. JSON (`tokenizer.json`,
+Laya's config, structured states) goes through the same `JsonCodec` the API client uses. Laya was trained on
+Python's `json.dumps` spacing, but Jackson's compact output measured no different against Jev. Model files come from a
+directory the caller fills with `hf download`, never from a download at run time: the client works offline and a
+deployment pins exactly the files it runs. Laya's ONNX is
 [onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX), which matches PyTorch, as
 our own export does. `LayaEngineTest` checks the Java port's logits against a PyTorch fixture. There's no int8 model:
 its results depended on the CPU's int8 kernels. On one x86 runner it agreed with Jev less, and on another it silently

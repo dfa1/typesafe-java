@@ -57,7 +57,7 @@ final class BpeTokenizer {
 
     @SuppressWarnings("unchecked")
     static BpeTokenizer load(Path tokenizerJson) throws IOException {
-        Map<String, Object> root = (Map<String, Object>) Json.parse(Files.readString(tokenizerJson));
+        Map<String, Object> root = Onnx.json().readValue(Files.readString(tokenizerJson), Map.class);
         Map<String, Object> normalizer = (Map<String, Object>) root.get("normalizer");
         require(normalizer == null || "NFC".equals(normalizer.get("type")), "normalizer " + normalizer);
 
@@ -67,7 +67,7 @@ final class BpeTokenizer {
                 && isEmpty(model.get("continuing_subword_prefix")) && isEmpty(model.get("end_of_word_suffix"))
                 && model.get("dropout") == null, "BPE options");
         Map<String, Integer> vocab = new HashMap<>();
-        ((Map<String, Object>) model.get("vocab")).forEach((k, v) -> vocab.put(k, ((Long) v).intValue()));
+        ((Map<String, Object>) model.get("vocab")).forEach((k, v) -> vocab.put(k, ((Number) v).intValue()));
         Map<String, Integer> ranks = new HashMap<>();
         List<Object> merges = (List<Object>) model.get("merges");
         for (int r = 0; r < merges.size(); r++) {
@@ -80,7 +80,7 @@ final class BpeTokenizer {
         for (Object o : (List<Object>) root.get("added_tokens")) {
             Map<String, Object> t = (Map<String, Object>) o;
             require(!Boolean.TRUE.equals(t.get("single_word")), "single_word added token " + t.get("content"));
-            added.add(new Added((String) t.get("content"), ((Long) t.get("id")).intValue(),
+            added.add(new Added((String) t.get("content"), ((Number) t.get("id")).intValue(),
                     Boolean.TRUE.equals(t.get("lstrip")), Boolean.TRUE.equals(t.get("rstrip"))));
         }
         return new BpeTokenizer(vocab, ranks, added, preTokenizerRegex((Map<String, Object>) root.get("pre_tokenizer")));

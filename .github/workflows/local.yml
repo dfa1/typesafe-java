@@ -26,20 +26,24 @@ jobs:
           java-version: '21'
           cache: maven
 
+      - uses: astral-sh/setup-uv@v6
+
       - name: Cache model directories
         id: models
         uses: actions/cache@v4
         with:
           path: ~/.cache/typesafe-local
-          key: models-${{ runner.os }}-${{ hashFiles('local/scripts/laya/download.sh', 'local/scripts/qwen/**') }}
+          key: models-${{ runner.os }}-${{ hashFiles('.github/workflows/local.yml') }}
 
       - name: Prepare models
         if: steps.models.outputs.cache-hit != 'true'
-        working-directory: local
         run: |
-          scripts/laya/download.sh
-          if [ "$RUNNER_OS" = macOS ]; then scripts/laya/download.sh fp16; fi
-          scripts/qwen/download.sh
+          M=~/.cache/typesafe-local
+          uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir $M/laya-fp32
+          if [ "$RUNNER_OS" = macOS ]; then
+            uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model_fp16.onnx onnx/model_fp16.onnx_data --local-dir $M/laya-fp16
+          fi
+          uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct tokenizer.json onnx/model_q4.onnx --local-dir $M/qwen2.5-1.5b
 
       - name: Build
         run: ./mvnw -B -q -pl local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test

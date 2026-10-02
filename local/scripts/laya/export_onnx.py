@@ -3,7 +3,7 @@
 # dependencies = ["torch", "transformers>=4.48", "safetensors", "huggingface_hub", "onnx", "onnxscript", "onnxruntime", "numpy"]
 # ///
 """Export Laya (convaiinnovations/laya-typed-decisions, Apache-2.0) to ONNX ourselves. Not needed to use the module
-(download.sh fetches onnx-community's equivalent export); kept to regenerate the PyTorch reference fixture that
+(`hf download` fetches onnx-community's equivalent export); kept to regenerate the PyTorch reference fixture that
 LayaEngineTest checks the Java port against.
 
 Laya ships only PyTorch weights plus a custom decision head (rl_common.DecisionModel). This exports

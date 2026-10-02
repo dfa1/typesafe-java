@@ -621,13 +621,20 @@ java -jar cli/target/typesafe-java-cli-*-all.jar \
 `EvaluateResponse`. Jev's weights aren't public, so the answers come from an open model — Jev's contract, not Jev's
 judgement.
 
-Download a model directory once:
+Download a model directory once with Hugging Face's CLI (`pip install huggingface_hub`, or run it through
+[uv](https://docs.astral.sh/uv/) as below). Files keep their Hugging Face names; the client finds the one `.onnx` model
+in the directory:
 
 ```bash
-cd local
-scripts/laya/download.sh               # ~/.cache/typesafe-local/laya-fp32 (onnx-community's export, 1.7 GB)
-scripts/laya/download.sh fp16          # optional: ~/.cache/typesafe-local/laya-fp16 (0.85 GB, see below)
-scripts/qwen/download.sh               # ~/.cache/typesafe-local/qwen2.5-1.5b (1.8 GB)
+# Laya fp32 (1.7 GB), the recommended engine
+uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX \
+    tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir ~/.cache/typesafe-local/laya-fp32
+# optional: Laya fp16 (0.85 GB, see below)
+uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX \
+    tokenizer.json config.json onnx/model_fp16.onnx onnx/model_fp16.onnx_data --local-dir ~/.cache/typesafe-local/laya-fp16
+# optional: Qwen2.5-1.5B 4-bit (1.8 GB)
+uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct \
+    tokenizer.json onnx/model_q4.onnx --local-dir ~/.cache/typesafe-local/qwen2.5-1.5b
 ```
 
 Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:

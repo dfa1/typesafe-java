@@ -328,8 +328,10 @@ public final class LocalTypeSafeClient implements TypeSafeClient {
 }
 ```
 
-A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`. The scripts under
-`local/scripts/` fetch the model once; nothing is downloaded at run time.
+A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
+(plus `config.json` for Laya) and the one `.onnx` file in `dir/onnx` or `dir`, as `hf download` lays them out (see the
+[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
+(`typesafe-java-jackson2` or `-jackson3`) must be on the classpath, as for the API client.
 
 | Engine | Model | How it answers |
 |---|---|---|

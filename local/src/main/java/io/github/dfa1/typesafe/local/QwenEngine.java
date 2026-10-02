@@ -72,7 +72,7 @@ final class QwenEngine implements Engine {
     }
 
     static QwenEngine load(Path dir, boolean gpu) {
-        Path modelFile = Onnx.require(dir, "model.onnx");
+        Path modelFile = Onnx.model(dir);
         Path tokenizerFile = Onnx.require(dir, "tokenizer.json");
         try {
             BpeTokenizer tokenizer = Onnx.tokenizer(tokenizerFile);

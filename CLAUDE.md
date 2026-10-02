@@ -79,14 +79,17 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
 local     — LocalTypeSafeClient (io.github.dfa1.typesafe.local): a TypeSafeClient evaluating in-process on ONNX
-            Runtime, from a model directory the caller prepares (local/scripts: download.sh [fp16] for Laya =
-            onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — Qwen download; ~/.cache/typesafe-local by convention; export_onnx.py
-            only regenerates the PyTorch fixture). No int8 Laya: dynamic int8 gave CPU-dependent answers,
+            Runtime, from a model directory the caller fills with `hf download` (docs/how-to.md): Laya =
+            onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — and Qwen q4;
+            ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file
+            names stay as-is. local/scripts is Python for fixtures only (export_onnx.py: PyTorch fixture;
+            tokenizer/reference.py: HF tokenizer ids) plus the CI summary. No int8 Laya: dynamic int8 gave CPU-dependent answers,
             silently flat distributions on some x86 CPUs. Two engines behind
             a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a
             request's questions in one batch; a port of Laya's Python sequence builder) and QwenEngine
             (one prefill per question, softmax over Yes/No/letter/digit logits). Own pure-Java BpeTokenizer
-            (tokenizer.json) and minimal Json — no tokenizer/JSON dependency; BpeTokenizerTest checks ids
+            (tokenizer.json); JSON through typesafe-java's JsonCodec (ServiceLoader, like the API client),
+            so a jackson2/jackson3 module is needed at run time; BpeTokenizerTest checks ids
             against HF tokenizers, LayaEngineTest checks logits against PyTorch (fixtures under
             src/test/resources). Tests needing model files are @Tag("model"), excluded by the module's
             own excludedGroups (acceptance,model); opt in with -DexcludedGroups=acceptance -Dengine=laya.

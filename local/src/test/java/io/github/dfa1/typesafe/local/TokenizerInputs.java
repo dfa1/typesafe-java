@@ -2,6 +2,7 @@ package io.github.dfa1.typesafe.local;
 
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Question;
+import io.github.dfa1.typesafe.jackson2.Jackson2Codec;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -57,8 +58,8 @@ public final class TokenizerInputs {
             }
         }
         Path dir = Files.createDirectories(Path.of("src/test/resources/tokenizer"));
-        Files.writeString(dir.resolve("inputs-laya.json"), Json.write(new ArrayList<>(laya)));
-        Files.writeString(dir.resolve("inputs-qwen.json"), Json.write(new ArrayList<>(qwen)));
+        Files.writeString(dir.resolve("inputs-laya.json"), new Jackson2Codec().writeValueAsString(new ArrayList<>(laya)));
+        Files.writeString(dir.resolve("inputs-qwen.json"), new Jackson2Codec().writeValueAsString(new ArrayList<>(qwen)));
         System.out.println(laya.size() + " laya / " + qwen.size() + " qwen strings");
     }
 }

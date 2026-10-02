@@ -51,8 +51,8 @@ final class LayaEngine implements Engine {
         this.sep = special("[SEP]");
         this.pad = special("[PAD]");
         this.mask = special("[MASK]");
-        this.maxLen = ((Long) config.get("max_len")).intValue();
-        this.headMaxLen = ((Long) config.get("head_max_len")).intValue();
+        this.maxLen = ((Number) config.get("max_len")).intValue();
+        this.headMaxLen = ((Number) config.get("head_max_len")).intValue();
         @SuppressWarnings("unchecked")
         List<Object> t = (List<Object>) config.getOrDefault("temperature", List.of(1.0, 1.0, 1.0));
         this.temperature = t.stream().mapToDouble(x -> ((Number) x).doubleValue()).toArray();
@@ -67,7 +67,7 @@ final class LayaEngine implements Engine {
     }
 
     static LayaEngine load(Path dir, boolean gpu) {
-        Path modelFile = Onnx.require(dir, "onnx/model.onnx");
+        Path modelFile = Onnx.model(dir);
         Path tokenizerFile = Onnx.require(dir, "tokenizer.json");
         try {
             return new LayaEngine(Onnx.session(modelFile, gpu), Onnx.tokenizer(tokenizerFile), config(dir),
@@ -84,7 +84,7 @@ final class LayaEngine implements Engine {
     /** Sequence and calibration settings: the "laya" section of onnx-community's config.json (Laya's rl_agent_config.json values). */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> config(Path dir) throws IOException {
-        Map<String, Object> config = (Map<String, Object>) Json.parse(Files.readString(Onnx.require(dir, "config.json")));
+        Map<String, Object> config = Onnx.json().readValue(Files.readString(Onnx.require(dir, "config.json")), Map.class);
         Object laya = config.get("laya");
         if (!(laya instanceof Map)) {
             throw new IllegalArgumentException(dir.resolve("config.json") + " has no \"laya\" section");
@@ -269,12 +269,13 @@ final class LayaEngine implements Engine {
         return value == null || value.isEmpty() ? fallback : value;
     }
 
-    /** rl_common.serialize_state: text as is, anything else as Python's json.dumps(..., ensure_ascii=False). */
+    /** rl_common.serialize_state: text as is, anything else as JSON. Laya was trained on Python's json.dumps spacing;
+     *  JsonCodec's compact form measured no different against Jev (104 requests), so it isn't reproduced. */
     static String serialize(Content content) {
         return switch (content) {
             case Content.Text(String value) -> value;
-            case Content.Fields(Map<String, Object> fields) -> Json.write(fields);
-            case Content.Messages(List<String> values) -> Json.write(values);
+            case Content.Fields(Map<String, Object> fields) -> Onnx.json().writeValueAsString(fields);
+            case Content.Messages(List<String> values) -> Onnx.json().writeValueAsString(values);
         };
     }
 

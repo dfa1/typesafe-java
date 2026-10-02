@@ -39,8 +39,8 @@ public final class LocalTypeSafeClient implements TypeSafeClient {
      * decision head trained for Jev-style questions. The recommended engine: about ten times faster than
      * {@link #qwen}, closer to Jev on yes/no and scores.
      *
-     * @param dir onnx-community's export as downloaded ({@code onnx/model.onnx}, {@code tokenizer.json},
-     *            {@code config.json}); see {@code local/scripts/laya/download.sh}
+     * @param dir onnx-community's export as {@code hf download} writes it: {@code onnx/model.onnx} (or
+     *            {@code model_fp16.onnx}) with its weights file, {@code tokenizer.json}, {@code config.json}
      */
     public static LocalTypeSafeClient laya(Path dir) {
         return new LocalTypeSafeClient(LayaEngine.load(dir));
@@ -50,7 +50,7 @@ public final class LocalTypeSafeClient implements TypeSafeClient {
      * Qwen2.5-1.5B-Instruct (Apache-2.0), answering from its next-token logits. Slower than
      * {@link #laya}, somewhat better on choices.
      *
-     * @param dir holds {@code model.onnx} and {@code tokenizer.json}
+     * @param dir {@code tokenizer.json} and one {@code .onnx} model (e.g. onnx-community's {@code onnx/model_q4.onnx})
      */
     public static LocalTypeSafeClient qwen(Path dir) {
         return new LocalTypeSafeClient(QwenEngine.load(dir));

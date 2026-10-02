@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.local;
 
+import io.github.dfa1.typesafe.jackson2.Jackson2Codec;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -22,13 +23,13 @@ class BpeTokenizerTest {
     void matchesHuggingFaceTokenizersOnEveryString(String name, Engines engine) throws Exception {
         // Given
         BpeTokenizer sut = BpeTokenizer.load(engine.dir().resolve("tokenizer.json"));
-        List<Object> expected = (List<Object>) Json.parse(Files.readString(Path.of("src/test/resources/tokenizer/expected-" + name + ".json")));
+        List<Object> expected = new Jackson2Codec().readValue(Files.readString(Path.of("src/test/resources/tokenizer/expected-" + name + ".json")), List.class);
         List<String> mismatches = new ArrayList<>();
 
         for (Object o : expected) {
             Map<String, Object> e = (Map<String, Object>) o;
             String text = (String) e.get("text");
-            long[] want = ((List<Object>) e.get("ids")).stream().mapToLong(x -> (Long) x).toArray();
+            long[] want = ((List<Object>) e.get("ids")).stream().mapToLong(x -> ((Number) x).longValue()).toArray();
 
             // When
             long[] result = sut.encode(text);
