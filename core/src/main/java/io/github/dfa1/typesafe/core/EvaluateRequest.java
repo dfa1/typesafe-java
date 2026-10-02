@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.core;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +76,8 @@ public record EvaluateRequest(Content state, Model model, Map<String, Question> 
         }
 
         public EvaluateRequest build() {
-            return new EvaluateRequest(state, model, Map.copyOf(questions));
+            // keeps the order questions were added in (Map.copyOf would reshuffle them per JVM)
+            return new EvaluateRequest(state, model, Collections.unmodifiableMap(new LinkedHashMap<>(questions)));
         }
     }
 }

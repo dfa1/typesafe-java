@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`core`: `Content.fields(...)` and `EvaluateRequest.Builder` keep their order** — both copied with `Map.copyOf`, which reshuffles keys per JVM run, so the same request serialized with fields/questions in a different order each run; they now keep the caller's iteration order.
+
 - **`core`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.
 - **`core`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
 - **`core`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
