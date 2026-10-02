@@ -113,6 +113,7 @@ for `typesafe-java-client-okhttp`.
 | `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
 | `mapping` | `MappingTypeSafeClient` — maps a `@Noul`/`@Choice`/`@Score`-annotated record to/from `EvaluateRequest`/`EvaluateResponse` |
+| `local` | `LocalTypeSafeClient` — evaluates in-process on ONNX Runtime instead of calling the API (Laya or Qwen2.5, from a local model directory); API parity, not model parity with Jev. See [how-to](docs/how-to.md#run-without-the-api-on-a-local-model) |
 | `bom` | dependency management for the modules above |
 | `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |

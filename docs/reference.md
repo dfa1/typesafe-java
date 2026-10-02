@@ -22,7 +22,8 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
 | `typesafe-java-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
-| `typesafe-java-bom` | — | dependency management for the seven above |
+| `typesafe-java-local` | `core`, ONNX Runtime | `LocalTypeSafeClient` (in-process engines: Laya, Qwen2.5) |
+| `typesafe-java-bom` | — | dependency management for the eight above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
 `HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
@@ -315,6 +316,38 @@ doesn't match its annotation, throws `IllegalStateException` naming the componen
 with the original `ClassCastException` as its cause) rather than a bare, unexplained exception.
 
 `evaluate()`/`evaluateAsync()`/`listModels()`/`close()` delegate straight through, unchanged.
+
+## Local
+
+`io.github.dfa1.typesafe.local` (module `typesafe-java-local`).
+
+```java
+public final class LocalTypeSafeClient implements TypeSafeClient {
+    public static LocalTypeSafeClient laya(Path dir);   // model.onnx, tokenizer.json, rl_agent_config.json
+    public static LocalTypeSafeClient qwen(Path dir);   // model.onnx, tokenizer.json
+}
+```
+
+A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir` (prepared once by the
+scripts under `local/scripts/`; nothing is downloaded at run time).
+
+| Engine | Model | How it answers |
+|---|---|---|
+| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), int8 or fp32 | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
+| `qwen` | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
+
+- `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);
+  anything else throws `TypeSafeException.NotFound`.
+- A question the engine can't express throws `TypeSafeException.BadRequest` (Qwen: more than 26 options, fewer than 2
+  or more than 10 levels; Laya: options that don't fit its 256-token head budget). An inference failure throws
+  `TypeSafeException.InternalServer` — so `RetryingTypeSafeClient` classifies all three as it would the API's.
+- `Usage.inputTokens` is the tokens fed to the model; `outputTokens` is always 0 (nothing is generated).
+  `Metadata.requestId` is `null`; `upstreamServiceTime` is the wall-clock evaluation time.
+- `evaluateAsync` runs `evaluate` on a virtual thread. Calls are thread-safe but share the CPU: one evaluation
+  already uses every core, so concurrency doesn't add throughput.
+- `listModels` returns the one model the client runs.
+- Answers are Jev-shaped but come from a different model: see the agreement numbers in the
+  [how-to](how-to.md#run-without-the-api-on-a-local-model).
 
 ## Client
 

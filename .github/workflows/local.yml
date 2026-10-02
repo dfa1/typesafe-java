@@ -1,0 +1,71 @@
+name: Local engines
+
+# Agreement with Jev and throughput of typesafe-java-local's engines, as a table in the job summary.
+# Prepared model directories are cached; the first run exports Laya to ONNX and downloads Qwen (~4 GB).
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['local/**', '.github/workflows/local.yml']
+  pull_request:
+    paths: ['local/**', '.github/workflows/local.yml']
+
+jobs:
+  numbers:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Cache model directories
+        id: models
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/typesafe-local
+          key: models-${{ runner.os }}-${{ hashFiles('local/scripts/laya/**', 'local/scripts/qwen/**') }}
+
+      - name: Prepare models
+        if: steps.models.outputs.cache-hit != 'true'
+        working-directory: local
+        run: |
+          uv run --python 3.12 scripts/laya/export_onnx.py
+          uv run --python 3.12 scripts/laya/quantize_int8.py
+          scripts/qwen/download.sh
+          git checkout -- src/test/resources/laya/fixture.json  # keep the committed PyTorch reference
+
+      - name: Build
+        run: ./mvnw -B -q -pl local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test
+
+      - name: Real-model tests
+        run: ./mvnw -B -pl local -am test -DexcludedGroups=acceptance -Dengine=laya -Dsurefire.failIfNoSpecifiedTests=false
+
+      - name: Agreement with Jev
+        working-directory: local
+        run: |
+          CP="$(cat ../cp.txt):target/classes:target/test-classes"
+          for e in laya laya-fp32 qwen; do
+            java -cp "$CP" io.github.dfa1.typesafe.local.JevComparison $e | tee -a ../jev.txt
+          done
+
+      - name: Throughput
+        working-directory: local
+        run: |
+          CP="$(cat ../cp.txt):target/classes:target/test-classes"
+          ENGINES=laya,laya-fp32,qwen
+          if [ "$RUNNER_OS" = macOS ]; then ENGINES=$ENGINES,laya-fp32-gpu,qwen-gpu; fi  # WebGPU on Metal
+          java -cp "$CP" org.openjdk.jmh.Main LocalTypeSafeClientBenchmark \
+            -p engine=$ENGINES -p questions=1,3 -wi 1 -w 5 -i 3 -r 5 -f 1 -rf json -rff ../jmh.json
+
+      - name: Summary
+        if: always()
+        run: python3 local/scripts/ci/summary.py jev.txt jmh.json >> "$GITHUB_STEP_SUMMARY"

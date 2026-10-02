@@ -1,0 +1,28 @@
+{
+  "model" : "jev-1.13.0",
+  "answers" : {
+    "spam" : {
+      "type" : "noul",
+      "noul" : 0.02
+    },
+    "action" : {
+      "type" : "choice",
+      "choice" : "allow",
+      "probabilities" : {
+        "warn" : 0.01,
+        "allow" : 0.98,
+        "remove" : 0.01
+      },
+      "confidence" : 0.97
+    },
+    "attack" : {
+      "type" : "noul",
+      "noul" : 0.03
+    }
+  },
+  "usage" : {
+    "input_tokens" : 418,
+    "output_tokens" : 71
+  },
+  "metadata" : null
+}

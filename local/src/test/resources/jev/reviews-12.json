@@ -1,0 +1,45 @@
+{
+  "model" : "jev-1.13.0",
+  "answers" : {
+    "recommends" : {
+      "type" : "noul",
+      "noul" : 0.73
+    },
+    "aspect" : {
+      "type" : "choice",
+      "choice" : "price",
+      "probabilities" : {
+        "price" : 1.0,
+        "other" : 0.0,
+        "shipping" : 0.0,
+        "quality" : 0.0,
+        "service" : 0.0
+      },
+      "confidence" : 1.0
+    },
+    "sentiment" : {
+      "type" : "score",
+      "score" : 2.99,
+      "legend" : {
+        "0" : "very negative",
+        "1" : "negative",
+        "2" : "neutral",
+        "3" : "positive",
+        "4" : "very positive"
+      },
+      "probabilities" : {
+        "0" : 0.0,
+        "1" : 0.0,
+        "2" : 0.01,
+        "3" : 0.99,
+        "4" : 0.0
+      },
+      "confidence" : 0.99
+    }
+  },
+  "usage" : {
+    "input_tokens" : 448,
+    "output_tokens" : 85
+  },
+  "metadata" : null
+}

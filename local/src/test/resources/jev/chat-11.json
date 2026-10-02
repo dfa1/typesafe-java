@@ -1,0 +1,44 @@
+{
+  "model" : "jev-1.13.0",
+  "answers" : {
+    "satisfaction" : {
+      "type" : "score",
+      "score" : 2.01,
+      "legend" : {
+        "0" : "very dissatisfied",
+        "1" : "dissatisfied",
+        "2" : "neutral",
+        "3" : "satisfied",
+        "4" : "very satisfied"
+      },
+      "probabilities" : {
+        "0" : 0.0,
+        "1" : 0.0,
+        "2" : 0.99,
+        "3" : 0.01,
+        "4" : 0.0
+      },
+      "confidence" : 0.99
+    },
+    "next" : {
+      "type" : "choice",
+      "choice" : "ask",
+      "probabilities" : {
+        "escalate" : 0.0,
+        "close" : 0.08,
+        "ask" : 0.92,
+        "refund" : 0.0
+      },
+      "confidence" : 0.89
+    },
+    "resolved" : {
+      "type" : "noul",
+      "noul" : 0.03
+    }
+  },
+  "usage" : {
+    "input_tokens" : 447,
+    "output_tokens" : 80
+  },
+  "metadata" : null
+}

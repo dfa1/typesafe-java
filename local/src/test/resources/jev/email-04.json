@@ -1,0 +1,42 @@
+{
+  "model" : "jev-1.13.0",
+  "answers" : {
+    "priority" : {
+      "type" : "score",
+      "score" : 0.36,
+      "legend" : {
+        "0" : "low",
+        "1" : "normal",
+        "2" : "high"
+      },
+      "probabilities" : {
+        "0" : 0.64,
+        "1" : 0.36,
+        "2" : 0.0
+      },
+      "confidence" : 0.46
+    },
+    "category" : {
+      "type" : "choice",
+      "choice" : "recruiting",
+      "probabilities" : {
+        "personal" : 0.0,
+        "spam" : 0.0,
+        "meeting" : 0.0,
+        "invoice" : 0.0,
+        "newsletter" : 0.0,
+        "recruiting" : 1.0
+      },
+      "confidence" : 1.0
+    },
+    "reply" : {
+      "type" : "noul",
+      "noul" : 0.34
+    }
+  },
+  "usage" : {
+    "input_tokens" : 485,
+    "output_tokens" : 95
+  },
+  "metadata" : null
+}

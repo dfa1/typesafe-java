@@ -3,6 +3,31 @@
 Background reading on the design decisions behind this library. For "what exists," see
 [reference.md](reference.md); for "how do I," see [how-to.md](how-to.md).
 
+## Why `local` exists, and why it reads answers instead of generating them
+
+`TypeSafeClient` is an interface, so an in-process engine is just another implementation: everything built on it
+(`MappingTypeSafeClient`, `RetryingTypeSafeClient`, `TokenCounter`, the testkit) keeps working. Jev's weights aren't
+public, so `local` offers API parity with a different model behind it, and says so.
+
+Jev's answers are probability distributions, never text, and both engines produce distributions directly. Laya, a
+ModernBERT encoder trained for Choice/Score/Noul, scores each option with a decision head. Qwen, a general chat model,
+is prompted and its next-token logits over the candidate answers (`Yes`/`No`, option letters, level digits) are read
+after one prefill. Neither generates, so there's no output to parse and the result is deterministic. Laya is the
+recommended engine: four times smaller than Qwen, about ten times faster, and closer to Jev on yes/no and scores.
+
+The module depends only on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
+`tokenizer.json`, checked id for id against HuggingFace `tokenizers`. JSON is a minimal reader, enough for
+`tokenizer.json` and Laya's config. The alternatives were an 18 MB native tokenizer library, or a Java ML library whose
+tokenizer silently dropped newlines and special tokens. Model files come from a directory the caller prepares, never
+from a download at run time: the client works offline and a deployment pins exactly the files it runs.
+
+Several things were measured and rejected:
+
+- **Parallel sessions.** On a CPU, one ONNX session already uses every core, so splitting the same work across
+  sessions or threads finished no sooner, and N sessions mean N copies of the weights competing for memory bandwidth.
+- **CoreML.** The execution provider ran Laya 2–3× slower than the CPU.
+- **Smaller LLMs.** SmolLM2, Qwen2.5-0.5B and Qwen3-0.6B didn't track Jev at all.
+
 ## Why `core` doesn't know about Jackson
 
 The DTOs (`Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`)

@@ -1,0 +1,42 @@
+{
+  "model" : "jev-1.13.0",
+  "answers" : {
+    "priority" : {
+      "type" : "score",
+      "score" : 1.19,
+      "legend" : {
+        "0" : "low",
+        "1" : "normal",
+        "2" : "high"
+      },
+      "probabilities" : {
+        "0" : 0.0,
+        "1" : 0.81,
+        "2" : 0.19
+      },
+      "confidence" : 0.71
+    },
+    "category" : {
+      "type" : "choice",
+      "choice" : "meeting",
+      "probabilities" : {
+        "meeting" : 0.99,
+        "recruiting" : 0.0,
+        "invoice" : 0.0,
+        "spam" : 0.0,
+        "newsletter" : 0.0,
+        "personal" : 0.01
+      },
+      "confidence" : 0.99
+    },
+    "reply" : {
+      "type" : "noul",
+      "noul" : 0.91
+    }
+  },
+  "usage" : {
+    "input_tokens" : 475,
+    "output_tokens" : 92
+  },
+  "metadata" : null
+}
