@@ -11,7 +11,7 @@ import os
 from tokenizers import Tokenizer
 
 res = "src/test/resources/tokenizer"
-for name, model in (("laya", "laya-int8"), ("qwen", "qwen2.5-1.5b")):
+for name, model in (("laya", "laya-fp32"), ("qwen", "qwen2.5-1.5b")):
     tok = Tokenizer.from_file(os.path.expanduser(f"~/.cache/typesafe-local/{model}/tokenizer.json"))
     texts = json.load(open(f"{res}/inputs-{name}.json"))
     out = [{"text": t, "ids": tok.encode(t, add_special_tokens=False).ids} for t in texts]

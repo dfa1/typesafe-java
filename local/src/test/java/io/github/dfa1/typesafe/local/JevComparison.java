@@ -21,7 +21,7 @@ import java.util.Map;
  * answers are cached under {@code src/test/resources/jev/} (first run calls the TypeSafe API,
  * needs {@code ~/.typesafe.apikey}); later runs only evaluate locally. Run:
  * {@code mvn test-compile exec:exec -Dexec.classpathScope=test -Dexec.executable=java
- * "-Dexec.args=-cp %classpath io.github.dfa1.typesafe.local.JevComparison laya"} (or laya-int8, qwen; append -gpu for WebGPU).
+ * "-Dexec.args=-cp %classpath io.github.dfa1.typesafe.local.JevComparison laya"} (or qwen; append -gpu for WebGPU).
  */
 public final class JevComparison {
 

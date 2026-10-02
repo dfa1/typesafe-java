@@ -36,12 +36,11 @@ public final class LocalTypeSafeClient implements TypeSafeClient {
 
     /**
      * Laya (convaiinnovations/laya-typed-decisions, Apache-2.0): a 421M ModernBERT encoder with a
-     * decision head trained for Jev-style questions. The recommended engine, in fp32: about ten times faster than
-     * {@link #qwen}, closer to Jev on yes/no and scores, and the same answers on every CPU.
+     * decision head trained for Jev-style questions. The recommended engine: about ten times faster than
+     * {@link #qwen}, closer to Jev on yes/no and scores.
      *
      * @param dir onnx-community's export as downloaded ({@code onnx/model.onnx}, {@code tokenizer.json},
-     *            {@code config.json}), or a flat directory with {@code model.onnx}, {@code tokenizer.json} and
-     *            Laya's {@code rl_agent_config.json} (e.g. the int8 model {@code quantize_int8.py} writes)
+     *            {@code config.json}); see {@code local/scripts/laya/download.sh}
      */
     public static LocalTypeSafeClient laya(Path dir) {
         return new LocalTypeSafeClient(LayaEngine.load(dir));

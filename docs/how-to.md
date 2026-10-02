@@ -627,7 +627,6 @@ Download a model directory once:
 cd local
 scripts/laya/download.sh               # ~/.cache/typesafe-local/laya-fp32 (onnx-community's export, 1.7 GB)
 scripts/qwen/download.sh               # ~/.cache/typesafe-local/qwen2.5-1.5b (1.8 GB)
-uv run scripts/laya/quantize_int8.py   # optional: ~/.cache/typesafe-local/laya-int8 (0.5 GB, see below)
 ```
 
 Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:
@@ -640,12 +639,9 @@ try (TypeSafeClient client = LocalTypeSafeClient.laya(Path.of(System.getProperty
 }
 ```
 
-Laya fp32 is the recommended engine: about 55 ms for a one-question request and about 165 ms for three on an Apple M5
-CPU, with the same answers on every CPU tested. The optional int8 model is 0.5 GB and faster, but its accuracy depends
-on the CPU's int8 kernels. On one x86 GitHub runner it agreed with Jev less (78% vs 85% on yes/no). On another it
-returned flat, meaningless distributions. Use int8 only after checking it on your target CPU with
-`JevComparison laya-int8`. Qwen is about the same size as Laya fp32 and roughly 10× slower, slightly better on choices. Measured against the real
-`jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 66% of choices, with a mean score error
+Laya is the recommended engine: about 55 ms for a one-question request and about 165 ms for three on an Apple M5
+CPU. Qwen is about the same size and roughly 10× slower, slightly better on choices. Measured against the real
+`jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 64% of choices, with a mean score error
 of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
 
 The `Local engines` GitHub workflow re-measures agreement and throughput on Linux and macOS runners and writes both

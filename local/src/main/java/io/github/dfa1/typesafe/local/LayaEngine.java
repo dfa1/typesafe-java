@@ -1,10 +1,8 @@
 package io.github.dfa1.typesafe.local;
 
-import ai.onnxruntime.OnnxJavaType;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import ai.onnxruntime.TensorInfo;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
@@ -39,7 +37,6 @@ final class LayaEngine implements Engine {
 
     private final OrtSession session;
     private final Model model;
-    private final boolean boolMarkerMask;
     private final BpeTokenizer tokenizer;
     private final long cls, sep, pad, mask;
     private final int maxLen, headMaxLen;
@@ -49,8 +46,6 @@ final class LayaEngine implements Engine {
     private LayaEngine(OrtSession session, BpeTokenizer tokenizer, Map<String, Object> config, Model model) throws OrtException {
         this.session = session;
         this.model = model;
-        // onnx-community's export takes marker_mask as bool, ours as int64
-        this.boolMarkerMask = ((TensorInfo) session.getInputInfo().get("marker_mask").getInfo()).type == OnnxJavaType.BOOL;
         this.tokenizer = tokenizer;
         this.cls = special("[CLS]");
         this.sep = special("[SEP]");
@@ -72,8 +67,7 @@ final class LayaEngine implements Engine {
     }
 
     static LayaEngine load(Path dir, boolean gpu) {
-        // onnx-community's layout (onnx/model.onnx, config.json → "laya") or a flat one (model.onnx, rl_agent_config.json)
-        Path modelFile = Files.isRegularFile(dir.resolve("onnx/model.onnx")) ? dir.resolve("onnx/model.onnx") : Onnx.require(dir, "model.onnx");
+        Path modelFile = Onnx.require(dir, "onnx/model.onnx");
         Path tokenizerFile = Onnx.require(dir, "tokenizer.json");
         try {
             return new LayaEngine(Onnx.session(modelFile, gpu), Onnx.tokenizer(tokenizerFile), config(dir),
@@ -87,13 +81,9 @@ final class LayaEngine implements Engine {
     record Sequence(long[] ids, int[] markers, int qtype) {
     }
 
-    /** Sequence and calibration settings: Laya's rl_agent_config.json, or the "laya" section of onnx-community's config.json. */
+    /** Sequence and calibration settings: the "laya" section of onnx-community's config.json (Laya's rl_agent_config.json values). */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> config(Path dir) throws IOException {
-        Path rl = dir.resolve("rl_agent_config.json");
-        if (Files.isRegularFile(rl)) {
-            return (Map<String, Object>) Json.parse(Files.readString(rl));
-        }
         Map<String, Object> config = (Map<String, Object>) Json.parse(Files.readString(Onnx.require(dir, "config.json")));
         Object laya = config.get("laya");
         if (!(laya instanceof Map)) {
@@ -232,7 +222,7 @@ final class LayaEngine implements Engine {
             inputs.put("input_ids", Onnx.longs(ids, n, len));
             inputs.put("attention_mask", Onnx.longs(att, n, len));
             inputs.put("marker_pos", Onnx.longs(pos, n, k));
-            inputs.put("marker_mask", boolMarkerMask ? bools(posMask, n, k) : Onnx.longs(posMask, n, k));
+            inputs.put("marker_mask", bools(posMask, n, k));
             inputs.put("qtype", Onnx.longs(qtype, n));
             try (OrtSession.Result result = session.run(inputs, Set.of("logits"))) {
                 FloatBuffer flat = ((OnnxTensor) result.get("logits").orElseThrow()).getFloatBuffer();

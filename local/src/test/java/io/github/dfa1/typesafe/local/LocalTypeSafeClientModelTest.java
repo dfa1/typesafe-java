@@ -15,7 +15,7 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** Real model from ~/.cache/typesafe-local (see local/scripts). Opt in: {@code -DexcludedGroups=acceptance};
- *  pick the engine with {@code -Dengine=laya|laya-int8|qwen} (append {@code -gpu} for WebGPU). */
+ *  pick the engine with {@code -Dengine=laya|qwen} (append {@code -gpu} for WebGPU). */
 @Tag("model")
 class LocalTypeSafeClientModelTest {
 
@@ -69,8 +69,7 @@ class LocalTypeSafeClientModelTest {
         double calm = anger("Could you tell me where to find the export button? Thanks.");
 
         // Then
-        // the ranking is the point: int8 Laya compresses the scale differently per CPU
-        // (M5 2.02 vs 1.31, M1 runner 2.02 vs 1.53; fp32 2.37 vs 1.03)
+        // the ranking is the point, not a margin
         assertThat(furious).isGreaterThan(calm);
     }
 

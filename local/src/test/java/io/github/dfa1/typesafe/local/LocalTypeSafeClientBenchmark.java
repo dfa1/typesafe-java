@@ -33,7 +33,7 @@ import java.util.Map;
 @Fork(1)
 public class LocalTypeSafeClientBenchmark {
 
-    @Param({"laya", "laya-gpu", "laya-int8", "qwen", "qwen-gpu"})
+    @Param({"laya", "laya-gpu", "qwen", "qwen-gpu"})
     public String engine;
 
     @Param({"1", "3", "10"})

@@ -80,9 +80,9 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             consumer of this module would reach for.
 local     — LocalTypeSafeClient (io.github.dfa1.typesafe.local): a TypeSafeClient evaluating in-process on ONNX
             Runtime, from a model directory the caller prepares (local/scripts: download.sh for Laya fp32 =
-            onnx-community's export, optional int8 via quantize_int8.py (CPU-dependent: wrong answers on some
-            x86 CPUs, so fp32 is the default), Qwen download; ~/.cache/typesafe-local by convention;
-            export_onnx.py only regenerates the PyTorch fixture). Two engines behind
+            onnx-community's export, Qwen download; ~/.cache/typesafe-local by convention; export_onnx.py
+            only regenerates the PyTorch fixture). No int8 Laya: dynamic int8 gave CPU-dependent answers,
+            silently flat distributions on some x86 CPUs. Two engines behind
             a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a
             request's questions in one batch; a port of Laya's Python sequence builder) and QwenEngine
             (one prefill per question, softmax over Yes/No/letter/digit logits). Own pure-Java BpeTokenizer
@@ -92,9 +92,8 @@ local     — LocalTypeSafeClient (io.github.dfa1.typesafe.local): a TypeSafeCli
             own excludedGroups (acceptance,model); opt in with -DexcludedGroups=acceptance -Dengine=laya.
             JevComparison (test scope, main) replays 104 requests against cached real-Jev answers
             (src/test/resources/jev); LocalTypeSafeClientBenchmark is JMH. Package-private WebGPU switch
-            (LayaEngine/QwenEngine.load(dir, gpu)) is experimental: int8 Laya gives wrong logits on it.
-            LayaEngine reads onnx-community's layout (onnx/model.onnx, config.json "laya", bool marker_mask)
-            or a flat one (model.onnx, rl_agent_config.json, int64 marker_mask).
+            (LayaEngine/QwenEngine.load(dir, gpu)) is experimental. LayaEngine reads onnx-community's layout
+            (onnx/model.onnx, config.json "laya", bool marker_mask).
             The `Local engines` workflow runs tests, comparison and JMH on Linux/macOS and writes tables to
             the job summary.
 bom       — dependency-management POM listing core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping/local.

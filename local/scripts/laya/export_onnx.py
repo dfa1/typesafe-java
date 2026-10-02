@@ -10,7 +10,7 @@ Laya ships only PyTorch weights plus a custom decision head (rl_common.DecisionM
 encoder + head as one graph: (input_ids, attention_mask, marker_pos, marker_mask, qtype) -> logits,
 checks onnxruntime against PyTorch, and writes a fixture (token ids, marker positions, logits) that
 the Java tests compare against. Writes ~/.cache/typesafe-local/laya-export/{model.onnx, model.onnx.data, tokenizer.json,
-rl_agent_config.json}, also usable with LocalTypeSafeClient.laya(...).
+rl_agent_config.json}.
 Run:  uv run scripts/laya/export_onnx.py
 """
 import importlib, json, os, shutil, sys
