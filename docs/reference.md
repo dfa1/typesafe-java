@@ -323,17 +323,18 @@ with the original `ClassCastException` as its cause) rather than a bare, unexpla
 
 ```java
 public final class LocalTypeSafeClient implements TypeSafeClient {
-    public static LocalTypeSafeClient laya(Path dir);   // model.onnx, tokenizer.json, rl_agent_config.json
+    public static LocalTypeSafeClient laya(Path dir);   // onnx/model.onnx + tokenizer.json + config.json (onnx-community)
     public static LocalTypeSafeClient qwen(Path dir);   // model.onnx, tokenizer.json
 }
 ```
 
-A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir` (prepared once by the
-scripts under `local/scripts/`; nothing is downloaded at run time).
+A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`. The scripts under
+`local/scripts/` fetch the model once; nothing is downloaded at run time. `laya` also accepts a flat directory with
+`model.onnx`, `tokenizer.json` and Laya's `rl_agent_config.json`, e.g. the int8 model `quantize_int8.py` writes.
 
 | Engine | Model | How it answers |
 |---|---|---|
-| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), int8 or fp32 | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
+| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's fp32 export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX); int8 optional but CPU-dependent | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
 | `qwen` | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
 
 - `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);

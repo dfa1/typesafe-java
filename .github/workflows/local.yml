@@ -1,7 +1,7 @@
 name: Local engines
 
 # Agreement with Jev and throughput of typesafe-java-local's engines, as a table in the job summary.
-# Prepared model directories are cached; the first run exports Laya to ONNX and downloads Qwen (~4 GB).
+# Model directories are cached: Laya fp32 from onnx-community, int8 quantized from it, Qwen from onnx-community (~4 GB).
 on:
   workflow_dispatch:
   push:
@@ -32,16 +32,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/typesafe-local
-          key: models-${{ runner.os }}-${{ hashFiles('local/scripts/laya/**', 'local/scripts/qwen/**') }}
+          key: models-${{ runner.os }}-${{ hashFiles('local/scripts/laya/download.sh', 'local/scripts/laya/quantize_int8.py', 'local/scripts/qwen/**') }}
 
       - name: Prepare models
         if: steps.models.outputs.cache-hit != 'true'
         working-directory: local
         run: |
-          uv run --python 3.12 scripts/laya/export_onnx.py
+          scripts/laya/download.sh
           uv run --python 3.12 scripts/laya/quantize_int8.py
           scripts/qwen/download.sh
-          git checkout -- src/test/resources/laya/fixture.json  # keep the committed PyTorch reference
 
       - name: Build
         run: ./mvnw -B -q -pl local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test
@@ -53,7 +52,7 @@ jobs:
         working-directory: local
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
-          for e in laya laya-fp32 qwen; do
+          for e in laya laya-int8 qwen; do
             java -cp "$CP" io.github.dfa1.typesafe.local.JevComparison $e | tee -a ../jev.txt
           done
 
@@ -61,8 +60,8 @@ jobs:
         working-directory: local
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
-          ENGINES=laya,laya-fp32,qwen
-          if [ "$RUNNER_OS" = macOS ]; then ENGINES=$ENGINES,laya-fp32-gpu,qwen-gpu; fi  # WebGPU on Metal
+          ENGINES=laya,laya-int8,qwen
+          if [ "$RUNNER_OS" = macOS ]; then ENGINES=$ENGINES,laya-gpu,qwen-gpu; fi  # WebGPU on Metal
           java -cp "$CP" org.openjdk.jmh.Main LocalTypeSafeClientBenchmark \
             -p engine=$ENGINES -p questions=1,3 -wi 1 -w 5 -i 3 -r 5 -f 1 -rf json -rff ../jmh.json
 

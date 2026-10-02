@@ -2,14 +2,16 @@
 # requires-python = ">=3.10,<3.13"
 # dependencies = ["torch", "transformers>=4.48", "safetensors", "huggingface_hub", "onnx", "onnxscript", "onnxruntime", "numpy"]
 # ///
-"""Export Laya (convaiinnovations/laya-typed-decisions, Apache-2.0) to ONNX for typesafe-java-local.
+"""Export Laya (convaiinnovations/laya-typed-decisions, Apache-2.0) to ONNX ourselves. Not needed to use the module
+(download.sh fetches onnx-community's equivalent export); kept to regenerate the PyTorch reference fixture that
+LayaEngineTest checks the Java port against.
 
 Laya ships only PyTorch weights plus a custom decision head (rl_common.DecisionModel). This exports
 encoder + head as one graph: (input_ids, attention_mask, marker_pos, marker_mask, qtype) -> logits,
 checks onnxruntime against PyTorch, and writes a fixture (token ids, marker positions, logits) that
-the Java tests compare against. Writes a model directory for LocalTypeSafeClient.laya(...):
-~/.cache/typesafe-local/laya-fp32/{model.onnx, model.onnx.data, tokenizer.json, rl_agent_config.json}.
-Run:  uv run scripts/laya/export_onnx.py   (then quantize_int8.py for the faster laya-int8)
+the Java tests compare against. Writes ~/.cache/typesafe-local/laya-export/{model.onnx, model.onnx.data, tokenizer.json,
+rl_agent_config.json}, also usable with LocalTypeSafeClient.laya(...).
+Run:  uv run scripts/laya/export_onnx.py
 """
 import importlib, json, os, shutil, sys
 
@@ -17,7 +19,7 @@ import numpy as np
 import torch
 
 REPO = "convaiinnovations/laya-typed-decisions"
-OUT = os.path.expanduser("~/.cache/typesafe-local/laya-fp32")
+OUT = os.path.expanduser("~/.cache/typesafe-local/laya-export")
 FIXTURE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "../../src/test/resources/laya/fixture.json")
 
 from huggingface_hub import hf_hub_download, snapshot_download

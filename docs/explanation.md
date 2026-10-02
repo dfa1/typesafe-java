@@ -19,7 +19,11 @@ The module depends only on `core` and ONNX Runtime. Tokenization is a small pure
 `tokenizer.json`, checked id for id against HuggingFace `tokenizers`. JSON is a minimal reader, enough for
 `tokenizer.json` and Laya's config. The alternatives were an 18 MB native tokenizer library, or a Java ML library whose
 tokenizer silently dropped newlines and special tokens. Model files come from a directory the caller prepares, never
-from a download at run time: the client works offline and a deployment pins exactly the files it runs.
+from a download at run time: the client works offline and a deployment pins exactly the files it runs. Laya's ONNX is
+[onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX), which matches PyTorch, as
+our own export does. `LayaEngineTest` checks the Java port's logits against a PyTorch fixture. fp32 is the default
+because int8's results depend on the CPU's int8 kernels: on one x86 runner it agreed with Jev less, and on another it
+silently returned flat distributions.
 
 Several things were measured and rejected:
 

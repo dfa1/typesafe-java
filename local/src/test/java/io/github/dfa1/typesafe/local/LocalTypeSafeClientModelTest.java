@@ -14,8 +14,8 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Real model from ~/.cache/typesafe-local (see scripts/). Opt in: {@code mvn test -DexcludedGroups=};
- *  pick the engine with {@code -Dengine=laya|laya-fp32|qwen}. */
+/** Real model from ~/.cache/typesafe-local (see local/scripts). Opt in: {@code -DexcludedGroups=acceptance};
+ *  pick the engine with {@code -Dengine=laya|laya-int8|qwen} (append {@code -gpu} for WebGPU). */
 @Tag("model")
 class LocalTypeSafeClientModelTest {
 

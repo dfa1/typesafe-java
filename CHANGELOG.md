@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **`local`: `LocalTypeSafeClient`** — new module evaluating in-process on ONNX Runtime from a local model directory (Laya or Qwen2.5), with a `Local engines` workflow publishing agreement-with-Jev and throughput tables.
+- **`local`: `LocalTypeSafeClient`** — new module evaluating in-process on ONNX Runtime from a local model directory (Laya fp32 from onnx-community, or Qwen2.5), with a `Local engines` workflow publishing agreement-with-Jev and throughput tables.
 - **build: checkstyle engine 14.3.0** — the plugin's default 9.3 can't parse Java 21 pattern matching for switch; same rules.
 - **Breaking: optional API key, `ApiKey` without a public constructor** — `TypeSafeClient.builder()` takes no argument and `.apiKey(key)` is optional (no key, no `Authorization` header, for local servers); `ApiKey` is a final class built with `of(String)`/`fromFile`/`fromDefaultFile`/`fromEnv`, and no longer exposes its value. (#18)
 - **`jackson2`: ignore unknown fields, like `jackson3`** — a field the API adds to a response no longer fails decoding with `ResponseDecoding`; Jackson 2's default rejected it. (#18)

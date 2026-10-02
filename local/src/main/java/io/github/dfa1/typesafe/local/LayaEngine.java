@@ -1,8 +1,10 @@
 package io.github.dfa1.typesafe.local;
 
+import ai.onnxruntime.OnnxJavaType;
 import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
+import ai.onnxruntime.TensorInfo;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
@@ -19,6 +21,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Laya ({@code convaiinnovations/laya-typed-decisions}, Apache-2.0), a 421M ModernBERT encoder with
@@ -36,29 +39,32 @@ final class LayaEngine implements Engine {
 
     private final OrtSession session;
     private final Model model;
+    private final boolean boolMarkerMask;
     private final BpeTokenizer tokenizer;
     private final long cls, sep, pad, mask;
     private final int maxLen, headMaxLen;
     private final double[] temperature;
     private final Map<String, Double> temperatureByOptions;
 
-    @SuppressWarnings("unchecked")
-    private LayaEngine(OrtSession session, BpeTokenizer tokenizer, String configJson, Model model) {
+    private LayaEngine(OrtSession session, BpeTokenizer tokenizer, Map<String, Object> config, Model model) throws OrtException {
         this.session = session;
         this.model = model;
+        // onnx-community's export takes marker_mask as bool, ours as int64
+        this.boolMarkerMask = ((TensorInfo) session.getInputInfo().get("marker_mask").getInfo()).type == OnnxJavaType.BOOL;
         this.tokenizer = tokenizer;
         this.cls = special("[CLS]");
         this.sep = special("[SEP]");
         this.pad = special("[PAD]");
         this.mask = special("[MASK]");
-        Map<String, Object> config = (Map<String, Object>) Json.parse(configJson);
         this.maxLen = ((Long) config.get("max_len")).intValue();
         this.headMaxLen = ((Long) config.get("head_max_len")).intValue();
+        @SuppressWarnings("unchecked")
         List<Object> t = (List<Object>) config.getOrDefault("temperature", List.of(1.0, 1.0, 1.0));
         this.temperature = t.stream().mapToDouble(x -> ((Number) x).doubleValue()).toArray();
         this.temperatureByOptions = new HashMap<>();
-        ((Map<String, Object>) config.getOrDefault("temperature_by_options", Map.of()))
-                .forEach((k, v) -> temperatureByOptions.put(k, ((Number) v).doubleValue()));
+        @SuppressWarnings("unchecked")
+        Map<String, Object> byOptions = (Map<String, Object>) config.getOrDefault("temperature_by_options", Map.of());
+        byOptions.forEach((k, v) -> temperatureByOptions.put(k, ((Number) v).doubleValue()));
     }
 
     static LayaEngine load(Path dir) {
@@ -66,11 +72,11 @@ final class LayaEngine implements Engine {
     }
 
     static LayaEngine load(Path dir, boolean gpu) {
-        Path modelFile = Onnx.require(dir, "model.onnx");
+        // onnx-community's layout (onnx/model.onnx, config.json → "laya") or a flat one (model.onnx, rl_agent_config.json)
+        Path modelFile = Files.isRegularFile(dir.resolve("onnx/model.onnx")) ? dir.resolve("onnx/model.onnx") : Onnx.require(dir, "model.onnx");
         Path tokenizerFile = Onnx.require(dir, "tokenizer.json");
-        Path config = Onnx.require(dir, "rl_agent_config.json");
         try {
-            return new LayaEngine(Onnx.session(modelFile, gpu), Onnx.tokenizer(tokenizerFile), Files.readString(config),
+            return new LayaEngine(Onnx.session(modelFile, gpu), Onnx.tokenizer(tokenizerFile), config(dir),
                     new Model("local/" + dir.getFileName()));
         } catch (IOException | OrtException e) {
             throw new IllegalStateException("cannot load " + dir, e);
@@ -79,6 +85,21 @@ final class LayaEngine implements Engine {
 
     /** One model input: token ids plus each option's [MASK] position. */
     record Sequence(long[] ids, int[] markers, int qtype) {
+    }
+
+    /** Sequence and calibration settings: Laya's rl_agent_config.json, or the "laya" section of onnx-community's config.json. */
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> config(Path dir) throws IOException {
+        Path rl = dir.resolve("rl_agent_config.json");
+        if (Files.isRegularFile(rl)) {
+            return (Map<String, Object>) Json.parse(Files.readString(rl));
+        }
+        Map<String, Object> config = (Map<String, Object>) Json.parse(Files.readString(Onnx.require(dir, "config.json")));
+        Object laya = config.get("laya");
+        if (!(laya instanceof Map)) {
+            throw new IllegalArgumentException(dir.resolve("config.json") + " has no \"laya\" section");
+        }
+        return (Map<String, Object>) laya;
     }
 
     @Override
@@ -211,9 +232,9 @@ final class LayaEngine implements Engine {
             inputs.put("input_ids", Onnx.longs(ids, n, len));
             inputs.put("attention_mask", Onnx.longs(att, n, len));
             inputs.put("marker_pos", Onnx.longs(pos, n, k));
-            inputs.put("marker_mask", Onnx.longs(posMask, n, k));
+            inputs.put("marker_mask", boolMarkerMask ? bools(posMask, n, k) : Onnx.longs(posMask, n, k));
             inputs.put("qtype", Onnx.longs(qtype, n));
-            try (OrtSession.Result result = session.run(inputs)) {
+            try (OrtSession.Result result = session.run(inputs, Set.of("logits"))) {
                 FloatBuffer flat = ((OnnxTensor) result.get("logits").orElseThrow()).getFloatBuffer();
                 float[][] logits = new float[n][k];
                 for (float[] row : logits) {
@@ -224,6 +245,14 @@ final class LayaEngine implements Engine {
         } finally {
             inputs.values().forEach(OnnxTensor::close);
         }
+    }
+
+    private static OnnxTensor bools(long[] mask, int n, int k) throws OrtException {
+        boolean[][] b = new boolean[n][k];
+        for (int i = 0; i < mask.length; i++) {
+            b[i / k][i % k] = mask[i] != 0;
+        }
+        return OnnxTensor.createTensor(Onnx.ENV, b);
     }
 
     /** rl_agent_api: logits / temperature for this (type, option count) bucket, softmaxed over the real options. */

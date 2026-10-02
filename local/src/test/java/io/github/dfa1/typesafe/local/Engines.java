@@ -10,10 +10,10 @@ final class Engines {
 
     static Path dir(String engine) {
         String name = switch (engine.replace("-gpu", "")) {
-            case "laya" -> "laya-int8";
-            case "laya-fp32" -> "laya-fp32";
+            case "laya" -> "laya-fp32";
+            case "laya-int8" -> "laya-int8";
             case "qwen" -> "qwen2.5-1.5b";
-            default -> throw new IllegalArgumentException("unknown engine " + engine + "; use laya, laya-fp32 or qwen");
+            default -> throw new IllegalArgumentException("unknown engine " + engine + "; use laya, laya-int8 or qwen (+ -gpu)");
         };
         return Path.of(System.getProperty("typesafe.local.models", System.getProperty("user.home") + "/.cache/typesafe-local")).resolve(name);
     }
