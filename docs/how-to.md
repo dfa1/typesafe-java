@@ -641,7 +641,9 @@ try (TypeSafeClient client = LocalTypeSafeClient.laya(Path.of(System.getProperty
 ```
 
 Laya int8 is the recommended engine: 0.5 GB, about 45 ms for a one-question request and about 140 ms for three
-on an Apple M5 CPU. Qwen is 3.6× larger and roughly 10× slower, slightly better on choices. Measured against the real
+on an Apple M5 CPU. int8 accuracy depends on the CPU's int8 kernels, though: on an x86 GitHub runner it agreed with Jev
+on 78% of yes/no answers instead of 85%. Laya fp32 (1.7 GB) gives the same answers everywhere, so prefer it where
+consistency across machines matters more than size. Qwen is 3.6× larger and roughly 10× slower, slightly better on choices. Measured against the real
 `jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 66% of choices, with a mean score error
 of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
 
