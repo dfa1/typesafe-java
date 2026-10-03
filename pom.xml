@@ -58,7 +58,7 @@
     <okhttp.version>5.5.0</okhttp.version>
     <junit.version>5.10.2</junit.version>
     <assertj.version>3.27.7</assertj.version>
-    <mockito.version>5.23.0</mockito.version>
+    <mockito.version>5.24.0</mockito.version>
     <!-- byte-buddy-agent version must match what mockito-core pulls in transitively.
          Update this when bumping mockito.version (run: mvn dependency:tree -pl core | grep byte-buddy-agent). -->
     <bytebuddy.version>1.18.13</bytebuddy.version>
