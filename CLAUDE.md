@@ -78,7 +78,30 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
             on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
-bom       — dependency-management POM listing core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping.
+local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local: LocalLayaTypeSafeClient,
+            LocalQwenTypeSafeClient, LocalClefTypeSafeClient, each with a static load(Path)) over a package-private
+            LocalTypeSafeClient base, evaluating in-process on ONNX
+            Runtime, from a model directory the caller fills with `hf download` (docs/how-to.md): Laya =
+            onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — and Qwen q4;
+            ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file
+            names stay as-is. local/scripts is Python for fixtures only (export_onnx.py: PyTorch fixture;
+            tokenizer/reference.py: HF tokenizer ids) plus the CI summary. No int8 Laya: dynamic int8 gave CPU-dependent answers,
+            silently flat distributions on some x86 CPUs. Two engines behind
+            a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a
+            request's questions in one batch; a port of Laya's Python sequence builder) and QwenEngine
+            (one prefill per question, softmax over Yes/No/letter/digit logits). Own pure-Java BpeTokenizer
+            (tokenizer.json); JSON through typesafe-java's JsonCodec (ServiceLoader, like the API client),
+            so a jackson2/jackson3 module is needed at run time; BpeTokenizerTest checks ids
+            against HF tokenizers, LayaEngineTest checks logits against PyTorch (fixtures under
+            src/test/resources). Tests needing model files are @Tag("model"), excluded by the module's
+            own excludedGroups (acceptance,model); opt in with -DexcludedGroups=acceptance -Dengine=laya.
+            JevComparison (test scope, main) replays 104 requests against cached real-Jev answers
+            (src/test/resources/jev); LocalTypeSafeClientBenchmark is JMH. Package-private WebGPU switch
+            (LayaEngine/QwenEngine.load(dir, gpu)) is experimental. LayaEngine reads onnx-community's layout
+            (onnx/model.onnx, config.json "laya", bool marker_mask).
+            The `Local engines` workflow runs tests, comparison and JMH on Linux/macOS and writes tables to
+            the job summary.
+bom       — dependency-management POM listing core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping/local.
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
             holds every test method; one concrete subclass per HttpTransport/JsonCodec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
@@ -112,7 +135,8 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
 Dependency rule: `client-jdk → core`, `client-okhttp → core`, `jackson2 → core`, `jackson3 →
 core`, `testkit → core`, `mapping → core` (`mapping`'s own tests additionally depend on
 `testkit`, test scope only), `acceptance → core, client-jdk, client-okhttp, jackson2, jackson3,
-mapping` (test scope only), `cli → core, client-jdk, jackson3` — nothing production depends on
+mapping` (test scope only), `cli → core, client-jdk, jackson3`, `local → core` (plus ONNX Runtime;
+its own tests additionally depend on `client-jdk` and `jackson2`, test scope only) — nothing production depends on
 `acceptance`, `cli`, or `testkit`. See
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
 exist at all.

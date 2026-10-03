@@ -615,6 +615,128 @@ java -jar cli/target/typesafe-java-cli-*-all.jar \
 # billing
 ```
 
+## Run without the API, on a local model
+
+`typesafe-java-local` evaluates in-process on ONNX Runtime: no network, no API key, same `EvaluateRequest`/
+`EvaluateResponse`. Jev's weights aren't public, so the answers come from an open model — Jev's contract, not Jev's
+judgement.
+
+Add the module and a JSON codec (the module reads `tokenizer.json` and model configs through it):
+
+```xml
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-local</artifactId>
+</dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-jackson2</artifactId>
+</dependency>
+```
+
+It brings in Microsoft's ONNX Runtime (`com.microsoft.onnxruntime:onnxruntime`) transitively: a 56 MB jar with the
+native library for Linux x64 and ARM64, macOS on Apple Silicon and Windows x64. Other platforms, Intel Macs included,
+can't load it. The CPU and the experimental WebGPU paths both come from that one jar; NVIDIA's CUDA build
+(`onnxruntime_gpu`) isn't supported.
+
+Download a model directory once with Hugging Face's CLI (`pip install huggingface_hub`, or run it through
+[uv](https://docs.astral.sh/uv/) as below). Files keep their Hugging Face names; the client finds the one `.onnx` model
+in the directory:
+
+```bash
+# Laya fp32 (1.7 GB), the recommended engine
+uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX \
+    tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir ~/.cache/typesafe-local/laya-fp32
+# optional: Laya fp16 (0.85 GB, see below)
+uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX \
+    tokenizer.json config.json onnx/model_fp16.onnx onnx/model_fp16.onnx_data --local-dir ~/.cache/typesafe-local/laya-fp16
+# optional: Qwen2.5-1.5B 4-bit (1.8 GB)
+uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct \
+    tokenizer.json onnx/model_q4.onnx --local-dir ~/.cache/typesafe-local/qwen2.5-1.5b
+# optional: Clef-flash (19 GB of bf16 weights, needs about as much free memory): Cloudflare's weights,
+# plus Ollaya's ONNX graph, which reads them in place
+uvx --from huggingface_hub hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 \
+    --include '*.safetensors' --include tokenizer.json --local-dir ~/.cache/typesafe-local/clef-flash
+uvx --from huggingface_hub hf download ollaya-dev/clef flash/model-fp32.onnx --local-dir ~/.cache/typesafe-local/clef-flash
+```
+
+Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:
+
+```java
+try (TypeSafeClient client = LocalLayaTypeSafeClient.load(Path.of(System.getProperty("user.home"), ".cache/typesafe-local/laya-fp32"))) {
+    EvaluateResponse response = client.evaluate(EvaluateRequest.of(
+            Content.text("Help! My payouts have been failing for 3 days."),
+            Map.of("is_urgent", Question.noul("Does this convey urgency?"))));
+}
+```
+
+Laya is the recommended engine: about 55 ms for a one-question request and about 165 ms for three on an Apple M5
+CPU. The fp16 variant gives the same answers in half the download, but ONNX Runtime's CPU kernels convert fp16 on the
+fly, so it's 2–3× slower on a CPU; it only pays off on a GPU. Qwen is a baseline, not a recommendation: a prompted
+general LLM, about 10× slower than Laya and less like Jev (table below). Measured against the real
+`jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 64% of choices, with a mean score error
+of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
+Clef-flash is a 9B model. As downloaded (bf16 weights, fp32 compute) it peaked at 20 GB on a 32 GB Apple M5 and took
+about a minute per request. Convert it to 4-bit weights once (31 s, about 1.3 GB of memory; the new directory hard-links
+the original files, so no extra copy):
+
+```bash
+cd local && uv run scripts/clef/quantize_q4.py   # writes ~/.cache/typesafe-local/clef-flash-q4
+```
+
+`LocalClefTypeSafeClient.load(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
+for 1–3 questions on the CPU, or 2–4 s on the GPU (WebGPU, still experimental here): batch work, not interactive use.
+On a Mac, the same model runs about 5× faster through MLX; see
+[Run Clef-flash on a Mac with MLX](#run-clef-flash-on-a-mac-with-mlx).
+
+The `Local engines` GitHub workflow re-measures agreement and throughput on Linux and macOS runners and writes both
+tables to its job summary. To reproduce locally:
+
+```bash
+./mvnw -pl local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, qwen, clef, ...)
+```
+
+## Run Clef-flash on a Mac with MLX
+
+[Clef-flash](https://huggingface.co/Cloudflare/clef-flash) is the local model closest to Jev, and on Apple Silicon
+the fastest way to run it is [MLX](https://github.com/ml-explore/mlx), Apple's array framework for its GPUs.
+[mlx-community's 4-bit port](https://huggingface.co/mlx-community/clef-flash-4bit) ships a small server speaking
+TypeSafe's `POST /v1/systemone`, so the regular client talks to it: no `local` module, no API key.
+
+Download the model (6.2 GB) and start the server (needs [uv](https://docs.astral.sh/uv/); it serves one request
+at a time):
+
+```bash
+M=~/.cache/typesafe-local/clef-flash-mlx-4bit
+uvx --from huggingface_hub hf download mlx-community/clef-flash-4bit --exclude '__pycache__/*' --local-dir $M
+uv run --with 'mlx-vlm>=0.7.4,<0.8' python $M/clef_mlx.py serve --model $M --port 8000
+```
+
+Then point the client at it:
+
+```java
+try (TypeSafeClient client = TypeSafeClient.builder()
+        .endpoint(URI.create("http://localhost:8000/v1/systemone"))
+        .build()) {
+    EvaluateResponse response = client.evaluate(request);
+}
+```
+
+On an Apple M5 (32 GB) it answers a 3-question request in about 0.55 s and needs about 7 GB. On the same 104 cached
+requests as above, it agrees with `jev-1.13.0` far more often than the in-process models:
+
+| Agreement with `jev-1.13.0` | Qwen2.5-1.5B (prompted) | Laya | Clef-flash (MLX 4-bit) |
+|---|---|---|---|
+| Yes/no: same side of 0.5 | 80% | 85% | 95% |
+| Choice: same pick | 68% | 64% | 88% |
+| Score: mean error (0–1 scale) | 0.26 | 0.19 | 0.07 |
+| Time per 3-question request | 2.05 s | 0.19 s | 0.6 s |
+
+Things to know:
+- It's macOS on Apple Silicon only, and the server is mlx-community's code, not this project's.
+- `listModels()` fails: the server lists models in OpenAI's format, not TypeSafe's.
+- The response's `model` is whatever the request asked for (`jev-latest` by default), not the model that answered.
+
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/

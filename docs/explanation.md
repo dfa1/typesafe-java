@@ -3,6 +3,53 @@
 Background reading on the design decisions behind this library. For "what exists," see
 [reference.md](reference.md); for "how do I," see [how-to.md](how-to.md).
 
+## Why `local` exists, and why it reads answers instead of generating them
+
+`TypeSafeClient` is an interface, so an in-process engine is just another implementation: everything built on it
+(`MappingTypeSafeClient`, `RetryingTypeSafeClient`, `TokenCounter`, the testkit) keeps working. Jev's weights aren't
+public, so `local` offers API parity with a different model behind it, and says so.
+
+Jev's answers are probability distributions, never text, and every engine produces distributions directly. Laya, a
+ModernBERT encoder trained for Choice/Score/Noul, scores each option with a decision head; Clef-flash, a 9B decision
+model, does the same with a joint schema head. Qwen, a general chat model, is prompted and its next-token logits over
+the candidate answers (`Yes`/`No`, option letters, level digits) are read after one prefill. None generates, so
+there's no output to parse and the result is deterministic.
+
+Qwen stays as a baseline: it shows what prompting a general LLM to imitate Jev buys. On the same 104 requests it's
+about ten times slower than Laya and worse on yes/no (80% vs 85%) and scores (mean error 0.26 vs 0.19), and only
+slightly better on choices (68% vs 64%). Clef-flash, trained for exactly these decisions, beats both everywhere (95%,
+88%, 0.07). The model has to be trained for the task; a prompt doesn't get you there.
+
+The module depends on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
+`tokenizer.json`, checked id for id against HuggingFace `tokenizers`. The alternatives were an 18 MB native tokenizer
+library, or a Java ML library whose tokenizer silently dropped newlines and special tokens. JSON (`tokenizer.json`,
+Laya's config, structured states) goes through the same `JsonCodec` the API client uses. Laya was trained on
+Python's `json.dumps` spacing, but Jackson's compact output measured no different against Jev. Model files come from a
+directory the caller fills with `hf download`, never from a download at run time: the client works offline and a
+deployment pins exactly the files it runs. Laya's ONNX is
+[onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX), which matches PyTorch, as
+our own export does. `LayaEngineTest` checks the Java port's logits against a PyTorch fixture. There's no int8 model:
+its results depended on the CPU's int8 kernels. On one x86 runner it agreed with Jev less, and on another it silently
+returned flat distributions.
+
+Clef-flash, Cloudflare's decision model, is the third engine. Ollaya's ONNX graph reads Cloudflare's own bf16
+safetensors by byte offset, so nothing is converted. The graph names each weight file `sha256-<hash>`, and the first
+load hard-links the downloaded files under those names. A symlink won't do: ONNX Runtime refuses external data that
+resolves outside the graph's directory. `ClefEngineTest` checks the Java port of `encode_record` against Clef's own
+Python code, token for token. As published, the graph widens every bf16 weight to fp32 before multiplying. On a 32 GB
+Apple M5 that peaked at 20 GB, spent more time paging than computing, and was slower still on the GPU.
+`scripts/clef/quantize_q4.py` replaces the 249 projections with ONNX Runtime's `MatMulNBits` (4-bit weights in blocks
+of 32), the same format onnx-community uses for its q4 models. That brought it to 7.7 GB and 2–4 s per request on the
+GPU, with probabilities within about 0.03 of the fp32 graph. The rest of the cost is the model's size: every token
+passes through 9B weights.
+
+Several things were measured and rejected:
+
+- **Parallel sessions.** On a CPU, one ONNX session already uses every core, so splitting the same work across
+  sessions or threads finished no sooner, and N sessions mean N copies of the weights competing for memory bandwidth.
+- **CoreML.** The execution provider ran Laya 2–3× slower than the CPU.
+- **Smaller LLMs.** SmolLM2, Qwen2.5-0.5B and Qwen3-0.6B didn't track Jev at all.
+
 ## Why `core` doesn't know about Jackson
 
 The DTOs (`Answer`, `Question`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`)

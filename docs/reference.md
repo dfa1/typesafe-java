@@ -22,7 +22,8 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
 | `typesafe-java-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
-| `typesafe-java-bom` | — | dependency management for the seven above |
+| `typesafe-java-local` | `core`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
+| `typesafe-java-bom` | — | dependency management for the eight above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
 `HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
@@ -315,6 +316,48 @@ doesn't match its annotation, throws `IllegalStateException` naming the componen
 with the original `ClassCastException` as its cause) rather than a bare, unexplained exception.
 
 `evaluate()`/`evaluateAsync()`/`listModels()`/`close()` delegate straight through, unchanged.
+
+## Local
+
+`io.github.dfa1.typesafe.local` (module `typesafe-java-local`).
+
+```java
+public final class LocalLayaTypeSafeClient implements TypeSafeClient {
+    public static LocalLayaTypeSafeClient load(Path dir);   // onnx/model.onnx + tokenizer.json + config.json (onnx-community)
+}
+public final class LocalQwenTypeSafeClient implements TypeSafeClient {
+    public static LocalQwenTypeSafeClient load(Path dir);   // model.onnx, tokenizer.json
+}
+public final class LocalClefTypeSafeClient implements TypeSafeClient {
+    public static LocalClefTypeSafeClient load(Path dir);   // *.safetensors + tokenizer.json (Cloudflare) + flash/model-*.onnx
+}
+```
+
+One class per model, each a `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
+(plus `config.json` for Laya) and the one `.onnx` file in `dir/onnx` or `dir`, as `hf download` lays them out (see the
+[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
+(`typesafe-java-jackson2` or `-jackson3`) must be on the classpath, as for the API client. The module depends on
+`com.microsoft.onnxruntime:onnxruntime` (56 MB, native code for Linux x64/ARM64, macOS Apple Silicon and Windows x64
+only).
+
+| Class | Model | How it answers |
+|---|---|---|
+| `LocalLayaTypeSafeClient` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX): fp32, or fp16 (half the size, same answers, slower on CPU) | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
+| `LocalClefTypeSafeClient` | [Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (Qwen3.5-9B + joint schema head, bf16), [Ollaya's graph](https://huggingface.co/ollaya-dev/clef) over Cloudflare's own safetensors | the head gives one logit per option; a request's questions are one causal sequence, one forward pass; text only |
+| `LocalQwenTypeSafeClient` (baseline) | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
+
+- `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);
+  anything else throws `TypeSafeException.NotFound`.
+- A question the engine can't express throws `TypeSafeException.BadRequest` (Qwen: more than 26 options, fewer than 2
+  or more than 10 levels; Laya: options that don't fit its 256-token head budget; Clef: empty criteria, or questions over 4096 tokens — the state is truncated to fit). An inference failure throws
+  `TypeSafeException.InternalServer` — so `RetryingTypeSafeClient` classifies all three as it would the API's.
+- `Usage.inputTokens` is the tokens fed to the model; `outputTokens` is always 0 (nothing is generated).
+  `Metadata.requestId` is `null`; `upstreamServiceTime` is the wall-clock evaluation time.
+- `evaluateAsync` runs `evaluate` on a virtual thread. Calls are thread-safe but share the CPU: one evaluation
+  already uses every core, so concurrency doesn't add throughput.
+- `listModels` returns the one model the client runs.
+- Answers are Jev-shaped but come from a different model: see the agreement numbers in the
+  [how-to](how-to.md#run-without-the-api-on-a-local-model).
 
 ## Client
 

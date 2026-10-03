@@ -1,0 +1,26 @@
+[
+  {
+    "state": "Checkout has been failing for every customer for the last hour.",
+    "questions": {
+      "urgent": {"type": "noul", "instructions": "Is this support request urgent?"},
+      "team": {"type": "choice", "instructions": "Which team should handle this request?",
+               "criteria": {"technical": "Outages, errors, and configuration", "billing": "Payments, invoices, and refunds", "Sales": "Plans and upgrades"}},
+      "severity": {"type": "score", "instructions": "How severe is the customer impact?",
+                   "criteria": ["No impact", "Minor", "Major", "Critical"]}
+    }
+  },
+  {
+    "state": {"ticket": {"subject": "Rückerstattung \"bitte\"", "body": "Line one\nLine two\ttab"}, "customer": {"tier": "gold", "id": 42}, "amount": 12.5, "flags": [true, false, null]},
+    "questions": {
+      "refund": {"type": "noul", "instructions": {"task": "Should we refund?", "policy": "within 30 days"},
+                 "criteria": {"true": "Refund now"}},
+      "lang": {"type": "choice", "instructions": "", "criteria": {"é": "", "e": "plain e", "Z": "zed"}}
+    }
+  },
+  {
+    "state": ["hi, my order never arrived", "it's been two weeks", "I want my money back 😡"],
+    "questions": {
+      "angry": {"type": "score", "instructions": "How angry is the customer?", "criteria": ["calm", "annoyed", "angry", "furious"]}
+    }
+  }
+]

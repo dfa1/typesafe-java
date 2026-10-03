@@ -44,6 +44,7 @@
     <module>jackson3</module>
     <module>testkit</module>
     <module>mapping</module>
+    <module>local</module>
     <module>bom</module>
     <module>acceptance</module>
     <module>cli</module>
@@ -167,6 +168,15 @@
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-checkstyle-plugin</artifactId>
           <version>3.6.0</version>
+          <dependencies>
+            <!-- the plugin defaults to checkstyle 9.3 (2022), whose parser predates Java 21's
+                 pattern matching for switch (type patterns, block-bodied arms, `when` guards) -->
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>14.3.0</version>
+            </dependency>
+          </dependencies>
           <executions>
             <execution>
               <phase>validate</phase>

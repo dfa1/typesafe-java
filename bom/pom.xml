@@ -58,6 +58,12 @@
         <artifactId>typesafe-java-mapping</artifactId>
         <version>${project.version}</version>
       </dependency>
+
+      <dependency>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-local</artifactId>
+        <version>${project.version}</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
 
