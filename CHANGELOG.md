@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`local`: `LocalTypeSafeClient.clef(...)`** — Cloudflare's Clef-flash (Qwen3.5-9B + joint schema head) on Ollaya's ONNX graph over the upstream bf16 weights; one forward pass per request; `scripts/clef/quantize_q4.py` converts it to 4-bit weights (7.7 GB, 2–4 s per request on an M5 GPU).
 - **`local`: `LocalTypeSafeClient`** — new module evaluating in-process on ONNX Runtime from a local model directory (Laya fp32 from onnx-community, or Qwen2.5), with a `Local engines` workflow publishing agreement-with-Jev and throughput tables.
 - **build: checkstyle engine 14.3.0** — the plugin's default 9.3 can't parse Java 21 pattern matching for switch; same rules.
 - **Breaking: optional API key, `ApiKey` without a public constructor** — `TypeSafeClient.builder()` takes no argument and `.apiKey(key)` is optional (no key, no `Authorization` header, for local servers); `ApiKey` is a final class built with `of(String)`/`fromFile`/`fromDefaultFile`/`fromEnv`, and no longer exposes its value. (#18)

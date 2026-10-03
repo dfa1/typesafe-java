@@ -27,6 +27,17 @@ our own export does. `LayaEngineTest` checks the Java port's logits against a Py
 its results depended on the CPU's int8 kernels. On one x86 runner it agreed with Jev less, and on another it silently
 returned flat distributions.
 
+Clef-flash, Cloudflare's decision model, is the third engine. Ollaya's ONNX graph reads Cloudflare's own bf16
+safetensors by byte offset, so nothing is converted. The graph names each weight file `sha256-<hash>`, and the first
+load hard-links the downloaded files under those names. A symlink won't do: ONNX Runtime refuses external data that
+resolves outside the graph's directory. `ClefEngineTest` checks the Java port of `encode_record` against Clef's own
+Python code, token for token. As published, the graph widens every bf16 weight to fp32 before multiplying. On a 32 GB
+Apple M5 that peaked at 20 GB, spent more time paging than computing, and was slower still on the GPU.
+`scripts/clef/quantize_q4.py` replaces the 249 projections with ONNX Runtime's `MatMulNBits` (4-bit weights in blocks
+of 32), the same format onnx-community uses for its q4 models. That brought it to 7.7 GB and 2–4 s per request on the
+GPU, with probabilities within about 0.03 of the fp32 graph. The rest of the cost is the model's size: every token
+passes through 9B weights.
+
 Several things were measured and rejected:
 
 - **Parallel sessions.** On a CPU, one ONNX session already uses every core, so splitting the same work across

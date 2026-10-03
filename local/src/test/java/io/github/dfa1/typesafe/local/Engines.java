@@ -12,7 +12,11 @@ public enum Engines {
     LAYA_FP16("laya-fp16", false, LayaEngine::load),
     LAYA_FP16_GPU("laya-fp16", true, LayaEngine::load),
     QWEN("qwen2.5-1.5b", false, QwenEngine::load),
-    QWEN_GPU("qwen2.5-1.5b", true, QwenEngine::load);
+    QWEN_GPU("qwen2.5-1.5b", true, QwenEngine::load),
+    CLEF("clef-flash", false, ClefEngine::load),
+    CLEF_GPU("clef-flash", true, ClefEngine::load),
+    CLEF_Q4("clef-flash-q4", false, ClefEngine::load),
+    CLEF_Q4_GPU("clef-flash-q4", true, ClefEngine::load);
 
     private final String dirName;
     private final boolean gpu;

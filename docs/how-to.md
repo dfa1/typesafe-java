@@ -635,6 +635,11 @@ uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX 
 # optional: Qwen2.5-1.5B 4-bit (1.8 GB)
 uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct \
     tokenizer.json onnx/model_q4.onnx --local-dir ~/.cache/typesafe-local/qwen2.5-1.5b
+# optional: Clef-flash (19 GB of bf16 weights, needs about as much free memory): Cloudflare's weights,
+# plus Ollaya's ONNX graph, which reads them in place
+uvx --from huggingface_hub hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 \
+    --include '*.safetensors' --include tokenizer.json --local-dir ~/.cache/typesafe-local/clef-flash
+uvx --from huggingface_hub hf download ollaya-dev/clef flash/model-fp32.onnx --local-dir ~/.cache/typesafe-local/clef-flash
 ```
 
 Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:
@@ -652,12 +657,22 @@ CPU. The fp16 variant gives the same answers in half the download, but ONNX Runt
 fly, so it's 2–3× slower on a CPU; it only pays off on a GPU. Qwen is about the same size and roughly 10× slower, slightly better on choices. Measured against the real
 `jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 64% of choices, with a mean score error
 of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
+Clef-flash is a 9B model. As downloaded (bf16 weights, fp32 compute) it peaked at 20 GB on a 32 GB Apple M5 and took
+about a minute per request. Convert it to 4-bit weights once (31 s, about 1.3 GB of memory; the new directory hard-links
+the original files, so no extra copy):
+
+```bash
+cd local && uv run scripts/clef/quantize_q4.py   # writes ~/.cache/typesafe-local/clef-flash-q4
+```
+
+`LocalTypeSafeClient.clef(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
+for 1–3 questions on the CPU, or 2–4 s on the GPU (WebGPU, still experimental here): batch work, not interactive use.
 
 The `Local engines` GitHub workflow re-measures agreement and throughput on Linux and macOS runners and writes both
 tables to its job summary. To reproduce locally:
 
 ```bash
-./mvnw -pl local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, laya-fp32, qwen)
+./mvnw -pl local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, qwen, clef, ...)
 ```
 
 ## Run the acceptance tests against the live API

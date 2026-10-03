@@ -57,6 +57,17 @@ public final class LocalTypeSafeClient implements TypeSafeClient {
     }
 
     /**
+     * Clef-flash (Cloudflare/clef-flash, Apache-2.0): Qwen3.5-9B with a joint schema head, every question of a
+     * request decided in one forward pass. About 19 GB of bf16 weights: meant for a machine with the memory for it.
+     *
+     * @param dir clef-flash's {@code tokenizer.json} and {@code *.safetensors} as {@code hf download} writes them, plus
+     *            Ollaya's {@code flash/model-fp32.onnx}; the first load adds {@code sha256-*} links next to the graph
+     */
+    public static LocalTypeSafeClient clef(Path dir) {
+        return new LocalTypeSafeClient(ClefEngine.load(dir));
+    }
+
+    /**
      * Evaluates {@code request} on the local model. Throws {@link TypeSafeException.BadRequest} for a
      * request the engine can't express, {@link TypeSafeException.NotFound} for a {@code model} other
      * than {@link Model#LATEST}, {@link Model#PREVIEW} or this client's own, and
