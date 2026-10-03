@@ -90,10 +90,8 @@ public final class OkHttpTransport implements HttpTransport {
                 try (response) {
                     Map<String, String> responseHeaders = new LinkedHashMap<>();
                     response.headers().toMultimap().forEach((name, values) -> responseHeaders.put(name, values.get(0)));
-                    String responseBody = response.body() != null
-                            ? response.body().string()
-                            : "";
-                    future.complete(new HttpTransportResponse(response.code(), responseHeaders, responseBody));
+                    // OkHttp 5: body() is never null (an empty body for a bodiless response)
+                    future.complete(new HttpTransportResponse(response.code(), responseHeaders, response.body().string()));
                 } catch (IOException e) {
                     future.completeExceptionally(e);
                 }

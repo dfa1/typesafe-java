@@ -70,6 +70,30 @@ class OkHttpTransportTest {
     }
 
     @Test
+    void aResponseBuiltWithoutABodyMapsToAnEmptyBody() throws Exception {
+        // Given
+        OkHttpTransport sut = new OkHttpTransport(httpClient, null);
+        given(httpClient.newCall(any())).willReturn(call);
+        CompletableFuture<HttpTransportResponse> future = sut.get(ENDPOINT, Map.of());
+        ArgumentCaptor<Callback> callbackCaptor = ArgumentCaptor.forClass(Callback.class);
+        then(call).should().enqueue(callbackCaptor.capture());
+        Response noBody = new Response.Builder()
+                .request(new Request.Builder().url(ENDPOINT.toString()).build())
+                .protocol(Protocol.HTTP_1_1)
+                .code(204)
+                .message("No Content")
+                .build();
+
+        // When
+        callbackCaptor.getValue().onResponse(call, noBody);
+
+        // Then
+        HttpTransportResponse result = future.get();
+        assertThat(result.statusCode()).isEqualTo(204);
+        assertThat(result.body()).isEmpty();
+    }
+
+    @Test
     void getSendsAHeadedGetAndMapsTheResponse() throws Exception {
         // Given
         OkHttpTransport sut = new OkHttpTransport(httpClient, null);
