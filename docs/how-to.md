@@ -7,24 +7,25 @@ For API details, see [reference.md](reference.md). For design rationale, see [ex
 
 ## Provide your API token
 
-`ApiKey` has a source for each case; `TypeSafeClient.builder` takes whichever you build:
+`ApiKey` has a source for each case; `Builder.apiKey(...)` takes whichever you build. Leave it out only
+for a local TypeSafe-compatible server (`Builder.endpoint(...)`): without a key no `Authorization` header is sent.
 
 ```java
 // 1. Default file (~/.typesafe.apikey)
 ApiKey token = ApiKey.fromDefaultFile();
-TypeSafeClient client = TypeSafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
 
 // 2. A specific file
 ApiKey token = ApiKey.fromFile(Path.of("/secrets/typesafe.token"));
-TypeSafeClient client = TypeSafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
 
 // 3. TYPESAFE_API_KEY environment variable
 ApiKey token = ApiKey.fromEnv();
-TypeSafeClient client = TypeSafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
 
 // 4. Any other in-memory value (e.g. a secrets manager)
-ApiKey token = new ApiKey(secretsManager.getSecret("typesafe-token"));
-TypeSafeClient client = TypeSafeClient.builder(token).build();
+ApiKey token = ApiKey.of(secretsManager.getSecret("typesafe-token"));
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
 ```
 
 ## Choose a JSON codec
@@ -49,7 +50,7 @@ message telling you to add one. To bypass discovery and wire a codec explicitly 
 or if you have your own `JsonCodec` implementation):
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .jsonCodec(new Jackson2Codec())
         .build();
 ```
@@ -76,7 +77,7 @@ the classpath makes `ServiceLoader` resolution between them non-deterministic. T
 explicitly, or to use your own `HttpTransport` (e.g. backed by Apache HttpClient):
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .httpTransport(new JdkHttpTransport())
         // or: .httpTransport(new OkHttpTransport())
         .build();
@@ -204,7 +205,7 @@ record TicketUrgency(
         @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) double spiciness) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
+MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
 TicketUrgency result = client.evaluateTyped(Content.text("..."), TicketUrgency.class);
 result.isUrgent();   // double, from Answer.Noul#noul()
 result.culprit();    // String, from Answer.Choice#choice()
@@ -293,7 +294,7 @@ unless you [add retries](#retry-transient-failures).
 
 ```java
 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-TypeSafeClient client = TypeSafeClient.builder(token).httpTransport(new JdkHttpTransport(http)).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
 ## Configure the per-request timeout
@@ -304,7 +305,7 @@ distinct from `HttpClient`'s `connectTimeout` above. Override it with the `(Http
 constructor, or pass `null` to disable it entirely:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .httpTransport(new JdkHttpTransport(HttpClient.newHttpClient(), Duration.ofSeconds(30)))
         .build();
 ```
@@ -320,7 +321,7 @@ A timed-out request surfaces as `TypeSafeException.Timeout`, not the transport's
 down the `OkHttpClient`'s dispatcher executor, evicts its connection pool, and closes its cache:
 
 ```java
-try (TypeSafeClient client = TypeSafeClient.builder(token).build()) {
+try (TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build()) {
     client.evaluate(request);
 }
 ```
@@ -331,7 +332,7 @@ need closing.
 ## Configure the endpoint
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .endpoint(URI.create("https://staging.typesafe.ai/v1/systemone"))
         .build();
 ```
@@ -342,11 +343,11 @@ A client from `build()` makes exactly one attempt per call. Add retries with
 `RetryingTypeSafeClient`:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)       // 5 retries, backoff from 500ms
         .build();
 
-TypeSafeClient tuned = TypeSafeClient.builder(token)
+TypeSafeClient tuned = TypeSafeClient.builder().apiKey(token)
         .decorateWith(c -> RetryingTypeSafeClient.decorate(c, 2, Duration.ofMillis(100)))
         .build();
 ```
@@ -368,7 +369,7 @@ a minute in the worst case. Decorate the retrying client with a `DeadlineTypeSaf
 the whole call:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
         .build();
@@ -386,7 +387,7 @@ total, create a `TokenCounter` and add its decorator:
 
 ```java
 TokenCounter tokens = new TokenCounter();
-TypeSafeClient client = TypeSafeClient.builder(token)
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .decorateWith(tokens::decorate)
         .build();
@@ -407,7 +408,7 @@ Each `decorateWith(...)` adds a decorator *around* everything added before it, a
 the stack from the inside out:
 
 ```java
-TypeSafeClient.builder(token)
+TypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)                                  // 1
         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))  // 2
         .build(MappingTypeSafeClient::decorate);                                         // 3
@@ -458,7 +459,7 @@ record CachingTypeSafeClient(TypeSafeClient delegate, Map<EvaluateRequest, Evalu
 
 }
 
-TypeSafeClient client = new CachingTypeSafeClient(TypeSafeClient.builder(token).build(), new ConcurrentHashMap<>());
+TypeSafeClient client = new CachingTypeSafeClient(TypeSafeClient.builder().apiKey(token).build(), new ConcurrentHashMap<>());
 ```
 
 `Builder#build(Function<TypeSafeClient, T>)` applies a decorator to the built client in one call,
@@ -466,7 +467,7 @@ returning `T` (the decorator's own type, e.g. `MappingTypeSafeClient` — no cas
 its extra methods) instead of the plain `TypeSafeClient`:
 
 ```java
-CachingTypeSafeClient client = TypeSafeClient.builder(token)
+CachingTypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
 ```
 
@@ -478,7 +479,7 @@ Stack more with `Builder#decorateWith(...)` (see
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token)
+MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token)
         .decorateWith(caching)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .build(MappingTypeSafeClient::decorate);

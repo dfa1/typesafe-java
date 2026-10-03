@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Breaking: optional API key, `ApiKey` without a public constructor** — `TypeSafeClient.builder()` takes no argument and `.apiKey(key)` is optional (no key, no `Authorization` header, for local servers); `ApiKey` is a final class built with `of(String)`/`fromFile`/`fromDefaultFile`/`fromEnv`, and no longer exposes its value. (#18)
 - **`jackson2`: ignore unknown fields, like `jackson3`** — a field the API adds to a response no longer fails decoding with `ResponseDecoding`; Jackson 2's default rejected it. (#18)
 - **`core`: `Content.fields(...)` and `EvaluateRequest.Builder` keep their order** — both copied with `Map.copyOf`, which reshuffles keys per JVM run, so the same request serialized with fields/questions in a different order each run; they now keep the caller's iteration order.
 - **`core`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.

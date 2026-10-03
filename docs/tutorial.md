@@ -55,7 +55,7 @@ echo "your-token-here" > ~/.typesafe.apikey
 import io.github.dfa1.typesafe.core.ApiKey;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 
-TypeSafeClient client = TypeSafeClient.builder(ApiKey.fromDefaultFile()).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).build();
 ```
 
 ## 4. Ask a question
@@ -107,7 +107,7 @@ import io.github.dfa1.typesafe.mapping.Noul;
 record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
-MappingTypeSafeClient typedClient = TypeSafeClient.builder(ApiKey.fromDefaultFile())
+MappingTypeSafeClient typedClient = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
         .build(MappingTypeSafeClient::decorate);
 
 UrgencyCheck result = typedClient.evaluateTyped(

@@ -60,7 +60,7 @@ classic Decorator shape has no supertype to implement — they'd have to invent 
 interface with the same three methods and get every call site to depend on that instead of on
 `TypeSafeClient` directly.
 
-Making it an interface costs nothing observable at existing call sites: `TypeSafeClient.builder(key).build()`
+Making it an interface costs nothing observable at existing call sites: `TypeSafeClient.builder().apiKey(key).build()`
 still type-checks and behaves identically, since `Builder.build()` always returned the interface
 type as far as callers could tell. What moved is the implementation — the retry/backoff/header/
 decode logic, previously `TypeSafeClient`'s own body, now lives in `DefaultTypeSafeClient`, the
@@ -73,7 +73,7 @@ interface: constructing a `DefaultTypeSafeClient` — picking defaults, discover
 `HttpTransport`/`JsonCodec` via `ServiceLoader` — is that class's own concern, not something a
 pure contract interface should carry. That required making `DefaultTypeSafeClient` itself
 public (a nested class can't be more accessible than its enclosing class), so it's no longer
-hidden — but `TypeSafeClient.builder(apiKey)` still exists as a one-line delegating static method
+hidden — but `TypeSafeClient.builder()` still exists as a one-line delegating static method
 on the interface, so nothing at the call site changes; a consumer only sees `DefaultTypeSafeClient`
 by name if they explicitly go looking for it.
 
@@ -133,8 +133,8 @@ the full type. Same annotation, same validation path, no new concepts.
 
 ## Why `MappingTypeSafeClient` doesn't have its own `Builder`
 
-The natural-looking ask — `MappingTypeSafeClient.builder(apiKey)...build()`, mirroring
-`TypeSafeClient.builder(apiKey)` — was rejected. `TypeSafeClient.builder` works because
+The natural-looking ask — `MappingTypeSafeClient.builder()...build()`, mirroring
+`TypeSafeClient.builder()` — was rejected. `TypeSafeClient.builder` works because
 `TypeSafeClient` has exactly one production implementation to build. `MappingTypeSafeClient` is
 a decorator, meant to wrap *any* `TypeSafeClient` (a plain one, one already wrapped in caching,
 a `FailingTypeSafeClient` for testing, a test double) — a builder that constructs its own

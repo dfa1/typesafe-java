@@ -39,8 +39,8 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         this.modelsEndpoint = URI.create(endpoint.getScheme() + "://" + endpoint.getAuthority() + "/v1/models");
     }
 
-    public static Builder builder(ApiKey apiKey) {
-        return new Builder(apiKey);
+    public static Builder builder() {
+        return new Builder();
     }
 
     @Override
@@ -62,7 +62,8 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     @Override
     public List<ModelDetails> listModels() {
-        Map<String, String> headers = Map.of("Authorization", apiKey.toHttpHeaderValue());
+        Map<String, String> headers = new LinkedHashMap<>();
+        authorize(headers);
         return await(send(transport.get(modelsEndpoint, headers), this::toModelDetails));
     }
 
@@ -158,9 +159,16 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private Map<String, String> requestHeaders() {
         Map<String, String> headers = new LinkedHashMap<>();
-        headers.put("Authorization", apiKey.toHttpHeaderValue());
+        authorize(headers);
         headers.put("Content-Type", "application/json");
         return headers;
+    }
+
+    /** No key, no header: a local TypeSafe-compatible server needs none. */
+    private void authorize(Map<String, String> headers) {
+        if (apiKey != null) {
+            headers.put("Authorization", apiKey.toHttpHeaderValue());
+        }
     }
 
     private EvaluateResponse toEvaluateResponse(HttpTransportResponse response) {
@@ -178,15 +186,17 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     /**
      * Configures and builds a {@link TypeSafeClient}. Every setting is optional: the transport and
-     * codec are discovered via {@link ServiceLoader} when not set, and the endpoint defaults to
-     * {@code https://api.typesafe.ai/v1/systemone}.
+     * codec are discovered via {@link ServiceLoader} when not set, the endpoint defaults to
+     * {@code https://api.typesafe.ai/v1/systemone}, and without an {@link #apiKey} no
+     * {@code Authorization} header is sent (TypeSafe's API then answers 401, which
+     * {@link TypeSafeException.Authentication} reports).
      *
      * <p>The client {@link #build()} returns makes exactly one attempt per call. Anything beyond
      * that — retries, deadlines, caching, metrics — is a decorator, added with
      * {@link #decorateWith}:
      *
      * <pre>{@code
-     * MappingTypeSafeClient client = TypeSafeClient.builder(apiKey)
+     * MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(apiKey)
      *         .decorateWith(RetryingTypeSafeClient::decorate)
      *         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
      *         .build(MappingTypeSafeClient::decorate);
@@ -195,14 +205,18 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     public static final class Builder {
         private static final URI DEFAULT_ENDPOINT = URI.create("https://api.typesafe.ai/v1/systemone");
 
-        private final ApiKey apiKey;
+        private ApiKey apiKey;
         private HttpTransport transport;
         private JsonCodec jsonCodec;
         private URI endpoint = DEFAULT_ENDPOINT;
         private final List<Function<TypeSafeClient, ? extends TypeSafeClient>> decorators = new ArrayList<>();
 
-        private Builder(ApiKey apiKey) {
+        private Builder() {
+        }
+
+        public Builder apiKey(ApiKey apiKey) {
             this.apiKey = apiKey;
+            return this;
         }
 
         public Builder httpTransport(HttpTransport transport) {
@@ -226,7 +240,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
          * added is the <em>outermost</em> — the first to see a call, the last to see its result.
          *
          * <pre>{@code
-         * builder(apiKey)
+         * builder().apiKey(apiKey)
          *         .decorateWith(RetryingTypeSafeClient::decorate)                                  // inner
          *         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))  // outer
          *         .build();
@@ -270,7 +284,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
          * cast:
          *
          * <pre>{@code
-         * MappingTypeSafeClient client = builder(apiKey).build(MappingTypeSafeClient::decorate);
+         * MappingTypeSafeClient client = builder().apiKey(apiKey).build(MappingTypeSafeClient::decorate);
          * }</pre>
          *
          * @throws IllegalStateException as {@link #build()}; a {@link RetryingTypeSafeClient}

@@ -13,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface TypeSafeClient extends AutoCloseable {
 
-    static DefaultTypeSafeClient.Builder builder(ApiKey apiKey) {
-        return DefaultTypeSafeClient.builder(apiKey);
+    static DefaultTypeSafeClient.Builder builder() {
+        return DefaultTypeSafeClient.builder();
     }
 
     /**
