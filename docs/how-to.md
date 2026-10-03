@@ -621,6 +621,24 @@ java -jar cli/target/typesafe-java-cli-*-all.jar \
 `EvaluateResponse`. Jev's weights aren't public, so the answers come from an open model — Jev's contract, not Jev's
 judgement.
 
+Add the module and a JSON codec (the module reads `tokenizer.json` and model configs through it):
+
+```xml
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-local</artifactId>
+</dependency>
+<dependency>
+  <groupId>io.github.dfa1.typesafe-java</groupId>
+  <artifactId>typesafe-java-jackson2</artifactId>
+</dependency>
+```
+
+It brings in Microsoft's ONNX Runtime (`com.microsoft.onnxruntime:onnxruntime`) transitively: a 56 MB jar with the
+native library for Linux x64 and ARM64, macOS on Apple Silicon and Windows x64. Other platforms, Intel Macs included,
+can't load it. The CPU and the experimental WebGPU paths both come from that one jar; NVIDIA's CUDA build
+(`onnxruntime_gpu`) isn't supported.
+
 Download a model directory once with Hugging Face's CLI (`pip install huggingface_hub`, or run it through
 [uv](https://docs.astral.sh/uv/) as below). Files keep their Hugging Face names; the client finds the one `.onnx` model
 in the directory:
