@@ -9,6 +9,7 @@ import io.github.dfa1.typesafe.json.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.module.SimpleModule;
@@ -23,6 +24,7 @@ import java.io.UncheckedIOException;
 public final class Jackson2Codec implements JsonCodec {
 
     private final ObjectMapper mapper = new ObjectMapper()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES) // a field the API adds must not break old clients; Jackson 3's default
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .addMixIn(Answer.class, AnswerMixIn.class)
             .addMixIn(Question.class, QuestionMixIn.class)

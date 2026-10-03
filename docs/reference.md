@@ -174,6 +174,7 @@ Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `ServiceLoader.load(JsonCodec.class)` and registered through
 `META-INF/services/io.github.dfa1.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
+Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
 `readValue`'s `content` is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by
 construction (RFC 8259) — a caller integrating with a raw-`byte[]` system (e.g. Kafka) converts
 once at that boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as

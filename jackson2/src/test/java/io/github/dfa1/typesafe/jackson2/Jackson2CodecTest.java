@@ -133,6 +133,27 @@ class Jackson2CodecTest {
     }
 
     @Test
+    void ignoresFieldsItDoesNotKnow() {
+        // Given
+        String json = """
+                {
+                  "model": "jev-latest",
+                  "answers": { "is_urgent": { "type": "noul", "noul": 0.92, "rationale": "new field" } },
+                  "usage": { "input_tokens": 312, "output_tokens": 0, "latency_ms": 540 },
+                  "region": "eu"
+                }
+                """;
+
+        // When
+        EvaluateResponse result = sut.readValue(json, EvaluateResponse.class);
+
+        // Then
+        assertThat(result.usage().inputTokens()).isEqualTo(312);
+        assertThat(result.answers().get("is_urgent")).isInstanceOfSatisfying(Answer.Noul.class,
+                noul -> assertThat(noul.noul()).isEqualTo(0.92));
+    }
+
+    @Test
     void serializesAndDeserializesRequestIdAsItsBareValue() {
         // Given
         RequestId requestId = new RequestId("req_01a0c08d990e7e44ba9a80416308258a");
