@@ -1,5 +1,5 @@
 """Markdown for the GitHub job summary: agreement with Jev (JevComparison output) and throughput (JMH JSON).
-Usage: python3 summary.py jev.txt jmh.json >> $GITHUB_STEP_SUMMARY"""
+Usage: python3 .github/scripts/local_summary.py jev.txt jmh.json >> $GITHUB_STEP_SUMMARY"""
 import json
 import os
 import platform

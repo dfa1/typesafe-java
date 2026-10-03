@@ -28,7 +28,7 @@ import java.util.Set;
  * {@code [CLS] <type> question: <instructions> [SEP] [MASK] opt0 [MASK] opt1 ... [SEP] state [SEP]},
  * the head scores each option's {@code [MASK]}, and all of a request's questions run as one batch.
  * A port of Laya's {@code rl_common.build_sequence}/{@code rl_agent_api.system_one}; the ONNX file
- * comes from {@code scripts/laya/export_onnx.py}.
+ * is onnx-community's export.
  */
 final class LayaEngine implements Engine {
 

@@ -99,8 +99,7 @@ final class QwenEngine implements Engine {
         }
     }
 
-    /** One prefill with an empty KV cache, asking ONNX Runtime for the logits only (not the cache). As exported, the
-     *  graph computes logits at every position (n × 600 KB); {@code scripts/qwen/last_logits.py} cuts it to the last. */
+    /** One prefill with an empty KV cache, asking ONNX Runtime for the logits only (not the cache). */
     static Forward prefill(OrtSession session) throws OrtException {
         Map<String, NodeInfo> inputs = session.getInputInfo();
         List<String> cache = inputs.keySet().stream().filter(n -> n.startsWith("past_key_values.")).toList();
@@ -123,11 +122,10 @@ final class QwenEngine implements Engine {
                 }
                 try (OrtSession.Result result = session.run(in, Set.of("logits"))) {
                     OnnxTensor logits = (OnnxTensor) result.get("logits").orElseThrow();
-                    long[] shape = logits.getInfo().getShape(); // [1, n, vocab], or [1, 1, vocab] after last_logits.py
-                    int vocab = (int) shape[2];
+                    int vocab = (int) logits.getInfo().getShape()[2]; // [1, n, vocab]
                     float[] last = new float[vocab];
                     FloatBuffer all = logits.getFloatBuffer();
-                    all.position((int) (shape[1] - 1) * vocab);
+                    all.position((n - 1) * vocab);
                     all.get(last);
                     return last;
                 }

@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **`local`: hardening** — special tokens in caller text stay plain text (no prompt injection via `<|im_end|>`), the tokenizer cache is bounded, `scripts/qwen/last_logits.py` cuts Qwen's logits to the last position, and Clef checks its weights' sha256 on first load.
+- **docs: local-model setup as three steps** — dependency, Laya download, code, then a model comparison; the optional Clef 4-bit script runs from its GitHub URL with `uv run`, and load errors link to the how-to.
+- **`local`: hardening** — special tokens in caller text stay plain text (no prompt injection via `<|im_end|>`), the tokenizer cache is bounded, and Clef checks its weights' sha256 on first load.
 - **`local`: shared request validation, `evaluateAsync` off virtual threads** — every engine rejects no questions or empty criteria with `BadRequest` (Laya used to NPE or answer a null choice), and `evaluateAsync` runs on one platform thread so native inference can't pin the JVM's virtual-thread carriers.
 - **`local`: `LocalClefTypeSafeClient.loadOnGpu(...)`** — Clef-flash on ONNX Runtime's WebGPU backend (macOS on Apple Silicon), same answers as the CPU; Laya gets no GPU option, since its WebGPU answers drift between launches. (#19)
 - **docs: run Clef-flash on a Mac with MLX** — a how-to pointing the regular client at mlx-community's local Clef-flash server: about 0.55 s per request on an M5, much closer to Jev than Laya. (#14)

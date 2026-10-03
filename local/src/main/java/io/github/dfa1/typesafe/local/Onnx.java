@@ -83,13 +83,13 @@ final class Onnx {
             }
         }
         throw new IllegalArgumentException("no .onnx file in " + dir + " or " + dir.resolve("onnx")
-                + ": see docs/how-to.md for the hf download commands");
+                + ": see https://github.com/dfa1/typesafe-java/blob/main/docs/how-to.md#run-without-the-api-on-a-local-model for the hf download commands");
     }
 
     static Path require(Path dir, String file) {
         Path path = dir.resolve(file);
         if (!Files.isRegularFile(path)) {
-            throw new IllegalArgumentException(path + " not found: see docs/how-to.md for the hf download commands");
+            throw new IllegalArgumentException(path + " not found: see https://github.com/dfa1/typesafe-java/blob/main/docs/how-to.md#run-without-the-api-on-a-local-model for the hf download commands");
         }
         return path;
     }

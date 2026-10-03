@@ -106,7 +106,7 @@ final class ClefEngine implements Engine {
         String actual = HexFormat.of().formatHex(digest.digest());
         if (!actual.equals(sha256)) {
             throw new IllegalArgumentException(file + " has sha256 " + actual + ", not clef-flash@17f0b0a's " + sha256
-                    + ": download it again with the how-to's hf download command");
+                    + ": download it again with the hf download command at https://github.com/dfa1/typesafe-java/blob/main/docs/how-to.md#run-without-the-api-on-a-local-model");
         }
     }
 
