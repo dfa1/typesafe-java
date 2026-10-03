@@ -654,7 +654,8 @@ try (TypeSafeClient client = LocalLayaTypeSafeClient.load(Path.of(System.getProp
 
 Laya is the recommended engine: about 55 ms for a one-question request and about 165 ms for three on an Apple M5
 CPU. The fp16 variant gives the same answers in half the download, but ONNX Runtime's CPU kernels convert fp16 on the
-fly, so it's 2–3× slower on a CPU; it only pays off on a GPU. Qwen is about the same size and roughly 10× slower, slightly better on choices. Measured against the real
+fly, so it's 2–3× slower on a CPU; it only pays off on a GPU. Qwen is a baseline, not a recommendation: a prompted
+general LLM, about 10× slower than Laya and less like Jev (table below). Measured against the real
 `jev-1.13.0` on 104 cached requests, Laya agrees on 85% of yes/no answers and 64% of choices, with a mean score error
 of 0.19 on a 0–1 scale — good enough to triage or pre-filter, not a drop-in where you depend on Jev's exact judgement.
 Clef-flash is a 9B model. As downloaded (bf16 weights, fp32 compute) it peaked at 20 GB on a 32 GB Apple M5 and took
@@ -704,14 +705,14 @@ try (TypeSafeClient client = TypeSafeClient.builder()
 ```
 
 On an Apple M5 (32 GB) it answers a 3-question request in about 0.55 s and needs about 7 GB. On the same 104 cached
-requests as above, it agrees with `jev-1.13.0` far more often than Laya:
+requests as above, it agrees with `jev-1.13.0` far more often than the in-process models:
 
-| Agreement with `jev-1.13.0` | Laya | Clef-flash (MLX 4-bit) |
-|---|---|---|
-| Yes/no: same side of 0.5 | 85% | 95% |
-| Choice: same pick | 64% | 88% |
-| Score: mean error (0–1 scale) | 0.19 | 0.07 |
-| Time per 3-question request | 0.19 s | 0.6 s |
+| Agreement with `jev-1.13.0` | Qwen2.5-1.5B (prompted) | Laya | Clef-flash (MLX 4-bit) |
+|---|---|---|---|
+| Yes/no: same side of 0.5 | 80% | 85% | 95% |
+| Choice: same pick | 68% | 64% | 88% |
+| Score: mean error (0–1 scale) | 0.26 | 0.19 | 0.07 |
+| Time per 3-question request | 2.05 s | 0.19 s | 0.6 s |
 
 Things to know:
 - It's macOS on Apple Silicon only, and the server is mlx-community's code, not this project's.

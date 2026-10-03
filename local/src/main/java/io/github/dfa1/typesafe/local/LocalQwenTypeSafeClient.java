@@ -3,8 +3,9 @@ package io.github.dfa1.typesafe.local;
 import java.nio.file.Path;
 
 /**
- * Qwen2.5-1.5B-Instruct (Apache-2.0), in-process on ONNX Runtime, answering from its next-token logits. Slower than
- * {@link LocalLayaTypeSafeClient}, somewhat better on choices.
+ * Qwen2.5-1.5B-Instruct (Apache-2.0), in-process on ONNX Runtime, answering from its next-token logits: a baseline
+ * showing what prompting a general LLM to imitate Jev buys. About ten times slower than {@link LocalLayaTypeSafeClient}
+ * and less like Jev on yes/no and scores; {@link LocalClefTypeSafeClient}, trained for these decisions, beats both.
  *
  * <p>Same request in, same response out as {@code api.typesafe.ai}, so everything built on typesafe-java
  * ({@code MappingTypeSafeClient}, deadlines, token counting, test doubles) works on top of it unchanged. No network,

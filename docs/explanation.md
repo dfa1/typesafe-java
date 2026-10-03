@@ -9,11 +9,16 @@ Background reading on the design decisions behind this library. For "what exists
 (`MappingTypeSafeClient`, `RetryingTypeSafeClient`, `TokenCounter`, the testkit) keeps working. Jev's weights aren't
 public, so `local` offers API parity with a different model behind it, and says so.
 
-Jev's answers are probability distributions, never text, and both engines produce distributions directly. Laya, a
-ModernBERT encoder trained for Choice/Score/Noul, scores each option with a decision head. Qwen, a general chat model,
-is prompted and its next-token logits over the candidate answers (`Yes`/`No`, option letters, level digits) are read
-after one prefill. Neither generates, so there's no output to parse and the result is deterministic. Laya is the
-recommended engine: four times smaller than Qwen, about ten times faster, and closer to Jev on yes/no and scores.
+Jev's answers are probability distributions, never text, and every engine produces distributions directly. Laya, a
+ModernBERT encoder trained for Choice/Score/Noul, scores each option with a decision head; Clef-flash, a 9B decision
+model, does the same with a joint schema head. Qwen, a general chat model, is prompted and its next-token logits over
+the candidate answers (`Yes`/`No`, option letters, level digits) are read after one prefill. None generates, so
+there's no output to parse and the result is deterministic.
+
+Qwen stays as a baseline: it shows what prompting a general LLM to imitate Jev buys. On the same 104 requests it's
+about ten times slower than Laya and worse on yes/no (80% vs 85%) and scores (mean error 0.26 vs 0.19), and only
+slightly better on choices (68% vs 64%). Clef-flash, trained for exactly these decisions, beats both everywhere (95%,
+88%, 0.07). The model has to be trained for the task; a prompt doesn't get you there.
 
 The module depends on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
 `tokenizer.json`, checked id for id against HuggingFace `tokenizers`. The alternatives were an 18 MB native tokenizer

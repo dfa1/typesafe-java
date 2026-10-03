@@ -338,11 +338,11 @@ One class per model, each a `TypeSafeClient` that evaluates on ONNX Runtime in-p
 [how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
 (`typesafe-java-jackson2` or `-jackson3`) must be on the classpath, as for the API client.
 
-| Engine | Model | How it answers |
+| Class | Model | How it answers |
 |---|---|---|
-| `laya` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX): fp32, or fp16 (half the size, same answers, slower on CPU) | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
-| `clef` | [Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (Qwen3.5-9B + joint schema head, bf16), [Ollaya's graph](https://huggingface.co/ollaya-dev/clef) over Cloudflare's own safetensors | the head gives one logit per option; a request's questions are one causal sequence, one forward pass; text only |
-| `qwen` | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
+| `LocalLayaTypeSafeClient` | [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) typed-decisions (421M ModernBERT + decision head), [onnx-community's export](https://huggingface.co/onnx-community/laya-typed-decisions-ONNX): fp32, or fp16 (half the size, same answers, slower on CPU) | a trained head scores each option's `[MASK]` marker; a request's questions run as one batch |
+| `LocalClefTypeSafeClient` | [Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (Qwen3.5-9B + joint schema head, bf16), [Ollaya's graph](https://huggingface.co/ollaya-dev/clef) over Cloudflare's own safetensors | the head gives one logit per option; a request's questions are one causal sequence, one forward pass; text only |
+| `LocalQwenTypeSafeClient` (baseline) | [Qwen2.5-1.5B-Instruct](https://huggingface.co/onnx-community/Qwen2.5-1.5B-Instruct), 4-bit | softmax over the next-token logits of `Yes`/`No`, option letters, level digits; one prefill per question |
 
 - `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);
   anything else throws `TypeSafeException.NotFound`.
