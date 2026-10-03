@@ -114,10 +114,11 @@ acceptance — live-API tests only; not published. `AbstractTypeSafeClientAccept
             hooks, explicitly constructing the codec/transport (`new Jackson2Codec()`, ...)
             rather than relying on ServiceLoader, since this module deliberately has more
             than one of each on its test classpath at once. jackson2 and jackson3 both pull
-            in `com.fasterxml.jackson.core:jackson-annotations` transitively at different
-            versions (2.17.2 vs 2.20); acceptance/pom.xml pins the newer one explicitly, or
-            Maven's mediation picks the older one and jackson3 fails at runtime with
-            `NoSuchFieldError` on a field only the newer annotations jar has. Also depends on
+            in `com.fasterxml.jackson.core:jackson-annotations` transitively, each at its own
+            version; acceptance/pom.xml pins the newest one explicitly (bump it with either
+            codec), or Maven's mediation can pick an older one and the other codec fails at
+            runtime (`NoSuchFieldError`/`NoClassDefFoundError`). CI doesn't run acceptance, so a
+            Jackson bump needs a local acceptance run. Also depends on
             `mapping` (test scope) — one test wraps `sut` in a `MappingTypeSafeClient` to
             exercise a `@Noul`/`@Choice`/`@Score`-annotated record against the live API.
 cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its main artifact

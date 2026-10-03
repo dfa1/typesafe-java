@@ -70,15 +70,15 @@
     </dependency>
 
     <!-- jackson2 and jackson3 are both on this module's test classpath, and both pull in
-         com.fasterxml.jackson.core:jackson-annotations transitively — jackson2 at 2.17.2,
-         jackson3 at 2.20. Maven's dependency mediation would otherwise pick the nearer/older
-         2.17.2, which is missing a field jackson3's databind code needs at runtime
-         (JsonFormat.Shape.POJO), failing with NoSuchFieldError. Pin the newer, backward-
-         compatible version explicitly so both codecs share it. -->
+         com.fasterxml.jackson.core:jackson-annotations transitively, each at its own version.
+         When they differ, Maven's mediation can pick the older one, and the other codec fails
+         at runtime (NoSuchFieldError / NoClassDefFoundError, e.g. JsonSerializeAs). Pin the
+         newest, backward-compatible version explicitly so both codecs share it; bump it with
+         either codec. -->
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
-      <version>2.20</version>
+      <version>2.22</version>
       <scope>test</scope>
     </dependency>
 
