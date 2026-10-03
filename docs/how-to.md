@@ -667,6 +667,8 @@ cd local && uv run scripts/clef/quantize_q4.py   # writes ~/.cache/typesafe-loca
 
 `LocalTypeSafeClient.clef(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
 for 1–3 questions on the CPU, or 2–4 s on the GPU (WebGPU, still experimental here): batch work, not interactive use.
+On a Mac, the same model runs about 5× faster through MLX; see
+[Run Clef-flash on a Mac with MLX](#run-clef-flash-on-a-mac-with-mlx).
 
 The `Local engines` GitHub workflow re-measures agreement and throughput on Linux and macOS runners and writes both
 tables to its job summary. To reproduce locally:
@@ -674,6 +676,47 @@ tables to its job summary. To reproduce locally:
 ```bash
 ./mvnw -pl local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, qwen, clef, ...)
 ```
+
+## Run Clef-flash on a Mac with MLX
+
+[Clef-flash](https://huggingface.co/Cloudflare/clef-flash) is the local model closest to Jev, and on Apple Silicon
+the fastest way to run it is [MLX](https://github.com/ml-explore/mlx), Apple's array framework for its GPUs.
+[mlx-community's 4-bit port](https://huggingface.co/mlx-community/clef-flash-4bit) ships a small server speaking
+TypeSafe's `POST /v1/systemone`, so the regular client talks to it: no `local` module, no API key.
+
+Download the model (6.2 GB) and start the server (needs [uv](https://docs.astral.sh/uv/); it serves one request
+at a time):
+
+```bash
+M=~/.cache/typesafe-local/clef-flash-mlx-4bit
+uvx --from huggingface_hub hf download mlx-community/clef-flash-4bit --exclude '__pycache__/*' --local-dir $M
+uv run --with 'mlx-vlm>=0.7.4,<0.8' python $M/clef_mlx.py serve --model $M --port 8000
+```
+
+Then point the client at it:
+
+```java
+try (TypeSafeClient client = TypeSafeClient.builder()
+        .endpoint(URI.create("http://localhost:8000/v1/systemone"))
+        .build()) {
+    EvaluateResponse response = client.evaluate(request);
+}
+```
+
+On an Apple M5 (32 GB) it answers a 3-question request in about 0.55 s and needs about 7 GB. On the same 104 cached
+requests as above, it agrees with `jev-1.13.0` far more often than Laya:
+
+| Agreement with `jev-1.13.0` | Laya | Clef-flash (MLX 4-bit) |
+|---|---|---|
+| Yes/no: same side of 0.5 | 85% | 95% |
+| Choice: same pick | 64% | 88% |
+| Score: mean error (0–1 scale) | 0.19 | 0.07 |
+| Time per 3-question request | 0.19 s | 0.6 s |
+
+Things to know:
+- It's macOS on Apple Silicon only, and the server is mlx-community's code, not this project's.
+- `listModels()` fails: the server lists models in OpenAI's format, not TypeSafe's.
+- The response's `model` is whatever the request asked for (`jev-latest` by default), not the model that answered.
 
 ## Run the acceptance tests against the live API
 
