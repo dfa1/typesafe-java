@@ -30,7 +30,7 @@ jobs:
 
       - name: Cache model directories
         id: models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/typesafe-local
           key: models-${{ runner.os }}-${{ hashFiles('.github/workflows/local.yml') }}
