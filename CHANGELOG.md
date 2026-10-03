@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`local`: shared request validation, `evaluateAsync` off virtual threads** — every engine rejects no questions or empty criteria with `BadRequest` (Laya used to NPE or answer a null choice), and `evaluateAsync` runs on one platform thread so native inference can't pin the JVM's virtual-thread carriers.
 - **`local`: `LocalClefTypeSafeClient.loadOnGpu(...)`** — Clef-flash on ONNX Runtime's WebGPU backend (macOS on Apple Silicon), same answers as the CPU; Laya gets no GPU option, since its WebGPU answers drift between launches. (#19)
 - **docs: run Clef-flash on a Mac with MLX** — a how-to pointing the regular client at mlx-community's local Clef-flash server: about 0.55 s per request on an M5, much closer to Jev than Laya. (#14)
 - **`local`: `LocalClefTypeSafeClient`** — Cloudflare's Clef-flash (Qwen3.5-9B + joint schema head) on Ollaya's ONNX graph over the upstream bf16 weights; one forward pass per request; `scripts/clef/quantize_q4.py` converts it to 4-bit weights (7.7 GB, 2–4 s per request on an M5 GPU). (#14)

@@ -349,13 +349,14 @@ only).
 
 - `evaluate` honours the request's `model` only as `jev-latest`, `jev-preview` or the client's own (`local/<dir name>`);
   anything else throws `TypeSafeException.NotFound`.
-- A question the engine can't express throws `TypeSafeException.BadRequest` (Qwen: more than 26 options, fewer than 2
-  or more than 10 levels; Laya: options that don't fit its 256-token head budget; Clef: empty criteria, or questions over 4096 tokens — the state is truncated to fit). An inference failure throws
+- A request with no questions, or a choice/score with empty criteria, throws `TypeSafeException.BadRequest`; so
+  does a question the engine can't express (Qwen: more than 26 options, fewer than 2
+  or more than 10 levels; Laya: options that don't fit its 256-token head budget; Clef: questions over 4096 tokens — the state is truncated to fit). An inference failure throws
   `TypeSafeException.InternalServer` — so `RetryingTypeSafeClient` classifies all three as it would the API's.
 - `Usage.inputTokens` is the tokens fed to the model; `outputTokens` is always 0 (nothing is generated).
   `Metadata.requestId` is `null`; `upstreamServiceTime` is the wall-clock evaluation time.
-- `evaluateAsync` runs `evaluate` on a virtual thread. Calls are thread-safe but share the CPU: one evaluation
-  already uses every core, so concurrency doesn't add throughput.
+- `evaluateAsync` runs `evaluate` on one platform thread, one call at a time: one evaluation already uses every core,
+  so concurrency doesn't add throughput, and a virtual thread would pin its carrier through the native call.
 - `listModels` returns the one model the client runs.
 - Answers are Jev-shaped but come from a different model: see the agreement numbers in the
   [how-to](how-to.md#run-without-the-api-on-a-local-model).

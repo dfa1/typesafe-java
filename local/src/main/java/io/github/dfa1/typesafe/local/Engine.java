@@ -9,7 +9,7 @@ import io.github.dfa1.typesafe.core.Question;
 import java.util.Map;
 
 /** A local model that answers TypeSafe questions; {@link LocalTypeSafeClient} owns everything else
- *  (the TypeSafe contract, async, timing). Implemented by {@link LayaEngine} and {@link QwenEngine}. */
+ *  (the TypeSafe contract, async, timing). Implemented by {@link LayaEngine}, {@link QwenEngine} and {@link ClefEngine}. */
 interface Engine extends AutoCloseable {
 
     record Answers(Map<String, Answer> answers, int inputTokens) {

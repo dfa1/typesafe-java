@@ -90,6 +90,30 @@ class LocalTypeSafeClientTest {
     }
 
     @Test
+    void rejectsNoQuestionsAsBadRequest() {
+        // Given
+        EvaluateRequest request = EvaluateRequest.of(Content.text("x"), Map.of());
+
+        // When
+        Throwable result = catchThrowable(() -> sut.evaluate(request));
+
+        // Then
+        assertThat(result).isInstanceOf(TypeSafeException.BadRequest.class);
+    }
+
+    @Test
+    void rejectsAChoiceWithoutCriteriaAsBadRequest() {
+        // Given
+        EvaluateRequest request = EvaluateRequest.of(Content.text("x"), Map.of("q", Question.choice("?", Map.of())));
+
+        // When
+        Throwable result = catchThrowable(() -> sut.evaluate(request));
+
+        // Then
+        assertThat(result).isInstanceOf(TypeSafeException.BadRequest.class).hasMessageContaining("q:");
+    }
+
+    @Test
     void inferenceFailureIsAnInternalServerError() {
         // Given
         fail = true;

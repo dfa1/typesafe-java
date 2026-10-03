@@ -5,12 +5,14 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
+import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.core.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -24,7 +26,8 @@ import java.util.concurrent.Executors;
 class LocalTypeSafeClient implements TypeSafeClient {
 
     private final Engine engine;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor(
+            Thread.ofPlatform().name("typesafe-local").daemon().factory()); // daemon: an unclosed client can't block JVM exit
 
     LocalTypeSafeClient(Engine engine) {
         this.engine = engine;
@@ -47,6 +50,7 @@ class LocalTypeSafeClient implements TypeSafeClient {
         if (request.state() == null) {
             throw new TypeSafeException.BadRequest("state is required");
         }
+        validate(request.questions());
         long start = System.nanoTime();
         Engine.Answers answers;
         try {
@@ -58,11 +62,28 @@ class LocalTypeSafeClient implements TypeSafeClient {
                 new EvaluateResponse.Metadata(null, Duration.ofNanos(System.nanoTime() - start)));
     }
 
-    /** {@link #evaluate} on a virtual thread. Concurrent calls are safe; they share the CPU, so they
-     *  don't add throughput (one session already uses every core). */
+    /** {@link #evaluate} on one platform thread, one call at a time: concurrency adds no throughput (one session
+     *  already uses every core), and a virtual thread would stay pinned to its carrier through the native call. */
     @Override
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
         return CompletableFuture.supplyAsync(() -> evaluate(request), executor);
+    }
+
+    /** What no engine can answer: no questions, or a choice/score without criteria. */
+    private static void validate(Map<String, Question> questions) {
+        if (questions == null || questions.isEmpty()) {
+            throw new TypeSafeException.BadRequest("questions are required");
+        }
+        questions.forEach((name, question) -> {
+            boolean empty = switch (question) {
+                case Question.Noul ignored -> false;
+                case Question.Choice c -> c.criteria() == null || c.criteria().isEmpty();
+                case Question.Score s -> s.criteria() == null || s.criteria().isEmpty();
+            };
+            if (empty) {
+                throw new TypeSafeException.BadRequest(name + ": criteria must not be empty");
+            }
+        });
     }
 
     /** The one model this client runs. */

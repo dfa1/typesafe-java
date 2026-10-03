@@ -118,7 +118,7 @@ final class ClefEngine implements Engine {
         int n = 0;
         for (Map.Entry<String, Question> entry : questions.entrySet()) {
             Question question = entry.getValue();
-            Map<String, String> options = options(entry.getKey(), question);
+            Map<String, String> options = options(question);
             int type = switch (question) {
                 case Question.Noul ignored -> NOUL;
                 case Question.Choice ignored -> CHOICE;
@@ -169,7 +169,7 @@ final class ClefEngine implements Engine {
     }
 
     /** question_options: option id to description; noul [true, false], choice labels by code point, score levels in order. */
-    private static Map<String, String> options(String id, Question question) {
+    private static Map<String, String> options(Question question) {
         Map<String, String> options = new LinkedHashMap<>();
         switch (question) {
             case Question.Noul(Content ignored, Map<String, String> criteria) -> {
@@ -178,25 +178,17 @@ final class ClefEngine implements Engine {
                 options.put("false", c.getOrDefault("false", "The proposition is false or the answer is no."));
             }
             case Question.Choice(Content ignored, Map<String, String> criteria) -> {
-                requireCriteria(id, criteria == null || criteria.isEmpty());
                 criteria.entrySet().stream()
                         .sorted(Map.Entry.comparingByKey(Comparator.comparing(k -> k.codePoints().toArray(), Arrays::compare)))
                         .forEach(e -> options.put(e.getKey(), e.getValue()));
             }
             case Question.Score(Content ignored, List<String> criteria) -> {
-                requireCriteria(id, criteria == null || criteria.isEmpty());
                 for (int i = 0; i < criteria.size(); i++) {
                     options.put(String.valueOf(i), criteria.get(i));
                 }
             }
         }
         return options;
-    }
-
-    private static void requireCriteria(String id, boolean empty) {
-        if (empty) {
-            throw new TypeSafeException.BadRequest(id + ": criteria must not be empty");
-        }
     }
 
     private static Content instructions(Question question) {

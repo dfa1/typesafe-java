@@ -86,10 +86,11 @@ local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local
             ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file
             names stay as-is. local/scripts is Python for fixtures only (export_onnx.py: PyTorch fixture;
             tokenizer/reference.py: HF tokenizer ids) plus the CI summary. No int8 Laya: dynamic int8 gave CPU-dependent answers,
-            silently flat distributions on some x86 CPUs. Two engines behind
+            silently flat distributions on some x86 CPUs. Three engines behind
             a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a
-            request's questions in one batch; a port of Laya's Python sequence builder) and QwenEngine
-            (one prefill per question, softmax over Yes/No/letter/digit logits). Own pure-Java BpeTokenizer
+            request's questions in one batch; a port of Laya's Python sequence builder), QwenEngine
+            (one prefill per question, softmax over Yes/No/letter/digit logits) and ClefEngine (Qwen3.5-9B +
+            joint schema head, a request in one forward pass). Own pure-Java BpeTokenizer
             (tokenizer.json); JSON through typesafe-java's JsonCodec (ServiceLoader, like the API client),
             so a jackson2/jackson3 module is needed at run time; BpeTokenizerTest checks ids
             against HF tokenizers, LayaEngineTest checks logits against PyTorch (fixtures under

@@ -12,7 +12,8 @@
 
   <name>TypeSafe Local</name>
   <description>A TypeSafeClient that evaluates in-process on ONNX Runtime instead of calling the
-    TypeSafe API: Laya (a ModernBERT decision model) or Qwen2.5 (next-token logits), read from a
+    TypeSafe API: Laya (a ModernBERT decision model), Clef-flash (Qwen3.5-9B + joint schema head) or
+    Qwen2.5 (next-token logits), read from a
     local model directory. API parity, not model parity with Jev. Depends on typesafe-java-core and
     ONNX Runtime, plus a JsonCodec module (jackson2 or jackson3) at run time, like the API client.
   </description>

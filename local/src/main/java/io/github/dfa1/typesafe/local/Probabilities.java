@@ -6,7 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** From per-option logits to TypeSafe answers; shared by both engines. */
+/** From per-option logits to TypeSafe answers; shared by every engine. */
 final class Probabilities {
 
     private Probabilities() {

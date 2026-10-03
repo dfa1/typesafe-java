@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.ServiceLoader;
 import java.util.stream.Stream;
 
-/** The few ONNX Runtime and tokenizer calls both engines share. */
+/** The few ONNX Runtime and tokenizer calls every engine shares. */
 final class Onnx {
 
     static final OrtEnvironment ENV = OrtEnvironment.getEnvironment();
