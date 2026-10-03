@@ -653,12 +653,18 @@ uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX 
 # optional: Qwen2.5-1.5B 4-bit (1.8 GB)
 uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct \
     tokenizer.json onnx/model_q4.onnx --local-dir ~/.cache/typesafe-local/qwen2.5-1.5b
+# ...then cut its logits to the last position (same answers; one ~600 KB row instead of one per prompt token)
+(cd local && uv run scripts/qwen/last_logits.py ~/.cache/typesafe-local/qwen2.5-1.5b)
 # optional: Clef-flash (19 GB of bf16 weights, needs about as much free memory): Cloudflare's weights,
 # plus Ollaya's ONNX graph, which reads them in place
 uvx --from huggingface_hub hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 \
     --include '*.safetensors' --include tokenizer.json --local-dir ~/.cache/typesafe-local/clef-flash
 uvx --from huggingface_hub hf download ollaya-dev/clef flash/model-fp32.onnx --local-dir ~/.cache/typesafe-local/clef-flash
 ```
+
+The first `LocalClefTypeSafeClient.load` of a directory checks each weight file's sha256 against the pinned revision
+(about 35 s for 19 GB) before hard-linking it next to the graph; a file from another revision fails with
+`IllegalArgumentException` instead of answering garbage.
 
 Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:
 

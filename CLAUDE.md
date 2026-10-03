@@ -84,8 +84,10 @@ local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local
             Runtime, from a model directory the caller fills with `hf download` (docs/how-to.md): Laya =
             onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — and Qwen q4;
             ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file
-            names stay as-is. local/scripts is Python for fixtures only (export_onnx.py: PyTorch fixture;
-            tokenizer/reference.py: HF tokenizer ids) plus the CI summary. No int8 Laya: dynamic int8 gave CPU-dependent answers,
+            names stay as-is. local/scripts is Python for fixtures (export_onnx.py: PyTorch fixture;
+            tokenizer/reference.py: HF tokenizer ids), one-off model rewrites (clef/quantize_q4.py,
+            qwen/last_logits.py: logits at the last position only) plus the CI summary. Caller text goes
+            through BpeTokenizer.encodeText (special tokens stay text); only templates use encode. No int8 Laya: dynamic int8 gave CPU-dependent answers,
             silently flat distributions on some x86 CPUs. Three engines behind
             a package-private Engine: LayaEngine (ModernBERT + decision head scoring [MASK] markers, a
             request's questions in one batch; a port of Laya's Python sequence builder), QwenEngine

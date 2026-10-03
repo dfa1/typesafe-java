@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.LongStream;
 
 /**
  * Answers from a chat LLM's next-token logits, never from generated text: one prefill per
@@ -36,6 +37,9 @@ final class QwenEngine implements Engine {
     /** Choice options are labelled A, B, ...; Score levels 0, 1, ... — single tokens, so one prefill reads them all. */
     static final String LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static final String DIGITS = "0123456789";
+    /** ChatML before and after {@code "user\n" + message}. */
+    static final String CHAT_HEAD = "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n<|im_start|>";
+    static final String CHAT_TAIL = "<|im_end|>\n<|im_start|>assistant\n";
 
     /** Last position's logits for a prompt. */
     @FunctionalInterface
@@ -44,6 +48,7 @@ final class QwenEngine implements Engine {
     }
 
     private final Function<String, long[]> encode;
+    private final Function<String, long[]> encodeText;
     private final Forward forward;
     private final Runnable close;
     private final Model model;
@@ -52,8 +57,11 @@ final class QwenEngine implements Engine {
     private final int[] letters = new int[LETTERS.length()];
     private final int[] digits = new int[DIGITS.length()];
 
-    QwenEngine(Function<String, long[]> encode, Forward forward, Runnable close, Model model) {
+    /** @param encode for the ChatML template, {@code encodeText} for the user turn (special tokens stay text) */
+    QwenEngine(Function<String, long[]> encode, Function<String, long[]> encodeText, Forward forward, Runnable close,
+               Model model) {
         this.encode = encode;
+        this.encodeText = encodeText;
         this.forward = forward;
         this.close = close;
         this.model = model;
@@ -84,14 +92,15 @@ final class QwenEngine implements Engine {
                     throw new IllegalStateException(e);
                 }
             };
-            return new QwenEngine(tokenizer::encode, prefill(session), close,
+            return new QwenEngine(tokenizer::encode, tokenizer::encodeText, prefill(session), close,
                     new Model("local/" + dir.getFileName()));
         } catch (IOException | OrtException e) {
             throw new IllegalStateException("cannot load " + dir, e);
         }
     }
 
-    /** One prefill with an empty KV cache, asking ONNX Runtime for the logits only (not the cache). */
+    /** One prefill with an empty KV cache, asking ONNX Runtime for the logits only (not the cache). As exported, the
+     *  graph computes logits at every position (n × 600 KB); {@code scripts/qwen/last_logits.py} cuts it to the last. */
     static Forward prefill(OrtSession session) throws OrtException {
         Map<String, NodeInfo> inputs = session.getInputInfo();
         List<String> cache = inputs.keySet().stream().filter(n -> n.startsWith("past_key_values.")).toList();
@@ -114,10 +123,11 @@ final class QwenEngine implements Engine {
                 }
                 try (OrtSession.Result result = session.run(in, Set.of("logits"))) {
                     OnnxTensor logits = (OnnxTensor) result.get("logits").orElseThrow();
-                    int vocab = (int) logits.getInfo().getShape()[2]; // [1, n, vocab]
+                    long[] shape = logits.getInfo().getShape(); // [1, n, vocab], or [1, 1, vocab] after last_logits.py
+                    int vocab = (int) shape[2];
                     float[] last = new float[vocab];
                     FloatBuffer all = logits.getFloatBuffer();
-                    all.position((n - 1) * vocab);
+                    all.position((int) (shape[1] - 1) * vocab);
                     all.get(last);
                     return last;
                 }
@@ -143,7 +153,7 @@ final class QwenEngine implements Engine {
         for (Map.Entry<String, Question> entry : questions.entrySet()) {
             Question question = entry.getValue();
             validate(entry.getKey(), question);
-            long[] prompt = encode.apply(chat(prompt(rendered, question)));
+            long[] prompt = chat(prompt(rendered, question));
             tokens += prompt.length;
             answers.put(entry.getKey(), answer(question, forward.nextTokenLogits(prompt)));
         }
@@ -186,9 +196,13 @@ final class QwenEngine implements Engine {
         }
     }
 
-    static String chat(String message) {
-        return "<|im_start|>system\nYou are a helpful assistant.<|im_end|>\n"
-                + "<|im_start|>user\n" + message + "<|im_end|>\n<|im_start|>assistant\n";
+    /** ChatML around {@code message}; HF splits text at special tokens, so encoding the three pieces apart gives the
+     *  same ids as the whole string, except that a special token spelled in {@code message} stays text. */
+    long[] chat(String message) {
+        long[] head = encode.apply(CHAT_HEAD);
+        long[] user = encodeText.apply("user\n" + message);
+        long[] tail = encode.apply(CHAT_TAIL);
+        return LongStream.concat(LongStream.concat(Arrays.stream(head), Arrays.stream(user)), Arrays.stream(tail)).toArray();
     }
 
     /** The user message: the state, then the question, ending where the answer token goes. */

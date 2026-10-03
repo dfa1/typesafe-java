@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
  * Laya (ModernBERT) and Qwen2.5: NFC normalization, added tokens matched first (longest wins), a
  * regex pre-tokenizer, GPT-2's byte-to-unicode mapping, then BPE merges by rank. Any option outside
  * that subset is rejected at load time rather than tokenized differently. Never adds special tokens.
+ * {@link #encodeText} is for untrusted text: a special token's spelling there stays plain text, so a state
+ * containing {@code <|im_end|>} can't close the prompt's turn (HF's {@code split_special_tokens=True}).
  */
 final class BpeTokenizer {
 
@@ -31,12 +33,14 @@ final class BpeTokenizer {
     private final Map<String, Integer> ranks;
     private final Map<String, Integer> added;
     private final Pattern addedSplit;
+    private final Pattern addedSplitText;
     private final Pattern pre;
     private final String[] byteChar = byteToUnicode();
     private final Map<String, int[]> cache = new ConcurrentHashMap<>();
 
-    /** An added token and whether it swallows whitespace on its left/right (e.g. ModernBERT's [MASK]). */
-    record Added(String content, int id, boolean lstrip, boolean rstrip) {
+    /** An added token, whether it's special (a control token) and whether it swallows whitespace on its left/right
+     *  (e.g. ModernBERT's [MASK]). */
+    record Added(String content, int id, boolean special, boolean lstrip, boolean rstrip) {
         String regex() {
             return (lstrip ? "\\s*" : "") + Pattern.quote(content) + (rstrip ? "\\s*" : "");
         }
@@ -47,12 +51,17 @@ final class BpeTokenizer {
         this.ranks = ranks;
         this.added = new HashMap<>();
         added.forEach(a -> this.added.put(a.content(), a.id()));
-        this.addedSplit = added.isEmpty() ? null : Pattern.compile(added.stream()
+        this.addedSplit = split(added);
+        this.addedSplitText = split(added.stream().filter(a -> !a.special()).toList());
+        // Rust's \s and \p{..} are Unicode-aware; Java's \s is ASCII unless asked
+        this.pre = Pattern.compile(preRegex, Pattern.UNICODE_CHARACTER_CLASS);
+    }
+
+    private static Pattern split(List<Added> added) {
+        return added.isEmpty() ? null : Pattern.compile(added.stream()
                 .sorted(Comparator.comparingInt((Added a) -> a.content().length()).reversed())
                 .map(Added::regex)
                 .collect(Collectors.joining("|")), Pattern.UNICODE_CHARACTER_CLASS);
-        // Rust's \s and \p{..} are Unicode-aware; Java's \s is ASCII unless asked
-        this.pre = Pattern.compile(preRegex, Pattern.UNICODE_CHARACTER_CLASS);
     }
 
     @SuppressWarnings("unchecked")
@@ -81,7 +90,7 @@ final class BpeTokenizer {
             Map<String, Object> t = (Map<String, Object>) o;
             require(!Boolean.TRUE.equals(t.get("single_word")), "single_word added token " + t.get("content"));
             added.add(new Added((String) t.get("content"), ((Number) t.get("id")).intValue(),
-                    Boolean.TRUE.equals(t.get("lstrip")), Boolean.TRUE.equals(t.get("rstrip"))));
+                    Boolean.TRUE.equals(t.get("special")), Boolean.TRUE.equals(t.get("lstrip")), Boolean.TRUE.equals(t.get("rstrip"))));
         }
         return new BpeTokenizer(vocab, ranks, added, preTokenizerRegex((Map<String, Object>) root.get("pre_tokenizer")));
     }
@@ -106,13 +115,23 @@ final class BpeTokenizer {
         return (String) ((Map<String, Object>) split.get("pattern")).get("Regex");
     }
 
+    /** Trusted text (a prompt template): special tokens' spellings become their ids. */
     long[] encode(String text) {
+        return encode(text, addedSplit);
+    }
+
+    /** Untrusted text: only non-special added tokens are matched; a special token's spelling is tokenized as text. */
+    long[] encodeText(String text) {
+        return encode(text, addedSplitText);
+    }
+
+    private long[] encode(String text, Pattern split) {
         String normalized = Normalizer.normalize(text, Normalizer.Form.NFC);
         List<Integer> ids = new ArrayList<>();
-        if (addedSplit == null) {
+        if (split == null) {
             plain(normalized, ids);
         } else {
-            Matcher m = addedSplit.matcher(normalized);
+            Matcher m = split.matcher(normalized);
             int last = 0;
             while (m.find()) {
                 plain(normalized.substring(last, m.start()), ids);
@@ -127,6 +146,9 @@ final class BpeTokenizer {
 
     private void plain(String text, List<Integer> ids) {
         Matcher m = pre.matcher(text);
+        if (cache.size() > 100_000) {
+            cache.clear(); // ponytail: bounds a long-running client's memory; an LRU if the refill ever shows in profiles
+        }
         while (m.find()) {
             for (int id : cache.computeIfAbsent(m.group(), this::bpe)) {
                 ids.add(id);

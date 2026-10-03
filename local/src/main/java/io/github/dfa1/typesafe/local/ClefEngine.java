@@ -10,12 +10,16 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.TypeSafeException;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,13 +76,37 @@ final class ClefEngine implements Engine {
     }
 
     /** Hard-links each weight file next to the graph as {@code sha256-<hash>}, the name the graph's external data uses
-     *  (no copy; ONNX Runtime rejects a symlink that resolves outside the graph's directory). */
+     *  (no copy; ONNX Runtime rejects a symlink that resolves outside the graph's directory). The graph reads the
+     *  weights by byte offset, so a file from another revision gives garbage, not an error: each is hashed before its
+     *  link is made (once, about a minute for all 19 GB), and a link's name is then its proof. */
     private static void link(Path dir, Path graphDir) throws IOException {
         for (Map.Entry<String, String> w : WEIGHTS.entrySet()) {
             Path link = graphDir.resolve("sha256-" + w.getValue());
             if (!Files.exists(link)) {
-                Files.createLink(link, Onnx.require(dir, w.getKey()));
+                Path weights = Onnx.require(dir, w.getKey());
+                verify(weights, w.getValue());
+                Files.createLink(link, weights);
             }
+        }
+    }
+
+    static void verify(Path file, String sha256) throws IOException {
+        MessageDigest digest;
+        try {
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+        byte[] buffer = new byte[1 << 20];
+        try (InputStream in = Files.newInputStream(file)) {
+            for (int n; (n = in.read(buffer)) > 0;) {
+                digest.update(buffer, 0, n);
+            }
+        }
+        String actual = HexFormat.of().formatHex(digest.digest());
+        if (!actual.equals(sha256)) {
+            throw new IllegalArgumentException(file + " has sha256 " + actual + ", not clef-flash@17f0b0a's " + sha256
+                    + ": download it again with the how-to's hf download command");
         }
     }
 
@@ -150,7 +178,7 @@ final class ClefEngine implements Engine {
             optionIds.add(List.copyOf(options.keySet()));
             n++;
         }
-        List<Long> prefix = encode(PREFIX), suffix = encode(SUFFIX);
+        List<Long> prefix = boxed(tokenizer.encode(PREFIX)), suffix = boxed(tokenizer.encode(SUFFIX));
         int fixed = prefix.size() + schema.size() + suffix.size();
         if (fixed > MAX_TOKENS) {
             throw new TypeSafeException.BadRequest("questions take " + fixed + " tokens; the maximum is " + MAX_TOKENS);
@@ -256,8 +284,13 @@ final class ClefEngine implements Engine {
         return Arrays.stream(spans).flatMapToLong(Arrays::stream).toArray();
     }
 
+    /** Everything but PREFIX/SUFFIX carries caller text, so a special token spelled there stays text. */
     private List<Long> encode(String text) {
-        return Arrays.stream(tokenizer.encode(text)).boxed().toList();
+        return boxed(tokenizer.encodeText(text));
+    }
+
+    private static List<Long> boxed(long[] ids) {
+        return Arrays.stream(ids).boxed().toList();
     }
 
     @Override

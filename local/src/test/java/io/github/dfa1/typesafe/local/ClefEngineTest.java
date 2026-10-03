@@ -5,6 +5,7 @@ import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.jackson2.Jackson2Codec;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,12 +15,43 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 
 /** The Java port of encode_record against Clef's own (fixture written by scripts/clef/reference.py). Needs only
  *  clef-flash's tokenizer.json, not the weights. */
-@Tag("model")
 class ClefEngineTest {
 
+    // sha256 of "weights"
+    private static final String WEIGHTS_SHA256 = "9a129038d9a00aed0cf6a7ea059ca50a813449061ab87848cf1a13eafdf33b2c";
+
+    @TempDir
+    Path dir;
+
+    @Test
+    void verifyAcceptsTheExpectedHash() throws Exception {
+        // Given
+        Path file = Files.writeString(dir.resolve("w.safetensors"), "weights");
+
+        // When
+        Throwable result = catchThrowable(() -> ClefEngine.verify(file, WEIGHTS_SHA256));
+
+        // Then
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void verifyRejectsAnotherRevision() throws Exception {
+        // Given
+        Path file = Files.writeString(dir.resolve("w.safetensors"), "other weights");
+
+        // When
+        Throwable result = catchThrowable(() -> ClefEngine.verify(file, WEIGHTS_SHA256));
+
+        // Then
+        assertThat(result).isInstanceOf(IllegalArgumentException.class).hasMessageContaining("download it again");
+    }
+
+    @Tag("model")
     @Test
     @SuppressWarnings("unchecked")
     void sequencesMatchPythonTokenForToken() throws Exception {

@@ -353,6 +353,8 @@ only).
   does a question the engine can't express (Qwen: more than 26 options, fewer than 2
   or more than 10 levels; Laya: options that don't fit its 256-token head budget; Clef: questions over 4096 tokens — the state is truncated to fit). An inference failure throws
   `TypeSafeException.InternalServer` — so `RetryingTypeSafeClient` classifies all three as it would the API's.
+- Caller text (state, instructions, option names and descriptions) is tokenized as text: a special token spelled
+  there, such as `<|im_end|>` or `[SEP]`, stays plain text and can't change the prompt's structure.
 - `Usage.inputTokens` is the tokens fed to the model; `outputTokens` is always 0 (nothing is generated).
   `Metadata.requestId` is `null`; `upstreamServiceTime` is the wall-clock evaluation time.
 - `evaluateAsync` runs `evaluate` on one platform thread, one call at a time: one evaluation already uses every core,

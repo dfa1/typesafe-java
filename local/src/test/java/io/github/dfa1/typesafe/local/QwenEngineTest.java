@@ -31,7 +31,7 @@ class QwenEngineTest {
 
     private final float[] logits = new float[128];
     private final List<long[]> prompts = new ArrayList<>();
-    private final LocalTypeSafeClient sut = new LocalTypeSafeClient(new QwenEngine(QwenEngineTest::encode,
+    private final LocalTypeSafeClient sut = new LocalTypeSafeClient(new QwenEngine(QwenEngineTest::encode, QwenEngineTest::encode,
             ids -> {
                 prompts.add(ids);
                 return logits.clone();

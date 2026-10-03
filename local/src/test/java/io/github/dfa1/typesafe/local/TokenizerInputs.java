@@ -54,7 +54,7 @@ public final class TokenizerInputs {
                 };
                 laya.add(type + " question: " + LayaEngine.serialize(instructions));
                 LayaEngine.options(q).forEach(o -> laya.add(" " + o));
-                qwen.add(QwenEngine.chat(QwenEngine.prompt(QwenEngine.render(state), q)));
+                qwen.add(QwenEngine.CHAT_HEAD + "user\n" + QwenEngine.prompt(QwenEngine.render(state), q) + QwenEngine.CHAT_TAIL);
             }
         }
         Path dir = Files.createDirectories(Path.of("src/test/resources/tokenizer"));

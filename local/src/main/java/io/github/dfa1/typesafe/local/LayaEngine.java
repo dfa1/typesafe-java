@@ -257,8 +257,9 @@ final class LayaEngine implements Engine {
         return Probabilities.softmax(z);
     }
 
+    /** Everything but the markers is caller text, so [CLS]/[SEP] spelled there stay text. */
     private long[] encode(String text) {
-        return tokenizer.encode(text);
+        return tokenizer.encodeText(text);
     }
 
     private long special(String token) {
