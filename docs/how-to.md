@@ -685,7 +685,8 @@ cd local && uv run scripts/clef/quantize_q4.py   # writes ~/.cache/typesafe-loca
 ```
 
 `LocalClefTypeSafeClient.load(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
-for 1–3 questions on the CPU, or 2–4 s on the GPU (WebGPU, still experimental here): batch work, not interactive use.
+for 1–3 questions on the CPU, or 2–4 s on the GPU with `LocalClefTypeSafeClient.loadOnGpu(...)` (macOS on Apple
+Silicon only; same answers as the CPU): batch work, not interactive use.
 On a Mac, the same model runs about 5× faster through MLX; see
 [Run Clef-flash on a Mac with MLX](#run-clef-flash-on-a-mac-with-mlx).
 

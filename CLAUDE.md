@@ -96,8 +96,9 @@ local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local
             src/test/resources). Tests needing model files are @Tag("model"), excluded by the module's
             own excludedGroups (acceptance,model); opt in with -DexcludedGroups=acceptance -Dengine=laya.
             JevComparison (test scope, main) replays 104 requests against cached real-Jev answers
-            (src/test/resources/jev); LocalTypeSafeClientBenchmark is JMH. Package-private WebGPU switch
-            (LayaEngine/QwenEngine.load(dir, gpu)) is experimental. LayaEngine reads onnx-community's layout
+            (src/test/resources/jev); LocalTypeSafeClientBenchmark is JMH. WebGPU (Metal, macOS-only
+            native lib): public only as LocalClefTypeSafeClient.loadOnGpu (stable, same answers as CPU); Laya/Qwen keep
+            the package-private load(dir, gpu) for the harness — Laya's WebGPU answers drift between launches. LayaEngine reads onnx-community's layout
             (onnx/model.onnx, config.json "laya", bool marker_mask).
             The `Local engines` workflow runs tests, comparison and JMH on Linux/macOS and writes tables to
             the job summary.
