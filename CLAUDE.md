@@ -185,7 +185,7 @@ property (surefire). Opt in with:
 
 ## Testing
 
-JUnit 5 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`) +
+JUnit 6 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`) +
 Mockito (BDDMockito: static-import only `given`/`then`, e.g. `given(mock.m()).willReturn(v)` /
 `then(mock).should().m()` — never `willReturn`/`willThrow`/`verify` unqualified). JUnit Pioneer's
 `@SetEnvironmentVariable` (core only, for `ApiKeyTest`) sets an env var for one test method;
