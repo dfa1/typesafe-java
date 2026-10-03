@@ -53,7 +53,13 @@ Several things were measured and rejected:
 
 - **Parallel sessions.** On a CPU, one ONNX session already uses every core, so splitting the same work across
   sessions or threads finished no sooner, and N sessions mean N copies of the weights competing for memory bandwidth.
-- **CoreML.** The execution provider ran Laya 2–3× slower than the CPU.
+- **CoreML.** ONNX Runtime's jar includes the provider, but nothing ran faster on it (ONNX Runtime 1.30, Apple M5).
+  In the NeuralNetwork format Laya was about 2× slower than the CPU on every compute-unit setting, with or without
+  `FastPrediction`; Qwen's 4-bit graph failed on its first request; and 4-bit Clef-flash took 112 s per request
+  instead of 13 s, since the provider supports neither `MatMulNBits` nor any 8-bit op. The MLProgram format failed
+  to initialize on both Laya and Clef-flash ("axis 2 is not in valid range"); with `RequireStaticInputShapes` it
+  loaded, but took 158 of Laya's 1826 nodes, so the CPU did the work. Dropping `MatMulNBits` wouldn't help: Laya has
+  none, and Clef-flash without it is 18 GB of fp16 weights. MLX is the way to 4-bit on Apple's GPU.
 - **Smaller LLMs.** SmolLM2, Qwen2.5-0.5B and Qwen3-0.6B didn't track Jev at all.
 
 ## Why `core` doesn't know about Jackson
