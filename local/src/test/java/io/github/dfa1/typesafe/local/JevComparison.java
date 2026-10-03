@@ -161,7 +161,7 @@ public final class JevComparison {
                 List<String> lines = cached.computeIfAbsent(c.suite(), k -> readLines(file));
                 if (c.index() >= lines.size()) {
                     if (api == null) {
-                        api = TypeSafeClient.builder(ApiKey.fromDefaultFile()).jsonCodec(codec).build();
+                        api = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).jsonCodec(codec).build();
                     }
                     EvaluateResponse r = api.evaluate(c.request());
                     // metadata (request id, timing) is per call, not part of the answer
