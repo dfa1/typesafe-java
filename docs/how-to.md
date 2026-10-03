@@ -645,7 +645,7 @@ uvx --from huggingface_hub hf download ollaya-dev/clef flash/model-fp32.onnx --l
 Then use it like any other `TypeSafeClient`, decorators and `MappingTypeSafeClient` included:
 
 ```java
-try (TypeSafeClient client = LocalTypeSafeClient.laya(Path.of(System.getProperty("user.home"), ".cache/typesafe-local/laya-fp32"))) {
+try (TypeSafeClient client = LocalLayaTypeSafeClient.load(Path.of(System.getProperty("user.home"), ".cache/typesafe-local/laya-fp32"))) {
     EvaluateResponse response = client.evaluate(EvaluateRequest.of(
             Content.text("Help! My payouts have been failing for 3 days."),
             Map.of("is_urgent", Question.noul("Does this convey urgency?"))));
@@ -665,7 +665,7 @@ the original files, so no extra copy):
 cd local && uv run scripts/clef/quantize_q4.py   # writes ~/.cache/typesafe-local/clef-flash-q4
 ```
 
-`LocalTypeSafeClient.clef(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
+`LocalClefTypeSafeClient.load(Path.of(..., "clef-flash-q4"))` then needs 7.7 GB and, on the same M5, answers in 7–13 s
 for 1–3 questions on the CPU, or 2–4 s on the GPU (WebGPU, still experimental here): batch work, not interactive use.
 On a Mac, the same model runs about 5× faster through MLX; see
 [Run Clef-flash on a Mac with MLX](#run-clef-flash-on-a-mac-with-mlx).

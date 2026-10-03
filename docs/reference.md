@@ -22,7 +22,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 | `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
 | `typesafe-java-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
-| `typesafe-java-local` | `core`, ONNX Runtime | `LocalTypeSafeClient` (in-process engines: Laya, Qwen2.5, Clef-flash) |
+| `typesafe-java-local` | `core`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
 | `typesafe-java-bom` | — | dependency management for the eight above |
 
 `core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
@@ -322,14 +322,18 @@ with the original `ClassCastException` as its cause) rather than a bare, unexpla
 `io.github.dfa1.typesafe.local` (module `typesafe-java-local`).
 
 ```java
-public final class LocalTypeSafeClient implements TypeSafeClient {
-    public static LocalTypeSafeClient laya(Path dir);   // onnx/model.onnx + tokenizer.json + config.json (onnx-community)
-    public static LocalTypeSafeClient qwen(Path dir);   // model.onnx, tokenizer.json
-    public static LocalTypeSafeClient clef(Path dir);   // *.safetensors + tokenizer.json (Cloudflare) + flash/model-fp32.onnx (Ollaya)
+public final class LocalLayaTypeSafeClient implements TypeSafeClient {
+    public static LocalLayaTypeSafeClient load(Path dir);   // onnx/model.onnx + tokenizer.json + config.json (onnx-community)
+}
+public final class LocalQwenTypeSafeClient implements TypeSafeClient {
+    public static LocalQwenTypeSafeClient load(Path dir);   // model.onnx, tokenizer.json
+}
+public final class LocalClefTypeSafeClient implements TypeSafeClient {
+    public static LocalClefTypeSafeClient load(Path dir);   // *.safetensors + tokenizer.json (Cloudflare) + flash/model-*.onnx
 }
 ```
 
-A `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
+One class per model, each a `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
 (plus `config.json` for Laya) and the one `.onnx` file in `dir/onnx` or `dir`, as `hf download` lays them out (see the
 [how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
 (`typesafe-java-jackson2` or `-jackson3`) must be on the classpath, as for the API client.

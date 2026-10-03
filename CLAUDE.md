@@ -78,7 +78,9 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
             on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
-local     — LocalTypeSafeClient (io.github.dfa1.typesafe.local): a TypeSafeClient evaluating in-process on ONNX
+local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local: LocalLayaTypeSafeClient,
+            LocalQwenTypeSafeClient, LocalClefTypeSafeClient, each with a static load(Path)) over a package-private
+            LocalTypeSafeClient base, evaluating in-process on ONNX
             Runtime, from a model directory the caller fills with `hf download` (docs/how-to.md): Laya =
             onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — and Qwen q4;
             ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file

@@ -9,7 +9,6 @@ import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.core.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -17,54 +16,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * A {@link TypeSafeClient} that evaluates in-process on ONNX Runtime instead of calling
- * {@code api.typesafe.ai}: same request in, same response out, so everything built on
- * typesafe-java ({@code MappingTypeSafeClient}, deadlines, token counting, test doubles) works on
- * top of it unchanged. No network, no API key; the model is read from a local directory.
- *
- * <p>Jev itself isn't available outside TypeSafe's API, so this is API parity, not model parity:
- * see the README for how closely each engine agrees with Jev.
+ * What every local client shares: a {@link TypeSafeClient} that evaluates in-process on ONNX Runtime instead of
+ * calling {@code api.typesafe.ai}, through one {@link Engine}. Package-private; callers use one public class per
+ * model ({@link LocalLayaTypeSafeClient}, {@link LocalQwenTypeSafeClient}, {@link LocalClefTypeSafeClient}), and
+ * the test harness builds this directly for engine variants (GPU, other model directories).
  */
-public final class LocalTypeSafeClient implements TypeSafeClient {
+class LocalTypeSafeClient implements TypeSafeClient {
 
     private final Engine engine;
     private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     LocalTypeSafeClient(Engine engine) {
         this.engine = engine;
-    }
-
-    /**
-     * Laya (convaiinnovations/laya-typed-decisions, Apache-2.0): a 421M ModernBERT encoder with a
-     * decision head trained for Jev-style questions. The recommended engine: about ten times faster than
-     * {@link #qwen}, closer to Jev on yes/no and scores.
-     *
-     * @param dir onnx-community's export as {@code hf download} writes it: {@code onnx/model.onnx} (or
-     *            {@code model_fp16.onnx}) with its weights file, {@code tokenizer.json}, {@code config.json}
-     */
-    public static LocalTypeSafeClient laya(Path dir) {
-        return new LocalTypeSafeClient(LayaEngine.load(dir));
-    }
-
-    /**
-     * Qwen2.5-1.5B-Instruct (Apache-2.0), answering from its next-token logits. Slower than
-     * {@link #laya}, somewhat better on choices.
-     *
-     * @param dir {@code tokenizer.json} and one {@code .onnx} model (e.g. onnx-community's {@code onnx/model_q4.onnx})
-     */
-    public static LocalTypeSafeClient qwen(Path dir) {
-        return new LocalTypeSafeClient(QwenEngine.load(dir));
-    }
-
-    /**
-     * Clef-flash (Cloudflare/clef-flash, Apache-2.0): Qwen3.5-9B with a joint schema head, every question of a
-     * request decided in one forward pass. About 19 GB of bf16 weights: meant for a machine with the memory for it.
-     *
-     * @param dir clef-flash's {@code tokenizer.json} and {@code *.safetensors} as {@code hf download} writes them, plus
-     *            Ollaya's {@code flash/model-fp32.onnx}; the first load adds {@code sha256-*} links next to the graph
-     */
-    public static LocalTypeSafeClient clef(Path dir) {
-        return new LocalTypeSafeClient(ClefEngine.load(dir));
     }
 
     /**
