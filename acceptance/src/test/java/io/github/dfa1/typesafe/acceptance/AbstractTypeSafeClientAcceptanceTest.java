@@ -79,7 +79,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
         });
         assertThat(result.usage().inputTokens()).isPositive();
         assertThat(result.metadata().requestId().value()).startsWith("req_");
-        assertThat(result.metadata().upstreamServiceTime().toMillis()).isPositive();
+        // upstreamServiceTime isn't asserted: the API stopped sending x-envoy-upstream-service-time (2026-10)
     }
 
     @Test
@@ -237,8 +237,8 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
             Answer.Choice market = (Answer.Choice) result.answers().get("market");
             Answer.Choice instrumentType = (Answer.Choice) result.answers().get("instrument_type");
 
-            System.out.printf("run %2d: model = %4d ms, end-to-end = %4d ms%n",
-                    i, result.metadata().upstreamServiceTime().toMillis(), endToEnd.toMillis());
+            System.out.printf("run %2d: model = %s, end-to-end = %4d ms%n",
+                    i, result.metadata().upstreamServiceTime(), endToEnd.toMillis());
 
             assertThat(market.choice()).isIn(markets.keySet());
             assertThat(instrumentType.choice()).isIn(instrumentTypes.keySet());
