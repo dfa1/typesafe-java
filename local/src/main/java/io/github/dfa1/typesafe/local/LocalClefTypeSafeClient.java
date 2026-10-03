@@ -27,4 +27,15 @@ public final class LocalClefTypeSafeClient extends LocalTypeSafeClient {
     public static LocalClefTypeSafeClient load(Path dir) {
         return new LocalClefTypeSafeClient(ClefEngine.load(dir));
     }
+
+    /**
+     * {@link #load}, but evaluating on the GPU through ONNX Runtime's WebGPU backend (Metal), with the same answers as
+     * on the CPU. Worth it for the 4-bit graph; see the how-to for measurements.
+     *
+     * <p>macOS on Apple Silicon only: the WebGPU backend ships only in ONNX Runtime's macOS native library, so
+     * elsewhere this throws {@link IllegalStateException}.
+     */
+    public static LocalClefTypeSafeClient loadOnGpu(Path dir) {
+        return new LocalClefTypeSafeClient(ClefEngine.load(dir, true));
+    }
 }

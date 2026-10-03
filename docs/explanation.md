@@ -43,6 +43,12 @@ of 32), the same format onnx-community uses for its q4 models. That brought it t
 GPU, with probabilities within about 0.03 of the fp32 graph. The rest of the cost is the model's size: every token
 passes through 9B weights.
 
+Only Clef-flash has a GPU option (`loadOnGpu`, WebGPU on Metal, macOS only). Its 4-bit graph gives the same answers
+on the GPU as on the CPU, run after run, and runs about 3.5× faster there. Laya doesn't get one: on WebGPU its
+choice probabilities changed from one process launch to the next (0.65 on the CPU, anywhere from 0.49 to 0.65 on the
+GPU for the same input) — the same kind of silent, hardware-dependent drift that removed int8 Laya — and it saved
+only tens of milliseconds anyway.
+
 Several things were measured and rejected:
 
 - **Parallel sessions.** On a CPU, one ONNX session already uses every core, so splitting the same work across

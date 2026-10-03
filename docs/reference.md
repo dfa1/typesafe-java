@@ -330,6 +330,7 @@ public final class LocalQwenTypeSafeClient implements TypeSafeClient {
 }
 public final class LocalClefTypeSafeClient implements TypeSafeClient {
     public static LocalClefTypeSafeClient load(Path dir);   // *.safetensors + tokenizer.json (Cloudflare) + flash/model-*.onnx
+    public static LocalClefTypeSafeClient loadOnGpu(Path dir);   // same, on WebGPU (macOS on Apple Silicon only)
 }
 ```
 
