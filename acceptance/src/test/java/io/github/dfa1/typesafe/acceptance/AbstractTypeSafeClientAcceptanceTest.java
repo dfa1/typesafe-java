@@ -49,7 +49,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        sut = TypeSafeClient.builder(ApiKey.fromDefaultFile())
+        sut = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
                 .httpTransport(httpTransport())
                 .jsonCodec(jsonCodec())
                 .build();

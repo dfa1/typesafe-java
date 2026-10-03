@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  * exponential backoff from {@code initialBackoff} otherwise. Anything else propagates unchanged.
  *
  * <p>Add one via {@link DefaultTypeSafeClient.Builder#decorateWith(Function)}, e.g.
- * {@code builder(apiKey).decorateWith(RetryingTypeSafeClient::decorate).build()}. Don't stack two: the
+ * {@code builder().apiKey(apiKey).decorateWith(RetryingTypeSafeClient::decorate).build()}. Don't stack two: the
  * attempts multiply, and {@code build()} rejects it.
  */
 public final class RetryingTypeSafeClient implements TypeSafeClient {

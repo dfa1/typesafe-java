@@ -25,14 +25,13 @@ class ApiKeyTest {
         ApiKey result = ApiKey.fromFile(file);
 
         // Then
-        assertThat(result.value()).isEqualTo("apikey_dummy_test_value");
         assertThat(result.toHttpHeaderValue()).isEqualTo("Bearer apikey_dummy_test_value");
     }
 
     @Test
     void toStringNeverLeaksTheValue() {
         // Given
-        ApiKey sut = new ApiKey("apikey_dummy_test_value");
+        ApiKey sut = ApiKey.of("apikey_dummy_test_value");
 
         // When
         String result = sut.toString();
@@ -44,7 +43,7 @@ class ApiKeyTest {
     @Test
     void rejectsBlankKey() {
         // When / Then
-        assertThatIllegalArgumentException().isThrownBy(() -> new ApiKey("  "));
+        assertThatIllegalArgumentException().isThrownBy(() -> ApiKey.of("  "));
     }
 
     @Test
@@ -65,7 +64,7 @@ class ApiKeyTest {
             ApiKey result = ApiKey.fromDefaultFile();
 
             // Then
-            assertThat(result.value()).isEqualTo(Files.readString(defaultPath).strip());
+            assertThat(result.toHttpHeaderValue()).isEqualTo("Bearer " + Files.readString(defaultPath).strip());
         } else {
             // When / Then
             assertThatThrownBy(ApiKey::fromDefaultFile).isInstanceOf(IOException.class);
@@ -79,6 +78,6 @@ class ApiKeyTest {
         ApiKey result = ApiKey.fromEnv();
 
         // Then
-        assertThat(result.value()).isEqualTo("apikey_dummy_test_value");
+        assertThat(result.toHttpHeaderValue()).isEqualTo("Bearer apikey_dummy_test_value");
     }
 }

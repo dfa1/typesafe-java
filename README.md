@@ -17,7 +17,7 @@ Save a token to `~/.typesafe.apikey` first — either way below picks it up auto
 ```java
 ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apikey
 // or: ApiKey.fromEnv();                 // reads the TYPESAFE_API_KEY environment variable
-TypeSafeClient client = TypeSafeClient.builder(token).build();
+TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
         Content.text("Help! My payouts have been failing for 3 days."),
@@ -33,7 +33,7 @@ Or skip the `Map`/cast with a typed record (`typesafe-java-mapping`):
 record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder(token).build(MappingTypeSafeClient::decorate);
+MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
 UrgencyCheck result = client.evaluateTyped(
         Content.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
 result.isUrgent(); // e.g. 0.92

@@ -45,7 +45,7 @@ class TypeSafeClientTest {
     @Test
     void evaluateDelegatesToTheConfiguredHttpTransportAndJsonCodec() {
         // Given
-        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
@@ -76,9 +76,37 @@ class TypeSafeClientTest {
     }
 
     @Test
+    void withoutAnApiKeySendsNoAuthorizationHeader() {
+        // Given
+        TypeSafeClient sut = TypeSafeClient.builder()
+                .endpoint(ENDPOINT)
+                .httpTransport(httpTransport)
+                .jsonCodec(jsonCodec)
+                .build();
+
+        EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
+        Map<String, String> expectedHeaders = Map.of("Content-Type", "application/json");
+        String requestBody = "{\"request\":true}";
+        String responseBody = "{\"response\":true}";
+        EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(10, 0), null);
+
+        given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
+        given(httpTransport.post(ENDPOINT, expectedHeaders, requestBody))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), responseBody)));
+        given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
+
+        // When
+        EvaluateResponse result = sut.evaluate(request);
+
+        // Then
+        then(httpTransport).should().post(ENDPOINT, expectedHeaders, requestBody);
+        assertThat(result.usage().inputTokens()).isEqualTo(10);
+    }
+
+    @Test
     void listModelsDelegatesToTheConfiguredHttpTransportAndJsonCodec() {
         // Given
-        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
@@ -104,7 +132,7 @@ class TypeSafeClientTest {
     @Test
     void closeClosesTheUnderlyingHttpTransport() {
         // Given
-        TypeSafeClient sut = TypeSafeClient.builder(new ApiKey("secret"))
+        TypeSafeClient sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .build();
@@ -512,7 +540,7 @@ class TypeSafeClientTest {
     @Test
     void builderThrowsWhenNoHttpTransportIsConfiguredOrDiscoverable() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret")).jsonCodec(jsonCodec);
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret")).jsonCodec(jsonCodec);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -523,7 +551,7 @@ class TypeSafeClientTest {
     @Test
     void builderThrowsWhenNoJsonCodecIsConfiguredOrDiscoverable() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret")).httpTransport(httpTransport);
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret")).httpTransport(httpTransport);
 
         // When / Then
         assertThatThrownBy(sut::build)
@@ -534,7 +562,7 @@ class TypeSafeClientTest {
     @Test
     void buildWithADecoratorAppliesItToTheBuiltClient() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec);
 
@@ -548,7 +576,7 @@ class TypeSafeClientTest {
     @Test
     void buildWrapsTheClientInAWrapper() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .decorateWith(WrappingTypeSafeClient::new);
@@ -564,7 +592,7 @@ class TypeSafeClientTest {
     @Test
     void buildAppliesDecoratorsInCallOrderWithTheBuildDecoratorOutermost() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .decorateWith(WrappingTypeSafeClient::new)
@@ -580,7 +608,7 @@ class TypeSafeClientTest {
     @Test
     void buildThrowsWhenRetryingIsWrappedTwice() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .decorateWith(RetryingTypeSafeClient::decorate)
@@ -597,7 +625,7 @@ class TypeSafeClientTest {
     @Test
     void buildThrowsWhenRetryingIsBothWrappedAndTheBuildDecorator() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)
                 .decorateWith(RetryingTypeSafeClient::decorate);
@@ -610,7 +638,7 @@ class TypeSafeClientTest {
     @Test
     void buildWithoutWrappersReturnsAPlainDefaultTypeSafeClient() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec);
 
@@ -642,7 +670,7 @@ class TypeSafeClientTest {
     @Test
     void buildComposesMultipleDecoratorsViaFunctionAndThen() {
         // Given
-        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder(new ApiKey("secret"))
+        DefaultTypeSafeClient.Builder sut = TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec);
         Function<TypeSafeClient, WrappingTypeSafeClient> innermost = WrappingTypeSafeClient::new;
@@ -725,7 +753,7 @@ class TypeSafeClientTest {
     }
 
     private TypeSafeClient clientWith(Duration backoff, int maxRetries) {
-        return TypeSafeClient.builder(new ApiKey("secret"))
+        return TypeSafeClient.builder().apiKey(ApiKey.of("secret"))
                 .endpoint(ENDPOINT)
                 .httpTransport(httpTransport)
                 .jsonCodec(jsonCodec)

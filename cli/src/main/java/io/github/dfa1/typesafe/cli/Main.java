@@ -67,7 +67,7 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        try (TypeSafeClient client = TypeSafeClient.builder(ApiKey.fromDefaultFile())
+        try (TypeSafeClient client = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build()) {

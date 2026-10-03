@@ -323,21 +323,22 @@ Also in `io.github.dfa1.typesafe.core`.
 ### `ApiKey`
 
 ```java
-record ApiKey(String value)
+final class ApiKey   // no public constructor
 ```
 
+- `ApiKey.of(String)` — a key from wherever the caller keeps it (e.g. a secrets manager).
 - `ApiKey.fromFile(Path)` — reads and trims the file contents.
 - `ApiKey.fromDefaultFile()` — reads `~/.typesafe.apikey`.
 - `ApiKey.fromEnv()` — reads the `TYPESAFE_API_KEY` environment variable; throws
   `IllegalStateException` if it's not set.
 - `toHttpHeaderValue()` — `"Bearer " + value`.
-- `toString()` never leaks `value`.
-- Constructor throws `IllegalArgumentException` on a blank value.
+- `toString()` never leaks the value, and nothing else exposes it.
+- Every factory throws `IllegalArgumentException` on a blank value.
 
 ### `TypeSafeClient`
 
 ```java
-static DefaultTypeSafeClient.Builder builder(ApiKey apiKey)
+static DefaultTypeSafeClient.Builder builder()
 
 EvaluateResponse evaluate(EvaluateRequest request)
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
@@ -346,12 +347,15 @@ List<ModelDetails> listModels()
 
 `TypeSafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
 caching layer, metrics, a circuit breaker, ...) implementing the same interface — anywhere a
-`TypeSafeClient` is expected, a decorator around one works too. `builder(apiKey)` is a thin
-static factory on the interface that delegates to `DefaultTypeSafeClient.builder(apiKey)` — the
+`TypeSafeClient` is expected, a decorator around one works too. `builder()` is a thin
+static factory on the interface that delegates to `DefaultTypeSafeClient.builder()` — the
 implementation class is public and owns its own `Builder`, since constructing a
 `DefaultTypeSafeClient` (defaults, `ServiceLoader` discovery, ...) is squarely that class's
-concern, not the interface's. Nothing about the call site changes: `TypeSafeClient.builder(key)`
-still works exactly as before.
+concern, not the interface's.
+
+`Builder.apiKey(ApiKey)` is optional. Without it no `Authorization` header is sent: right for a
+local TypeSafe-compatible server set with `Builder.endpoint(URI)`. Against TypeSafe's own API a
+missing key surfaces as `TypeSafeException.Authentication` (401) on the first call, not at `build()`.
 
 Default endpoint: `https://api.typesafe.ai/v1/systemone`; `listModels()` hits
 `/v1/models` on the same scheme/authority. A client from `build()` makes exactly one attempt per

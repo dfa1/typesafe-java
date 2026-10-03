@@ -5,16 +5,26 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Objects;
 
-public record ApiKey(String value) {
+/** A TypeSafe API key. The raw value never leaves this class: only {@link #toHttpHeaderValue()} uses it, and
+ *  {@link #toString()} masks it. */
+public final class ApiKey {
 
     private static final Path DEFAULT_PATH = Path.of(System.getProperty("user.home"), ".typesafe.apikey");
     private static final String ENV_VAR = "TYPESAFE_API_KEY";
 
-    public ApiKey {
+    private final String value;
+
+    private ApiKey(String value) {
         Objects.requireNonNull(value, "value");
         if (value.isBlank()) {
             throw new IllegalArgumentException("API key must not be blank");
         }
+        this.value = value;
+    }
+
+    /** A key from wherever the caller keeps it, e.g. a secrets manager. */
+    public static ApiKey of(String value) {
+        return new ApiKey(value);
     }
 
     public static ApiKey fromFile(Path path) throws IOException {

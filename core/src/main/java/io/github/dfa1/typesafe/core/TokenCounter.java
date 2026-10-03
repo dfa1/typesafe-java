@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
  *
  * <pre>{@code
  * TokenCounter tokens = new TokenCounter();
- * TypeSafeClient client = TypeSafeClient.builder(apiKey)
+ * TypeSafeClient client = TypeSafeClient.builder().apiKey(apiKey)
  *         .decorateWith(tokens::decorate)
  *         .build();
  * // ...
