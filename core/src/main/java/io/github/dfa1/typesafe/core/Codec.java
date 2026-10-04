@@ -10,8 +10,5 @@ public interface Codec {
 
     byte[] writeValueAsBytes(Object value);
 
-    /** Same as {@link #writeValueAsBytes(Object)}, indented for human reading. */
-    byte[] writeValueAsPrettyBytes(Object value);
-
     <T> T readValue(byte[] content, Class<T> type);
 }

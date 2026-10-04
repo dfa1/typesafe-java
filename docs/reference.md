@@ -169,7 +169,6 @@ package io.github.dfa1.typesafe.core;
 
 public interface Codec {
     byte[] writeValueAsBytes(Object value);
-    byte[] writeValueAsPrettyBytes(Object value); // same, indented for human reading
     <T> T readValue(byte[] content, Class<T> type);
 }
 ```

@@ -25,7 +25,7 @@ import java.util.Map;
  * Command-line entry point, built as an uber-jar. Evaluates a single string {@code --state}
  * against any number of {@code --noul}/{@code --choice}/{@code --score} questions. Prints
  * nothing to stdout by default — pass {@code --print <name>} for specific answers, or
- * {@code --verbose} for the full {@link EvaluateResponse} as pretty-printed JSON.
+ * {@code --verbose} for the full {@link EvaluateResponse} as JSON.
  * {@code --help}/{@code -h} prints usage and exits without calling the API, same as
  * {@code --version}.
  */
@@ -41,7 +41,7 @@ public final class Main {
             + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
             + "--min compares a noul/score answer's value, exits 1 if any is below its threshold; "
             + "--print prints just that answer's value; without --print, stdout is silent unless "
-            + "--verbose, which prints the full response as pretty-printed JSON)";
+            + "--verbose, which prints the full response as JSON)";
 
     private Main() {
     }
@@ -84,13 +84,13 @@ public final class Main {
         EvaluateRequest request = EvaluateRequest.of(Content.text(parsed.state()), parsed.model(), parsed.questions());
 
         if (parsed.verbose()) {
-            err.println("request: " + pretty(codec, request));
+            err.println("request: " + json(codec, request));
         }
 
         EvaluateResponse response = client.evaluate(request);
 
         if (parsed.verbose()) {
-            err.println("response: " + pretty(codec, response));
+            err.println("response: " + json(codec, response));
             err.println("request-id: " + response.metadata().requestId());
         }
         if (parsed.timing()) {
@@ -100,7 +100,7 @@ public final class Main {
             if (!parsed.printNames().isEmpty()) {
                 parsed.printNames().forEach(name -> out.println(answerValue(response, name)));
             } else if (parsed.verbose()) {
-                out.println(pretty(codec, response));
+                out.println(json(codec, response));
             }
 
             List<String> failures = minFailures(response, parsed.minSpecs());
@@ -214,7 +214,7 @@ public final class Main {
         return 1;
     }
 
-    private static String pretty(Codec codec, Object value) {
-        return new String(codec.writeValueAsPrettyBytes(value), StandardCharsets.UTF_8);
+    private static String json(Codec codec, Object value) {
+        return new String(codec.writeValueAsBytes(value), StandardCharsets.UTF_8);
     }
 }

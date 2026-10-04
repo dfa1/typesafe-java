@@ -38,11 +38,6 @@ public final class Jackson3Codec implements Codec {
     }
 
     @Override
-    public byte[] writeValueAsPrettyBytes(Object value) {
-        return mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(value);
-    }
-
-    @Override
     public <T> T readValue(byte[] content, Class<T> type) {
         return mapper.readValue(content, type);
     }

@@ -49,18 +49,6 @@ class Jackson2CodecTest {
     }
 
     @Test
-    void writeValueAsPrettyStringIndentsTheOutput() {
-        // Given
-        Content state = Content.fields(Map.of("order_id", "A-104"));
-
-        // When
-        String result = json(sut.writeValueAsPrettyBytes(state));
-
-        // Then
-        assertThat(result).isEqualTo("{\n  \"order_id\" : \"A-104\"\n}");
-    }
-
-    @Test
     void serializesStructuredInstructionsAsARawJsonObject() {
         // Given
         Question.Noul question = Question.noul(Content.fields(Map.of(

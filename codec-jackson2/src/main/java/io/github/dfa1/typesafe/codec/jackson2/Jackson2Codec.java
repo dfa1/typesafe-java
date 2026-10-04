@@ -52,15 +52,6 @@ public final class Jackson2Codec implements Codec {
     }
 
     @Override
-    public byte[] writeValueAsPrettyBytes(Object value) {
-        try {
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(value);
-        } catch (JsonProcessingException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    @Override
     public <T> T readValue(byte[] content, Class<T> type) {
         try {
             return mapper.readValue(content, type);
