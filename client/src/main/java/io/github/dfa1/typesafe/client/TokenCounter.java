@@ -1,5 +1,9 @@
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.client;
 
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.ModelDetails;
+import io.github.dfa1.typesafe.core.Usage;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.LongAdder;

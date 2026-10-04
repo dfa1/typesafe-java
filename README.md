@@ -107,7 +107,8 @@ for `typesafe-java-client-http-okhttp`.
 
 | Module | Contains |
 |---|---|
-| `core` | the `TypeSafeClient` interface and its decorators (retries, deadline, token counting), the model, and the `JsonCodec` SPI; no dependencies |
+| `core` | the model (`EvaluateRequest`, `EvaluateResponse`, `Question`, `Answer`, ...) and the `JsonCodec` SPI; no dependencies |
+| `client` | the `TypeSafeClient` interface, `TypeSafeException`, and the decorators that wrap any client (retries, deadline, token counting) |
 | `codec-jackson2` / `codec-jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
 | `client-http` | `DefaultTypeSafeClient`, the `TypeSafeClient` that calls the API, and the `HttpTransport` SPI |
 | `client-http-jdk` | `HttpTransport` backed by `java.net.http` |
@@ -121,7 +122,7 @@ for `typesafe-java-client-http-okhttp`.
 
 Each module's directory, artifact (`typesafe-java-<module>`) and package
 (`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name. See
-[ADR 0003](adr/0003-contract-in-core-implementations-in-client-modules.md) for why it's split this way.
+[ADR 0003](adr/0003-model-in-core-contract-in-client.md) for why it's split this way.
 
 ## Docs
 

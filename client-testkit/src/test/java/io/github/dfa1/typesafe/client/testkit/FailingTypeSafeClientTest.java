@@ -4,7 +4,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Content;
-import io.github.dfa1.typesafe.core.TypeSafeException;
+import io.github.dfa1.typesafe.client.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 
 import org.junit.jupiter.api.Test;

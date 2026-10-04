@@ -101,19 +101,20 @@ design avoids.
 mocked transport for tests can implement one interface (`post`/`get`, both already
 `CompletableFuture`-returning) instead of forking the client.
 
-## Why the contract is in `core` and each client is its own module
+## Why the model is in `core`, the contract in `client`, and each client in its own module
 
-`core` holds what every client agrees on: the `TypeSafeClient` interface, the decorators that wrap
-any implementation (retries, a deadline, token counting), `TypeSafeException`, the model, and the
-`JsonCodec` SPI. Each implementation is a `client-*` module on top of it: `client-http` calls the
-API, `client-local` runs a model in-process, and `client-mapping`/`client-testkit` build on the
-interface. None of them depends on another, and the compiler enforces it: `core` can't see
-`DefaultTypeSafeClient`, which is why `TypeSafeClient` has no `builder()`.
+`core` is the model and the `JsonCodec` SPI, nothing else. `client` is what every client agrees on:
+the `TypeSafeClient` interface, the decorators that wrap any implementation (retries, a deadline,
+token counting), and `TypeSafeException`. Each implementation is a `client-*` module on top of it:
+`client-http` calls the API, `client-local` runs a model in-process, and
+`client-mapping`/`client-testkit` build on the interface. None of them depends on another, and the
+compiler enforces it: `client` can't see `DefaultTypeSafeClient`, which is why `TypeSafeClient` has
+no `builder()`.
 
-`JsonCodec` stays in `core` rather than moving next to `HttpTransport`: `client-local` reads its
-model configs through it, and the model plus a `codec-*` module is enough to serialize TypeSafe
-payloads (e.g. onto a Kafka topic) without any HTTP code. Every module's directory, artifact and
-package share one name. See [ADR 0003](../adr/0003-contract-in-core-implementations-in-client-modules.md).
+`JsonCodec` stays in `core`, next to the model it serializes: `client-local` reads its model configs
+through it too, and the model plus a `codec-*` module is enough to serialize TypeSafe payloads (e.g.
+onto a Kafka topic) without any client code. Every module's directory, artifact and
+package share one name. See [ADR 0003](../adr/0003-model-in-core-contract-in-client.md).
 
 ## Why `TypeSafeClient` is an interface, not a final class
 
@@ -140,7 +141,7 @@ interface: constructing a `DefaultTypeSafeClient` — picking defaults, discover
 pure contract interface should carry. That required making `DefaultTypeSafeClient` itself
 public (a nested class can't be more accessible than its enclosing class). The interface kept a
 one-line `TypeSafeClient.builder()` delegating to it until the module split moved
-`DefaultTypeSafeClient` out of `core` (ADR 0003); callers now name it directly.
+`DefaultTypeSafeClient` into `client-http` (ADR 0003); callers now name it directly.
 
 ## Why `client-testkit` ships a `TypeSafeClient` fake instead of "just mock it with Mockito"
 

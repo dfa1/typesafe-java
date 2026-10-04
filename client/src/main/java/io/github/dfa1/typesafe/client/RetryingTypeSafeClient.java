@@ -1,5 +1,8 @@
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.client;
 
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.ModelDetails;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;

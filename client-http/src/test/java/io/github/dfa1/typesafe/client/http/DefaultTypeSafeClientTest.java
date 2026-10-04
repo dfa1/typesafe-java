@@ -1,15 +1,15 @@
 package io.github.dfa1.typesafe.client.http;
 
 import io.github.dfa1.typesafe.core.Content;
-import io.github.dfa1.typesafe.core.DeadlineTypeSafeClient;
+import io.github.dfa1.typesafe.client.DeadlineTypeSafeClient;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.RequestId;
-import io.github.dfa1.typesafe.core.RetryingTypeSafeClient;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
-import io.github.dfa1.typesafe.core.TypeSafeException;
+import io.github.dfa1.typesafe.client.RetryingTypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.core.JsonCodec;
 

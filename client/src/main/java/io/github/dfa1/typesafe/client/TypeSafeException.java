@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.client;
 
 import java.time.Duration;
 import java.util.Optional;

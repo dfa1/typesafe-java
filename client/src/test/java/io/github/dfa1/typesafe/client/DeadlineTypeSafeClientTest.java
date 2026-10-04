@@ -1,5 +1,11 @@
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.client;
 
+import io.github.dfa1.typesafe.core.Content;
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.Model;
+import io.github.dfa1.typesafe.core.ModelDetails;
+import io.github.dfa1.typesafe.core.Usage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

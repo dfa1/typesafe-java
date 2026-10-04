@@ -3,7 +3,7 @@ package io.github.dfa1.typesafe.client.testkit;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.ModelDetails;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 
 import java.util.List;
 import java.util.Queue;

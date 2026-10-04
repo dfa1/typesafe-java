@@ -12,7 +12,7 @@ a support message is.
 
 Import the BOM, then add an HTTP transport (the JDK one, unless you have your own) plus one JSON
 codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Both pull in
-`typesafe-java-core`, which holds `TypeSafeClient` itself, transitively (see the
+`typesafe-java-client`, which holds `TypeSafeClient` itself, transitively (see the
 [Maven Central badge](../README.md) for the latest version):
 
 ```xml
@@ -54,7 +54,7 @@ echo "your-token-here" > ~/.typesafe.apikey
 ```java
 import io.github.dfa1.typesafe.client.http.ApiKey;
 import io.github.dfa1.typesafe.client.http.DefaultTypeSafeClient;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 
 TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).build();
 ```

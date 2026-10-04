@@ -10,15 +10,21 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-Naming rule: a module's directory, artifact (`typesafe-java-<module>`) and package
-(`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name (ADR 0003).
+Naming rule: a module's directory, artifact (`typesafe-java-<module>`) and single package
+(`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name, no package spans two modules,
+and a module named `X-Y` builds on module `X` (ADR 0003).
 
-core      — the contract, no dependencies. TypeSafeClient (interface; no builder() — core can't
-            see its implementations: DefaultTypeSafeClient in client-http, the local clients in
+core      — the model, no dependencies: Answer, Question, Content, EvaluateRequest/
+            EvaluateResponse, Usage, RequestId, Model, ModelDetails, plus the JsonCodec SPI, all
+            in io.github.dfa1.typesafe.core. The model + a codec serializes payloads (e.g. for
+            Kafka) without any client code.
+client    — the contract, on core: TypeSafeClient (interface; no builder() — client can't see
+            its implementations: DefaultTypeSafeClient in client-http, the local clients in
             client-local. A consumer can implement TypeSafeClient itself to decorate one, e.g.
-            with caching). Retry/backoff is the opt-in RetryingTypeSafeClient decorator
-            (classifies by TypeSafeException, not raw responses); DeadlineTypeSafeClient caps a
-            call's total time. Both wrap any TypeSafeClient and are added via
+            with caching) and TypeSafeException. Retry/backoff is the opt-in
+            RetryingTypeSafeClient decorator (classifies by TypeSafeException, not raw
+            responses); DeadlineTypeSafeClient caps a call's total time. Both wrap any
+            TypeSafeClient and are added via
             DefaultTypeSafeClient.Builder.decorateWith(RetryingTypeSafeClient::decorate) etc.
             (each one goes outside the previous; build(Function) is outermost and keeps its
             type). Every decorator's static decorate(...) takes the delegate first, like
@@ -26,12 +32,8 @@ core      — the contract, no dependencies. TypeSafeClient (interface; no build
             EvaluateResponse#usage()) is an object the caller keeps, handing out its decorator
             via tokens::decorate, so the totals stay readable once the decorator is inside a
             stack. RetryingTypeSafeClient stops retrying once its returned future is done.
-            TypeSafeException and the wire model (Answer, Question, Content,
-            EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
-            io.github.dfa1.typesafe.core, as is the JsonCodec SPI,
-            kept here so client-local and the codecs need nothing else, and the model + a codec
-            serializes payloads (e.g. for Kafka) without HTTP code. javadoc in core can't
-            {@link} into client-* modules (javadoc-check fails); name them in {@code ...}.
+            javadoc can't {@link} upwards (core → client, client → client-*: javadoc-check
+            fails); name those types in {@code ...}.
 codec-jackson2 — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
             (no discriminator — string/object/array on the wire; backs both
@@ -58,7 +60,7 @@ client-http-okhttp — HttpTransport backed by OkHttp (class OkHttpTransport). D
             case-insensitive lookup, but `OkHttpTransportTest` asserts through `header(...)`
             rather than the raw `headers()` map for exactly this reason.
 client-testkit — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.client.testkit, depending
-            only on core. RecordingTypeSafeClient implements TypeSafeClient directly, at the
+            only on client. RecordingTypeSafeClient implements TypeSafeClient directly, at the
             EvaluateRequest/EvaluateResponse level: `enqueueEvaluate`/`enqueueModels` queue a
             response (FIFO, no request matcher — a test already controls call order itself) to
             whichever evaluate()/evaluateAsync()/listModels() call comes next;
@@ -77,7 +79,7 @@ client-mapping — MappingTypeSafeClient (io.github.dfa1.typesafe.client.mapping
             build the EvaluateRequest's questions, keyed by component name, then constructs a
             new T from EvaluateResponse#answers() via T's canonical constructor — so a caller
             gets a typed record back instead of Map<String, Answer> and a manual
-            (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
+            (Answer.Noul)-style cast. Depends only on client in production; its own tests depend
             on client-testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
 client-local — one public TypeSafeClient per model (io.github.dfa1.typesafe.client.local: LocalLayaTypeSafeClient,
@@ -140,14 +142,14 @@ cli       — command-line entry point (`Main`), over client-http-jdk + codec-ja
             is given.
 ```
 
-Dependency rule: `codec-jackson2 → core`, `codec-jackson3 → core`, `client-http → core`,
-`client-http-jdk → client-http`, `client-http-okhttp → client-http`, `client-local → core` (plus ONNX
+Dependency rule: `codec-jackson2 → core`, `codec-jackson3 → core`, `client → core`, `client-http → client`,
+`client-http-jdk → client-http`, `client-http-okhttp → client-http`, `client-local → client` (plus ONNX
 Runtime; its own tests additionally depend on `client-http-jdk` and `codec-jackson2`, test scope
-only), `client-mapping → core` (its own tests additionally depend on `client-testkit`, test scope
-only), `client-testkit → core`, `cli → client-http, client-http-jdk, codec-jackson3`, `acceptance →
+only), `client-mapping → client` (its own tests additionally depend on `client-testkit`, test scope
+only), `client-testkit → client`, `cli → client-http, client-http-jdk, codec-jackson3`, `acceptance →
 everything` (test scope only) — no `client-*` module depends on another in production, and nothing
 production depends on `acceptance`, `cli`, or `client-testkit`. See
-[ADR 0003](adr/0003-contract-in-core-implementations-in-client-modules.md) for the layout and
+[ADR 0003](adr/0003-model-in-core-contract-in-client.md) for the layout and
 [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs exist at all.
 
 ## Commands

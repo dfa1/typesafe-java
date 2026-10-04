@@ -6,8 +6,8 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
-import io.github.dfa1.typesafe.core.TypeSafeException;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
 
 import java.time.Duration;

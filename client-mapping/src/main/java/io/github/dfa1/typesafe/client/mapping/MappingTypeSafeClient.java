@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.ModelDetails;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Content;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.RecordComponent;
@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * canonical constructor) is computed once and cached for the lifetime of this instance, so
  * repeated calls for the same record type don't re-walk it.
  *
- * <p>A {@link io.github.dfa1.typesafe.core.TypeSafeException} the delegate throws (already final
+ * <p>A {@link io.github.dfa1.typesafe.client.TypeSafeException} the delegate throws (already final
  * — its own retries, if any, are already exhausted) propagates unchanged; this class never wraps
  * or reclassifies it. The exceptions this class raises itself —
  * {@link IllegalArgumentException} for a record whose annotations don't validate, and

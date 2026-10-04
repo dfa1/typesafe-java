@@ -15,21 +15,22 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `TypeSafeClient`, `RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter`, `TypeSafeException`, the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`), `JsonCodec` |
+| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`), `JsonCodec` |
 | `typesafe-java-codec-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-codec-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-java-client-http` | `core` | `DefaultTypeSafeClient` (the TypeSafe API over HTTP), `ApiKey`, `HttpTransport` |
+| `typesafe-java-client` | `core` | `TypeSafeClient`, `TypeSafeException`, `RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter` |
+| `typesafe-java-client-http` | `client` | `DefaultTypeSafeClient` (the TypeSafe API over HTTP), `ApiKey`, `HttpTransport` |
 | `typesafe-java-client-http-jdk` | `client-http` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-client-http-okhttp` | `client-http` | `OkHttpTransport` (OkHttp) |
-| `typesafe-java-client-local` | `core`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
-| `typesafe-java-client-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
-| `typesafe-java-client-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
-| `typesafe-java-bom` | — | dependency management for the nine above |
+| `typesafe-java-client-local` | `client`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
+| `typesafe-java-client-mapping` | `client` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
+| `typesafe-java-client-testkit` | `client` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
+| `typesafe-java-bom` | — | dependency management for the ten above |
 
 A module's package is its name with dashes as dots: `typesafe-java-client-http-jdk` holds
-`io.github.dfa1.typesafe.client.http.jdk`. `core` has no dependencies: it's the contract every
-`client-*` module implements or builds on, and the model plus a `codec-*` module serializes TypeSafe
-payloads without any HTTP code.
+`io.github.dfa1.typesafe.client.http.jdk`. `core` (the model) has no dependencies; `client` is the
+contract every `client-*` module implements or builds on; the model plus a `codec-*` module
+serializes TypeSafe payloads without any client code.
 
 ## Core types
 
@@ -369,7 +370,8 @@ only).
 
 ## Client
 
-`TypeSafeClient`, its decorators and `TypeSafeException` are in `io.github.dfa1.typesafe.core`;
+`TypeSafeClient`, its decorators and `TypeSafeException` are in `io.github.dfa1.typesafe.client`
+(module `typesafe-java-client`);
 `ApiKey` and `DefaultTypeSafeClient` are in `io.github.dfa1.typesafe.client.http` (module
 `typesafe-java-client-http`).
 
@@ -398,7 +400,7 @@ List<ModelDetails> listModels()
 
 `TypeSafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
 caching layer, metrics, a circuit breaker, ...) implementing the same interface — anywhere a
-`TypeSafeClient` is expected, a decorator around one works too. It has no factory: `core` can't
+`TypeSafeClient` is expected, a decorator around one works too. It has no factory: `client` can't
 see its implementations. `DefaultTypeSafeClient.builder()` builds the one that calls the API;
 `client-local`'s `load(Path)` factories build the in-process ones.
 

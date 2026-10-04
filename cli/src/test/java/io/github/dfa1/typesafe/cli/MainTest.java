@@ -4,7 +4,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Model;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
 import org.junit.jupiter.api.Test;

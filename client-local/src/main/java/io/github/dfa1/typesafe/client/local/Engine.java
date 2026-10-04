@@ -15,7 +15,7 @@ interface Engine extends AutoCloseable {
     record Answers(Map<String, Answer> answers, int inputTokens) {
     }
 
-    /** @throws io.github.dfa1.typesafe.core.TypeSafeException.BadRequest for a question this engine can't express */
+    /** @throws io.github.dfa1.typesafe.client.TypeSafeException.BadRequest for a question this engine can't express */
     Answers answer(Content state, Map<String, Question> questions) throws OrtException;
 
     Model model();

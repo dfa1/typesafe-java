@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **Breaking: modules split into contract (`core`) and implementations (`client-*`), names aligned** — `core` keeps the `TypeSafeClient` interface, its decorators, the model and `JsonCodec`; `DefaultTypeSafeClient`/`ApiKey`/`HttpTransport` move to the new `client-http`, `TypeSafeClient.builder()` becomes `DefaultTypeSafeClient.builder()`, and every module's artifact and package now match its directory (`client-http-jdk`, `client-http-okhttp`, `codec-jackson2`, `codec-jackson3`, `client-local`, `client-mapping`, `client-testkit`); see ADR 0003. (#35)
+- **Breaking: modules split into model (`core`), contract (`client`) and implementations (`client-*`), names aligned** — `core` keeps the model and `JsonCodec`; `TypeSafeClient`, `TypeSafeException` and the decorators move to the new `client`, and `DefaultTypeSafeClient`/`ApiKey`/`HttpTransport` to the new `client-http`; `TypeSafeClient.builder()` becomes `DefaultTypeSafeClient.builder()`, and every module's artifact and package now match its directory (`client-http-jdk`, `client-http-okhttp`, `codec-jackson2`, `codec-jackson3`, `client-local`, `client-mapping`, `client-testkit`); see ADR 0003. (#35)
 - **docs: local-model setup as three steps** — dependency, Laya download, code, then a model comparison; the optional Clef 4-bit script runs from its GitHub URL with `uv run`, and load errors link to the how-to.
 - **`client-local`: hardening** — special tokens in caller text stay plain text (no prompt injection via `<|im_end|>`), the tokenizer cache is bounded, and Clef checks its weights' sha256 on first load.
 - **`client-local`: shared request validation, `evaluateAsync` off virtual threads** — every engine rejects no questions or empty criteria with `BadRequest` (Laya used to NPE or answer a null choice), and `evaluateAsync` runs on one platform thread so native inference can't pin the JVM's virtual-thread carriers.
@@ -19,14 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Breaking: optional API key, `ApiKey` without a public constructor** — `TypeSafeClient.builder()` takes no argument and `.apiKey(key)` is optional (no key, no `Authorization` header, for local servers); `ApiKey` is a final class built with `of(String)`/`fromFile`/`fromDefaultFile`/`fromEnv`, and no longer exposes its value. (#18)
 - **`codec-jackson2`: ignore unknown fields, like `codec-jackson3`** — a field the API adds to a response no longer fails decoding with `ResponseDecoding`; Jackson 2's default rejected it. (#18)
 - **`core`: `Content.fields(...)` and `EvaluateRequest.Builder` keep their order** — both copied with `Map.copyOf`, which reshuffles keys per JVM run, so the same request serialized with fields/questions in a different order each run; they now keep the caller's iteration order.
-- **`core`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.
-- **`core`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
-- **`core`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
+- **`client`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.
+- **`client-http`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
+- **`client-http`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
 - **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.decorateWith(RetryingTypeSafeClient::decorate)`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `decorateWith(...)`.
-- **`core`: `Builder.decorator(...)`** (renamed `decorateWith(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
-- **`core`: `RetryingTypeSafeClient.decorate(...)`/`DeadlineTypeSafeClient.decorate(...)`** — static factories taking the client to wrap first, matching `MappingTypeSafeClient::decorate`; constructors are package-private.
-- **`core`: `DeadlineTypeSafeClient` caps a call's total time, retries included** — fails with `TypeSafeException.Timeout` past the deadline; `RetryingTypeSafeClient` stops retrying once its future is done.
-- **`core`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries itself, and `InternalServer` gains `retryAfter()`.
+- **`client-http`: `Builder.decorator(...)`** (renamed `decorateWith(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
+- **`client`: `RetryingTypeSafeClient.decorate(...)`/`DeadlineTypeSafeClient.decorate(...)`** — static factories taking the client to wrap first, matching `MappingTypeSafeClient::decorate`; constructors are package-private.
+- **`client`: `DeadlineTypeSafeClient` caps a call's total time, retries included** — fails with `TypeSafeException.Timeout` past the deadline; `RetryingTypeSafeClient` stops retrying once its future is done.
+- **`client`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries itself, and `InternalServer` gains `retryAfter()`.
 
 ## [0.6.0] - 2026-09-30
 

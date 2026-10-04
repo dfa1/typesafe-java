@@ -7,20 +7,20 @@
     <version>0.7.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>typesafe-java-client-http</artifactId>
+  <artifactId>typesafe-java-client</artifactId>
   <packaging>jar</packaging>
 
-  <name>TypeSafe Client HTTP</name>
-  <description>The TypeSafeClient that calls the TypeSafe API over HTTP: DefaultTypeSafeClient and its
-    Builder, plus the HttpTransport SPI it sends through. Depends only on typesafe-java-client; needs one
-    transport (typesafe-java-client-http-jdk or -okhttp) and one codec (typesafe-java-codec-jackson2 or
-    -jackson3) at run time, discovered via ServiceLoader.
+  <name>TypeSafe Client</name>
+  <description>The client contract: the TypeSafeClient interface, TypeSafeException, and the decorators
+    that wrap any implementation (RetryingTypeSafeClient, DeadlineTypeSafeClient, TokenCounter).
+    Depends only on typesafe-java-core. Implemented by typesafe-java-client-http (the TypeSafe API over
+    HTTP) and typesafe-java-client-local (in-process models).
   </description>
 
   <dependencies>
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-client</artifactId>
+      <artifactId>typesafe-java-core</artifactId>
       <version>${project.version}</version>
     </dependency>
 
@@ -39,12 +39,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit-pioneer</groupId>
-      <artifactId>junit-pioneer</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

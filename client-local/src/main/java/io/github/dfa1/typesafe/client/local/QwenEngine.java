@@ -10,7 +10,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
-import io.github.dfa1.typesafe.core.TypeSafeException;
+import io.github.dfa1.typesafe.client.TypeSafeException;
 
 import java.io.IOException;
 import java.nio.FloatBuffer;

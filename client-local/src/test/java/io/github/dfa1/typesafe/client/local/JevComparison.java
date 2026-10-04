@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.client.http.ApiKey;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.codec.jackson2.Jackson2Codec;
 import io.github.dfa1.typesafe.core.JsonCodec;
 
