@@ -78,6 +78,7 @@ final class LayaEngine implements Engine {
     }
 
     /** One model input: token ids plus each option's [MASK] position. */
+    @SuppressWarnings("java:S6218") // a one-shot model input, never compared or printed
     record Sequence(long[] ids, int[] markers, int qtype) {
     }
 

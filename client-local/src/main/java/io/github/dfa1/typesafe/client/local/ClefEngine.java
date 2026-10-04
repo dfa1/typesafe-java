@@ -111,6 +111,7 @@ final class ClefEngine implements Engine {
     }
 
     /** One request as the graph takes it: token ids, then each question's instruction span and its options' spans. */
+    @SuppressWarnings("java:S6218") // a one-shot model input, never compared or printed
     record Sequence(long[] ids, long[][] questionSpans, long[] questionTypes, long[][] optionSpans, long[] optionQuestion,
                     List<List<String>> optionIds) {
     }

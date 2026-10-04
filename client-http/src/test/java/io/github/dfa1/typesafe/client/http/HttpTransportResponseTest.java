@@ -46,6 +46,20 @@ class HttpTransportResponseTest {
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
+    @Test
+    void equalsComparesTheBodyByContent() {
+        // Given
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("body"));
+
+        // When
+        HttpTransportResponse result = new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("body"));
+
+        // Then
+        assertThat(result).isEqualTo(sut).hasSameHashCodeAs(sut).hasToString(
+                "HttpTransportResponse[statusCode=200, headers={X-A=1}, body=4 bytes]");
+        assertThat(new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("other"))).isNotEqualTo(sut);
+    }
+
     private static byte[] bytes(String text) {
         return text.getBytes(StandardCharsets.UTF_8);
     }
