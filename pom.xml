@@ -68,6 +68,8 @@
     <junit-pioneer.version>2.3.0</junit-pioneer.version>
     <excludedGroups>acceptance</excludedGroups>
     <!-- coverage -->
+    <!-- CI tooling (workflow scripts) stays analyzed for issues but doesn't count toward coverage -->
+    <sonar.coverage.exclusions>.github/**</sonar.coverage.exclusions>
     <jacoco-maven-plugin.version>0.8.15</jacoco-maven-plugin.version>
     <!-- Default for the @{argLine} placeholder in the surefire config below. JaCoCo's
          prepare-agent goal overwrites this with the agent arguments when the coverage
