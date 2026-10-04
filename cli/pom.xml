@@ -12,7 +12,7 @@
 
   <name>TypeSafe CLI</name>
   <description>
-    Command-line entry point over the JDK HttpTransport and Jackson 3 JsonCodec. The plain
+    Command-line entry point over the JDK HttpTransport and Jackson 3 Codec. The plain
     artifact is a normal (non-executable) jar of just this module's own classes; the
     executable uber-jar for `java -jar` is published separately under the `all` classifier
     (typesafe-java-cli-VERSION-all.jar), so a plain dependency on typesafe-java-cli never
@@ -22,19 +22,19 @@
   <dependencies>
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-core</artifactId>
+      <artifactId>typesafe-java-client-http</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-client-jdk</artifactId>
+      <artifactId>typesafe-java-client-http-jdk</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-jackson3</artifactId>
+      <artifactId>typesafe-java-codec-jackson3</artifactId>
       <version>${project.version}</version>
     </dependency>
 

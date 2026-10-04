@@ -17,7 +17,7 @@ Save a token to `~/.typesafe.apikey` first — either way below picks it up auto
 ```java
 ApiKey token = ApiKey.fromDefaultFile(); // reads ~/.typesafe.apikey
 // or: ApiKey.fromEnv();                 // reads the TYPESAFE_API_KEY environment variable
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 EvaluateRequest request = EvaluateRequest.of(
         Content.text("Help! My payouts have been failing for 3 days."),
@@ -27,13 +27,13 @@ Answer.Noul answer = client.evaluate(request).nouls().get("is_urgent");
 answer.noul(); // e.g. 0.92
 ```
 
-Or skip the `Map`/cast with a typed record (`typesafe-java-mapping`):
+Or skip the `Map`/cast with a typed record (`typesafe-java-client-mapping`):
 
 ```java
 record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
+MappingTypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
 UrgencyCheck result = client.evaluateTyped(
         Content.text("Help! My payouts have been failing for 3 days."), UrgencyCheck.class);
 result.isUrgent(); // e.g. 0.92
@@ -91,35 +91,39 @@ Maven, via the BOM (see the Maven Central badge above for the latest version):
 <dependencies>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-client-jdk</artifactId>
+    <artifactId>typesafe-java-client-http-jdk</artifactId>
   </dependency>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-jackson3</artifactId>
+    <artifactId>typesafe-java-codec-jackson3</artifactId>
   </dependency>
 </dependencies>
 ```
 
-On Android, or anywhere else `java.net.http` isn't available, swap `typesafe-java-client-jdk`
-for `typesafe-java-client-okhttp`.
+On Android, or anywhere else `java.net.http` isn't available, swap `typesafe-java-client-http-jdk`
+for `typesafe-java-client-http-okhttp`.
 
 ## Modules
 
 | Module | Contains |
 |---|---|
-| `core` | `TypeSafeClient`, the DTOs, and the `JsonCodec`/`HttpTransport` SPIs |
-| `client-jdk` | `HttpTransport` backed by `java.net.http` |
-| `client-okhttp` | `HttpTransport` backed by OkHttp — an alternative for environments `java.net.http` doesn't cover, e.g. Android |
-| `jackson2` / `jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
-| `testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
-| `mapping` | `MappingTypeSafeClient` — maps a `@Noul`/`@Choice`/`@Score`-annotated record to/from `EvaluateRequest`/`EvaluateResponse` |
-| `local` | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` — evaluate in-process on ONNX Runtime instead of calling the API (Laya, Qwen2.5 or Clef-flash, from a local model directory); API parity, not model parity with Jev. See [how-to](docs/how-to.md#run-without-the-api-on-a-local-model); on a Mac, Clef-flash via MLX is closer to Jev ([how-to](docs/how-to.md#run-clef-flash-on-a-mac-with-mlx)) |
+| `core` | the model (`EvaluateRequest`, `EvaluateResponse`, `Question`, `Answer`, ...), as plain records; no dependencies |
+| `codec` | the `Codec` SPI: serialization to and from bytes; no dependencies |
+| `client` | the `TypeSafeClient` interface, `TypeSafeException`, and the decorators that wrap any client (retries, deadline, token counting) |
+| `codec-jackson2` / `codec-jackson3` | `Codec` backed by Jackson 2.x / 3.x |
+| `client-http` | `DefaultTypeSafeClient`, the `TypeSafeClient` that calls the API, and the `HttpTransport` SPI |
+| `client-http-jdk` | `HttpTransport` backed by `java.net.http` |
+| `client-http-okhttp` | `HttpTransport` backed by OkHttp — an alternative for environments `java.net.http` doesn't cover, e.g. Android |
+| `client-local` | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` — evaluate in-process on ONNX Runtime instead of calling the API (Laya, Qwen2.5 or Clef-flash, from a local model directory); API parity, not model parity with Jev. See [how-to](docs/how-to.md#run-without-the-api-on-a-local-model); on a Mac, Clef-flash via MLX is closer to Jev ([how-to](docs/how-to.md#run-clef-flash-on-a-mac-with-mlx)) |
+| `client-mapping` | `MappingTypeSafeClient` — maps a `@Noul`/`@Choice`/`@Score`-annotated record to/from `EvaluateRequest`/`EvaluateResponse` |
+| `client-testkit` | `RecordingTypeSafeClient`/`FailingTypeSafeClient`, `TypeSafeClient` test doubles for unit tests |
 | `bom` | dependency management for the modules above |
 | `cli` | ad hoc checks from a terminal; runnable uber-jar under the `all` classifier, `java -jar` |
 | `acceptance` | live-API tests only — not published |
 
-See [ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why it's split
-this way.
+Each module's directory, artifact (`typesafe-java-<module>`) and package
+(`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name. See
+[ADR 0003](adr/0003-model-in-core-contract-in-client.md) for why it's split this way.
 
 ## Docs
 

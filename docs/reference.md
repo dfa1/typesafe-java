@@ -5,7 +5,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 - [Module layout](#module-layout)
 - [Core types](#core-types)
-- [JsonCodec SPI](#jsoncodec-spi)
+- [Codec SPI](#codec-spi)
 - [HttpTransport SPI](#httptransport-spi)
 - [Testkit](#testkit)
 - [Answer mapping](#answer-mapping)
@@ -15,19 +15,23 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | `Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `TokenCounter`, `RequestId`, `Model`, `ModelDetails`, `JsonCodec`, `HttpTransport`, `TypeSafeClient`, `ApiKey`, `TypeSafeException` |
-| `typesafe-java-client-jdk` | `core` | `JdkHttpTransport` (java.net.http) |
-| `typesafe-java-client-okhttp` | `core` | `OkHttpTransport` (OkHttp) |
-| `typesafe-java-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
-| `typesafe-java-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
-| `typesafe-java-testkit` | `core` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
-| `typesafe-java-mapping` | `core` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
-| `typesafe-java-local` | `core`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
-| `typesafe-java-bom` | — | dependency management for the eight above |
+| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`) |
+| `typesafe-java-codec` | — | `Codec` |
+| `typesafe-java-codec-jackson2` | `codec`, `core` | `Jackson2Codec` (Jackson 2.x) |
+| `typesafe-java-codec-jackson3` | `codec`, `core` | `Jackson3Codec` (Jackson 3.x) |
+| `typesafe-java-client` | `core` | `TypeSafeClient`, `TypeSafeException`, `RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter` |
+| `typesafe-java-client-http` | `client`, `codec` | `DefaultTypeSafeClient` (the TypeSafe API over HTTP), `ApiKey`, `HttpTransport` |
+| `typesafe-java-client-http-jdk` | `client-http` | `JdkHttpTransport` (java.net.http) |
+| `typesafe-java-client-http-okhttp` | `client-http` | `OkHttpTransport` (OkHttp) |
+| `typesafe-java-client-local` | `client`, `codec`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
+| `typesafe-java-client-mapping` | `client` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
+| `typesafe-java-client-testkit` | `client` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
+| `typesafe-java-bom` | — | dependency management for the eleven above |
 
-`core` has zero runtime dependency on any HTTP or JSON library — `TypeSafeClient` talks to
-`HttpTransport`/`JsonCodec`, not to `java.net.http`/Jackson directly, so it's safe to bundle
-alongside the DTOs without pulling anything extra in.
+A module's package is its name with dashes as dots: `typesafe-java-client-http-jdk` holds
+`io.github.dfa1.typesafe.client.http.jdk`. `core` (the model) has no dependencies; `client` is the
+contract every `client-*` module implements or builds on; the model plus a `codec-*` module
+serializes TypeSafe payloads without any client code.
 
 ## Core types
 
@@ -159,40 +163,42 @@ record ModelDetails(String name, String description, String releaseDate)
 One entry of `TypeSafeClient.listModels()`'s result. `model()` returns this model's id as a
 plain `Model`, usable directly as an `EvaluateRequest`'s model.
 
-## JsonCodec SPI
+## Codec SPI
+
+In `typesafe-java-codec`.
 
 ```java
-package io.github.dfa1.typesafe.json;
+package io.github.dfa1.typesafe.codec;
 
-public interface JsonCodec {
-    String writeValueAsString(Object value);
-    String writeValueAsPrettyString(Object value); // same, indented for human reading
-    <T> T readValue(String content, Class<T> type);
+public interface Codec {
+    byte[] writeValueAsBytes(Object value);
+    <T> T readValue(byte[] content, Class<T> type);
 }
 ```
 
 Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
-`ServiceLoader.load(JsonCodec.class)` and registered through
-`META-INF/services/io.github.dfa1.typesafe.json.JsonCodec`. Both own the `Answer`/`Question` polymorphic
+`ServiceLoader.load(Codec.class)` and registered through
+`META-INF/services/io.github.dfa1.typesafe.codec.Codec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
-`readValue`'s `content` is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by
-construction (RFC 8259) — a caller integrating with a raw-`byte[]` system (e.g. Kafka) converts
-once at that boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as
-`HttpTransport`.
+JSON is UTF-8 bytes in and out (RFC 8259), so nothing builds a `String` on the way to or from the
+wire, and a `byte[]` system (e.g. Kafka) uses the codec as is. Characters outside the BMP (e.g.
+emoji) are written as themselves, not as escaped surrogate pairs.
 
 ## HttpTransport SPI
 
+In `typesafe-java-client-http`.
+
 ```java
-package io.github.dfa1.typesafe.transport;
+package io.github.dfa1.typesafe.client.http;
 
 public interface HttpTransport extends AutoCloseable {
-    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body);
+    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, byte[] body);
     CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers);
     void close();   // no default -- every implementation must define one, even a no-op
 }
 
-public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, byte[] body) {
     Optional<String> header(String name);   // case-insensitive lookup
 }
 ```
@@ -206,16 +212,16 @@ the async-native shape most HTTP libraries actually provide.
 
 Bodies are `String`, not `byte[]`: `TypeSafeClient` only ever sends/receives JSON over this SPI,
 and JSON text is UTF-8 by construction (RFC 8259), so there's no charset this layer needs to
-guess at. `JsonCodec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
+guess at. `Codec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
 consumer, where messages are raw bytes); `TypeSafeClient` converts once at the boundary between
 the two SPIs. `HttpTransportResponse` copies `headers` defensively (`Map.copyOf`) so a caller
 that mutates the map it passed in afterward can't reach back into an already-returned response.
 
 The HTTP calls `TypeSafeClient` needs (a JSON POST for `evaluate`, a GET for `listModels`),
 abstracted away from any particular HTTP library. `JdkHttpTransport` (in
-`typesafe-java-client-jdk`) and `OkHttpTransport` (in `typesafe-java-client-okhttp`) are each
+`typesafe-java-client-http-jdk`) and `OkHttpTransport` (in `typesafe-java-client-http-okhttp`) are each
 discovered via `ServiceLoader.load(HttpTransport.class)` through
-`META-INF/services/io.github.dfa1.typesafe.transport.HttpTransport`. Implement `HttpTransport`
+`META-INF/services/io.github.dfa1.typesafe.client.http.HttpTransport`. Implement `HttpTransport`
 yourself (e.g. backed by Apache HttpClient) and wire it in the same way, or pass any
 implementation explicitly via `Builder.httpTransport(...)`. `JdkHttpTransport.close()` closes
 its `HttpClient` (JDK 21+); `OkHttpTransport.close()` shuts down its `OkHttpClient`'s dispatcher
@@ -238,7 +244,7 @@ to an empty metadata artifact with no classes.
 
 ## Testkit
 
-`io.github.dfa1.typesafe.testkit` (module `typesafe-java-testkit`).
+`io.github.dfa1.typesafe.client.testkit` (module `typesafe-java-client-testkit`).
 
 ```java
 public final class RecordingTypeSafeClient implements TypeSafeClient {
@@ -271,7 +277,7 @@ through. The constructor throws `IllegalArgumentException` if `failEvery` isn't 
 
 ## Answer mapping
 
-`io.github.dfa1.typesafe.mapping` (module `typesafe-java-mapping`).
+`io.github.dfa1.typesafe.client.mapping` (module `typesafe-java-client-mapping`).
 
 ```java
 public final class MappingTypeSafeClient implements TypeSafeClient {
@@ -319,7 +325,7 @@ with the original `ClassCastException` as its cause) rather than a bare, unexpla
 
 ## Local
 
-`io.github.dfa1.typesafe.local` (module `typesafe-java-local`).
+`io.github.dfa1.typesafe.client.local` (module `typesafe-java-client-local`).
 
 ```java
 public final class LocalLayaTypeSafeClient implements TypeSafeClient {
@@ -336,8 +342,8 @@ public final class LocalClefTypeSafeClient implements TypeSafeClient {
 
 One class per model, each a `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
 (plus `config.json` for Laya) and the one `.onnx` file in `dir/onnx` or `dir`, as `hf download` lays them out (see the
-[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
-(`typesafe-java-jackson2` or `-jackson3`) must be on the classpath, as for the API client. The module depends on
+[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `Codec` module
+(`typesafe-java-codec-jackson2` or `-jackson3`) must be on the classpath, as for the API client. The module depends on
 `com.microsoft.onnxruntime:onnxruntime` (56 MB, native code for Linux x64/ARM64, macOS Apple Silicon and Windows x64
 only).
 
@@ -365,7 +371,10 @@ only).
 
 ## Client
 
-Also in `io.github.dfa1.typesafe.core`.
+`TypeSafeClient`, its decorators and `TypeSafeException` are in `io.github.dfa1.typesafe.client`
+(module `typesafe-java-client`);
+`ApiKey` and `DefaultTypeSafeClient` are in `io.github.dfa1.typesafe.client.http` (module
+`typesafe-java-client-http`).
 
 ### `ApiKey`
 
@@ -385,8 +394,6 @@ final class ApiKey   // no public constructor
 ### `TypeSafeClient`
 
 ```java
-static DefaultTypeSafeClient.Builder builder()
-
 EvaluateResponse evaluate(EvaluateRequest request)
 CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request)
 List<ModelDetails> listModels()
@@ -394,11 +401,9 @@ List<ModelDetails> listModels()
 
 `TypeSafeClient` is an interface, not a final class, so it can be wrapped in a decorator (a
 caching layer, metrics, a circuit breaker, ...) implementing the same interface — anywhere a
-`TypeSafeClient` is expected, a decorator around one works too. `builder()` is a thin
-static factory on the interface that delegates to `DefaultTypeSafeClient.builder()` — the
-implementation class is public and owns its own `Builder`, since constructing a
-`DefaultTypeSafeClient` (defaults, `ServiceLoader` discovery, ...) is squarely that class's
-concern, not the interface's.
+`TypeSafeClient` is expected, a decorator around one works too. It has no factory: `client` can't
+see its implementations. `DefaultTypeSafeClient.builder()` builds the one that calls the API;
+`client-local`'s `load(Path)` factories build the in-process ones.
 
 `Builder.apiKey(ApiKey)` is optional. Without it no `Authorization` header is sent: right for a
 local TypeSafe-compatible server set with `Builder.endpoint(URI)`. Against TypeSafe's own API a
@@ -414,19 +419,19 @@ None of the three methods declares a checked exception — every failure is an u
 being interrupted while waiting. See
 [ADR 0002](../adr/0002-no-checked-exceptions.md) for why.
 
-`TypeSafeClient` implements `AutoCloseable`; `close()` closes the configured `HttpTransport`,
+`TypeSafeClient` implements `AutoCloseable`; `DefaultTypeSafeClient.close()` closes the configured `HttpTransport`,
 so a client built from `JdkHttpTransport` releases its underlying `HttpClient`. Use
 try-with-resources, or skip closing for a client that lives as long as the process.
 
-#### `TypeSafeClient.Builder`
+#### `DefaultTypeSafeClient.Builder`
 
 | Method | Default |
 |---|---|
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
-| `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
+| `codec(Codec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
 | `decorateWith(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator around the built client; repeatable, each one around everything added before it (last added outermost). See [how-to](how-to.md#choose-the-order-of-decorators) |
-| `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
+| `build()` | throws `IllegalStateException` if no `HttpTransport` or `Codec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
 | `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `decorateWith(...)`. |
 
 ### `RetryingTypeSafeClient`
@@ -488,7 +493,7 @@ sealed class TypeSafeException extends RuntimeException {
 ```
 
 The base class is also the catch-all: constructed directly for a status with no dedicated
-subclass below. A `200` response the configured `JsonCodec` couldn't decode throws
+subclass below. A `200` response the configured `Codec` couldn't decode throws
 `TypeSafeException.ResponseDecoding` (`statusCode()` `200`, `getCause()` the codec's original
 exception) instead of that exception escaping directly. This mirrors the per-status hierarchy of
 the Python SDK (`typesafe-ai/typesafe-sdk-python`'s `TypeSafeAPIError` subclasses); unlike

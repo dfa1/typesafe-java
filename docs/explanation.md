@@ -3,11 +3,11 @@
 Background reading on the design decisions behind this library. For "what exists," see
 [reference.md](reference.md); for "how do I," see [how-to.md](how-to.md).
 
-## Why `local` exists, and why it reads answers instead of generating them
+## Why `client-local` exists, and why it reads answers instead of generating them
 
 `TypeSafeClient` is an interface, so an in-process engine is just another implementation: everything built on it
 (`MappingTypeSafeClient`, `RetryingTypeSafeClient`, `TokenCounter`, the testkit) keeps working. Jev's weights aren't
-public, so `local` offers API parity with a different model behind it, and says so.
+public, so `client-local` offers API parity with a different model behind it, and says so.
 
 Jev's answers are probability distributions, never text, and every engine produces distributions directly. Laya, a
 ModernBERT encoder trained for Choice/Score/Noul, scores each option with a decision head; Clef-flash, a 9B decision
@@ -23,7 +23,7 @@ slightly better on choices (68% vs 64%). Clef-flash, trained for exactly these d
 The module depends on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
 `tokenizer.json`, checked id for id against HuggingFace `tokenizers`. The alternatives were an 18 MB native tokenizer
 library, or a Java ML library whose tokenizer silently dropped newlines and special tokens. JSON (`tokenizer.json`,
-Laya's config, structured states) goes through the same `JsonCodec` the API client uses. Laya was trained on
+Laya's config, structured states) goes through the same `Codec` the API client uses. Laya was trained on
 Python's `json.dumps` spacing, but Jackson's compact output measured no different against Jev. Model files come from a
 directory the caller fills with `hf download`, never from a download at run time: the client works offline and a
 deployment pins exactly the files it runs. Laya's ONNX is
@@ -71,7 +71,7 @@ Jackson 2, and the DTOs themselves couldn't be reused (e.g. to serialize the sam
 Kafka topic) without dragging in `java.net.http`-specific code too.
 
 Splitting the DTOs into `typesafe-java-core` with zero Jackson dependency, and moving the `type`
-discriminator logic into private mixins inside `jackson2`/`jackson3` (`ObjectMapper.addMixIn` /
+discriminator logic into private mixins inside `codec-jackson2`/`codec-jackson3` (`ObjectMapper.addMixIn` /
 `JsonMapper.Builder.addMixIn`), means:
 
 - `core` alone is a valid dependency for anything that just needs the payload shapes.
@@ -82,31 +82,40 @@ discriminator logic into private mixins inside `jackson2`/`jackson3` (`ObjectMap
 See [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full
 decision record.
 
-## Why `JsonCodec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
+## Why `Codec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
 
-`core` cannot declare a compile dependency on `jackson2`/`jackson3` or on `client-jdk` —
-any of those choices would undo the whole point of splitting them out. `ServiceLoader` lets
-`TypeSafeClient` stay agnostic to both while still getting real implementations automatically
+`client-http` cannot declare a compile dependency on `codec-jackson2`/`codec-jackson3` or on
+`client-http-jdk` — any of those choices would undo the whole point of splitting them out.
+`ServiceLoader` lets `DefaultTypeSafeClient` stay agnostic to both while still getting real implementations automatically
 the moment one codec module and one transport module are on the classpath, the same pattern the
 JDK itself uses for `java.sql.Driver` or `java.nio.file.spi.FileSystemProvider`. The tradeoff: a
-missing codec or transport module fails at `TypeSafeClient.Builder.build()` time with a runtime
+missing codec or transport module fails at `DefaultTypeSafeClient.Builder.build()` time with a runtime
 `IllegalStateException`, not at compile time — deliberately, since a compile-time check here
 would mean picking one codec/transport as "the real dependency," which is exactly what this
 design avoids.
 
-## Why `HttpTransport` exists (and why `client` isn't a separate module)
+## Why `HttpTransport` exists
 
 `TypeSafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
-`HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
+`HttpTransport` — mirroring `Codec` — means someone who wants Apache HttpClient, OkHttp, or a
 mocked transport for tests can implement one interface (`post`/`get`, both already
 `CompletableFuture`-returning) instead of forking the client.
 
-Once that abstraction exists, `TypeSafeClient` itself has no HTTP-library dependency any more —
-its only import from `java.net` is `URI`, which every JDK module already has. That removed the
-original reason for a separate `client` module (keeping `core` free of `java.net.http`), so
-`TypeSafeClient`/`ApiKey`/`TypeSafeException` live in `core` next to the DTOs: one fewer module
-to version and depend on, with `core` exactly as dependency-free as before. See
-[ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full decision record.
+## Why the model is in `core`, the contract in `client`, and each client in its own module
+
+`core` is the model, as plain records, and nothing else. `client` is what every client agrees on:
+the `TypeSafeClient` interface, the decorators that wrap any implementation (retries, a deadline,
+token counting), and `TypeSafeException`. Each implementation is a `client-*` module on top of it:
+`client-http` calls the API, `client-local` runs a model in-process, and
+`client-mapping`/`client-testkit` build on the interface. None of them depends on another, and the
+compiler enforces it: `client` can't see `DefaultTypeSafeClient`, which is why `TypeSafeClient` has
+no `builder()`.
+
+`Codec`, the serialization SPI, is its own `codec` module, so `core` stays pure data and every
+`codec-*` module builds on `codec`, the way every `client-http-*` module builds on `client-http`.
+`client-http` and `client-local` use it; `core` plus a `codec-*` module is enough to serialize
+TypeSafe payloads (e.g. onto a Kafka topic) without any client code. Every module's directory,
+artifact and package share one name. See [ADR 0003](../adr/0003-model-in-core-contract-in-client.md).
 
 ## Why `TypeSafeClient` is an interface, not a final class
 
@@ -119,8 +128,8 @@ classic Decorator shape has no supertype to implement — they'd have to invent 
 interface with the same three methods and get every call site to depend on that instead of on
 `TypeSafeClient` directly.
 
-Making it an interface costs nothing observable at existing call sites: `TypeSafeClient.builder().apiKey(key).build()`
-still type-checks and behaves identically, since `Builder.build()` always returned the interface
+Making it an interface cost nothing observable at existing call sites: `TypeSafeClient.builder().apiKey(key).build()`
+still type-checked and behaved identically, since `Builder.build()` always returned the interface
 type as far as callers could tell. What moved is the implementation — the retry/backoff/header/
 decode logic, previously `TypeSafeClient`'s own body, now lives in `DefaultTypeSafeClient`, the
 only concrete `TypeSafeClient` this library produces. A consumer can now write
@@ -129,14 +138,13 @@ was expected.
 
 `Builder` moved with it, onto `DefaultTypeSafeClient` rather than staying on the `TypeSafeClient`
 interface: constructing a `DefaultTypeSafeClient` — picking defaults, discovering a
-`HttpTransport`/`JsonCodec` via `ServiceLoader` — is that class's own concern, not something a
+`HttpTransport`/`Codec` via `ServiceLoader` — is that class's own concern, not something a
 pure contract interface should carry. That required making `DefaultTypeSafeClient` itself
-public (a nested class can't be more accessible than its enclosing class), so it's no longer
-hidden — but `TypeSafeClient.builder()` still exists as a one-line delegating static method
-on the interface, so nothing at the call site changes; a consumer only sees `DefaultTypeSafeClient`
-by name if they explicitly go looking for it.
+public (a nested class can't be more accessible than its enclosing class). The interface kept a
+one-line `TypeSafeClient.builder()` delegating to it until the module split moved
+`DefaultTypeSafeClient` into `client-http` (ADR 0003); callers now name it directly.
 
-## Why `testkit` ships a `TypeSafeClient` fake instead of "just mock it with Mockito"
+## Why `client-testkit` ships a `TypeSafeClient` fake instead of "just mock it with Mockito"
 
 Once `TypeSafeClient` became an interface (see above), `Mockito.mock(TypeSafeClient.class)` was
 already enough to stub `evaluate()`/`listModels()` — so `RecordingTypeSafeClient` isn't there to
@@ -147,7 +155,7 @@ every such test wants don't get rewritten by hand each time. It's deliberately a
 controls call order — it's the one deciding when to call `evaluate()`/`listModels()` — so
 matching by request content would only restate what the test already knows.
 
-## Why `mapping` uses reflection over records, not an annotation processor or a fluent builder
+## Why `client-mapping` uses reflection over records, not an annotation processor or a fluent builder
 
 [Issue #2](https://github.com/dfa1/typesafe-java/issues/2) flagged that reading an answer back
 means `Map<String, Answer>` plus a manual `(Answer.Noul)`-style cast, and that a `Noul` question
@@ -160,11 +168,11 @@ Three ways to build that mapping, in ascending complexity: a fluent builder (no 
 just explicit `.noul("isUrgent", "...")` calls mapped to record positions by hand — doesn't
 remove the cast, only moves it into the builder's own return type); reflection over
 `Class#getRecordComponents()` (no new build step, matches how the rest of this project already
-avoids codegen — `jackson2`/`jackson3`'s polymorphism is hand-written mixins, not generated); or
+avoids codegen — `codec-jackson2`/`codec-jackson3`'s polymorphism is hand-written mixins, not generated); or
 an annotation processor generating a real mapper class at compile time (fully typed at compile
 time, zero reflection cost per call, but a new `javac`-time dependency and generated-sources
 step nothing else in this repo has). Reflection won: even repeated, its cost is dwarfed by the
-network round trip each call wraps, and it keeps `mapping`'s dependency footprint identical to
+network round trip each call wraps, and it keeps `client-mapping`'s dependency footprint identical to
 every other module here (`core` only).
 
 That said, `MappingTypeSafeClient` still caches each record type's reflection metadata — its
@@ -193,14 +201,14 @@ the full type. Same annotation, same validation path, no new concepts.
 ## Why `MappingTypeSafeClient` doesn't have its own `Builder`
 
 The natural-looking ask — `MappingTypeSafeClient.builder()...build()`, mirroring
-`TypeSafeClient.builder()` — was rejected. `TypeSafeClient.builder` works because
+`DefaultTypeSafeClient.builder()` — was rejected. `TypeSafeClient.builder` works because
 `TypeSafeClient` has exactly one production implementation to build. `MappingTypeSafeClient` is
 a decorator, meant to wrap *any* `TypeSafeClient` (a plain one, one already wrapped in caching,
 a `FailingTypeSafeClient` for testing, a test double) — a builder that constructs its own
 `DefaultTypeSafeClient` internally would bake in "wrap a fresh default client" as the only path,
 against the entire reason the decorator shape exists (see "Why `TypeSafeClient` is an interface,
 not a final class" above). It would also duplicate `DefaultTypeSafeClient.Builder`'s whole
-surface (`httpTransport`, `jsonCodec`, `endpoint`, ...) as forwarding
+surface (`httpTransport`, `codec`, `endpoint`, ...) as forwarding
 methods that go stale the moment the original gains an option this copy doesn't.
 
 What shipped instead is a single addition to the *existing* `Builder`:
@@ -217,7 +225,7 @@ decorator" below). It returns the builder, not the decorator's type, so `build()
 
 ## Why `Content` is a sealed interface, not `Object`
 
-`EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `JsonCodec` can
+`EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `Codec` can
 serialize." But [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)
 documents `state` as exactly three shapes: a string, a JSON object, or an array of text values —
 not open-ended JSON. `Object` was strictly looser than the real API contract: a caller could pass
@@ -264,7 +272,7 @@ and an unbounded retry loop against a struggling upstream only makes the overloa
 
 Retry/backoff used to live inside `DefaultTypeSafeClient`, next to the request/response
 plumbing. That made it the one piece of cross-cutting behavior that *wasn't* a `TypeSafeClient`
-decorator like everything else here (`mapping`, `testkit`'s `FailingTypeSafeClient`, a caller's
+decorator like everything else here (`client-mapping`, `client-testkit`'s `FailingTypeSafeClient`, a caller's
 own cache) — so it couldn't be turned off, reordered relative to other decorators, or replaced
 without reimplementing the client. `RetryingTypeSafeClient` now does it purely in terms of the
 `TypeSafeException` the client throws, which is why `InternalServer` carries `retryAfter()` too:

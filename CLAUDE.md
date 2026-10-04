@@ -10,37 +10,50 @@ plus a set of `Noul`/`Choice`/`Score` questions, get back typed answers.
 ## Module structure
 
 ```
-core      — TypeSafeClient (interface; the only implementation, DefaultTypeSafeClient, is
-            public and owns Builder — TypeSafeClient.builder(...) is a one-line delegate to
-            DefaultTypeSafeClient.builder(...), so call sites don't change. A consumer can
-            implement TypeSafeClient itself to decorate one, e.g. with caching).
-            DefaultTypeSafeClient does one request, one response, no retries by default.
-            Retry/backoff is the opt-in RetryingTypeSafeClient decorator (classifies by
-            TypeSafeException, not raw responses); DeadlineTypeSafeClient caps a call's total
-            time. Both are added via Builder.decorateWith(RetryingTypeSafeClient::decorate) etc. (each
-            one goes outside the previous; build(Function) is outermost and keeps its type).
-            Every decorator's static decorate(...) takes the delegate first, like
-            MappingTypeSafeClient.decorate. build() throws if RetryingTypeSafeClient is added
-            more than once. TokenCounter (LongAdder totals of EvaluateResponse#usage()) is an
-            object the caller keeps, handing out its decorator via tokens::decorate, so the
-            totals stay readable once the decorator is inside a stack.
-            RetryingTypeSafeClient stops retrying once its returned future is done. ApiKey,
-            TypeSafeException, and the wire DTOs (Answer, Question, Content,
-            EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
-            io.github.dfa1.typesafe.core; plus the JsonCodec (io.github.dfa1.typesafe.json) +
-            HttpTransport (io.github.dfa1.typesafe.transport) SPIs. Zero dependency on any
-            JSON or HTTP library — DefaultTypeSafeClient talks to HttpTransport/JsonCodec,
-            never to a concrete library directly, so the DTOs + JsonCodec alone are reusable
-            (e.g. by a Kafka producer/consumer) without pulling in TypeSafeClient's HTTP
-            concerns.
-client-jdk — HttpTransport backed by java.net.http (artifact
-            typesafe-java-client-jdk, class JdkHttpTransport, package
-            io.github.dfa1.typesafe.jdk). Depends only on core. Discovered via
-            ServiceLoader at Builder.build() time (or an explicit
-            Builder.httpTransport(...) override).
-client-okhttp — HttpTransport backed by OkHttp (artifact typesafe-java-client-okhttp, class
-            OkHttpTransport, package io.github.dfa1.typesafe.okhttp). Depends only on core
-            (plus OkHttp). An alternative to client-jdk for environments java.net.http doesn't
+Naming rule: a module's directory, artifact (`typesafe-java-<module>`) and single package
+(`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name, no package spans two modules,
+and a module named `X-Y` builds on module `X` (ADR 0003).
+
+core      — the model as plain records, no dependencies: Answer, Question, Content,
+            EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails, in
+            io.github.dfa1.typesafe.core. The model + a codec-* module serializes payloads (e.g.
+            for Kafka) without any client code.
+codec     — the Codec SPI (byte[] in/out; writeValueAsBytes/readValue), no dependencies.
+            Implemented by codec-*, discovered via ServiceLoader; client-http and client-local
+            need a JSON one (the API, model configs and prompts are JSON).
+client    — the contract, on core: TypeSafeClient (interface; no builder() — client can't see
+            its implementations: DefaultTypeSafeClient in client-http, the local clients in
+            client-local. A consumer can implement TypeSafeClient itself to decorate one, e.g.
+            with caching) and TypeSafeException. Retry/backoff is the opt-in
+            RetryingTypeSafeClient decorator (classifies by TypeSafeException, not raw
+            responses); DeadlineTypeSafeClient caps a call's total time. Both wrap any
+            TypeSafeClient and are added via
+            DefaultTypeSafeClient.Builder.decorateWith(RetryingTypeSafeClient::decorate) etc.
+            (each one goes outside the previous; build(Function) is outermost and keeps its
+            type). Every decorator's static decorate(...) takes the delegate first, like
+            MappingTypeSafeClient.decorate. TokenCounter (LongAdder totals of
+            EvaluateResponse#usage()) is an object the caller keeps, handing out its decorator
+            via tokens::decorate, so the totals stay readable once the decorator is inside a
+            stack. RetryingTypeSafeClient stops retrying once its returned future is done.
+            javadoc can't {@link} upwards (core → client, client → client-*: javadoc-check
+            fails); name those types in {@code ...}.
+codec-jackson2 — Codec backed by Jackson 2.x. Depends only on codec and core. Owns the `type`
+            discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
+            (no discriminator — string/object/array on the wire; backs both
+            EvaluateRequest.state and Question.instructions) via a custom serializer,
+            registered through META-INF/services.
+codec-jackson3 — same, backed by Jackson 3.x (tools.jackson.databind).
+client-http — DefaultTypeSafeClient (public, owns Builder: DefaultTypeSafeClient.builder()),
+            ApiKey, and the HttpTransport SPI, in io.github.dfa1.typesafe.client.http. One
+            request, one response, no retries by default. build() throws if
+            RetryingTypeSafeClient is added more than once. Talks to HttpTransport/Codec,
+            never to a concrete library; both discovered via ServiceLoader at build() time (or
+            Builder.httpTransport(...)/codec(...)).
+client-http-jdk — HttpTransport backed by java.net.http (class JdkHttpTransport). Depends
+            only on client-http. Discovered via ServiceLoader at Builder.build() time (or an
+            explicit Builder.httpTransport(...) override).
+client-http-okhttp — HttpTransport backed by OkHttp (class OkHttpTransport). Depends only on
+            client-http (plus OkHttp). An alternative to client-http-jdk for environments java.net.http doesn't
             cover, e.g. Android. Depends on `com.squareup.okhttp3:okhttp-jvm`, not `okhttp` —
             OkHttp 5.x publishes as Kotlin Multiplatform, and the bare `okhttp` coordinate
             resolves under plain Maven (no Gradle Module Metadata variant awareness) to an
@@ -49,14 +62,8 @@ client-okhttp — HttpTransport backed by OkHttp (artifact typesafe-java-client-
             preserves wire casing) — harmless since HttpTransportResponse#header(String) is a
             case-insensitive lookup, but `OkHttpTransportTest` asserts through `header(...)`
             rather than the raw `headers()` map for exactly this reason.
-jackson2  — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
-            discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
-            (no discriminator — string/object/array on the wire; backs both
-            EvaluateRequest.state and Question.instructions) via a custom serializer,
-            registered through META-INF/services.
-jackson3  — same, backed by Jackson 3.x (tools.jackson.databind).
-testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testkit, depending
-            only on core. RecordingTypeSafeClient implements TypeSafeClient directly, at the
+client-testkit — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.client.testkit, depending
+            only on client. RecordingTypeSafeClient implements TypeSafeClient directly, at the
             EvaluateRequest/EvaluateResponse level: `enqueueEvaluate`/`enqueueModels` queue a
             response (FIFO, no request matcher — a test already controls call order itself) to
             whichever evaluate()/evaluateAsync()/listModels() call comes next;
@@ -66,7 +73,7 @@ testkit   — two TypeSafeClient test doubles, in io.github.dfa1.typesafe.testki
             RecordingTypeSafeClient, composing recording with periodic failure): every
             `failEvery`-th call (evaluate/evaluateAsync/listModels share one counter) throws a
             supplied exception instead of reaching the delegate.
-mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSafeClient decorator
+client-mapping — MappingTypeSafeClient (io.github.dfa1.typesafe.client.mapping), a TypeSafeClient decorator
             adding evaluateTyped(Content, Class<T>)/evaluateTypedAsync(...) for a caller-defined
             record T whose components carry @Noul/@Choice/@Score (each mirroring the matching
             Question factory's shape: @Noul/@Score take a double component, @Choice a String
@@ -75,16 +82,16 @@ mapping   — MappingTypeSafeClient (io.github.dfa1.typesafe.mapping), a TypeSaf
             build the EvaluateRequest's questions, keyed by component name, then constructs a
             new T from EvaluateResponse#answers() via T's canonical constructor — so a caller
             gets a typed record back instead of Map<String, Answer> and a manual
-            (Answer.Noul)-style cast. Depends only on core in production; its own tests depend
-            on testkit's RecordingTypeSafeClient (test scope only), the same test-double a
+            (Answer.Noul)-style cast. Depends only on client in production; its own tests depend
+            on client-testkit's RecordingTypeSafeClient (test scope only), the same test-double a
             consumer of this module would reach for.
-local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local: LocalLayaTypeSafeClient,
+client-local — one public TypeSafeClient per model (io.github.dfa1.typesafe.client.local: LocalLayaTypeSafeClient,
             LocalQwenTypeSafeClient, LocalClefTypeSafeClient, each with a static load(Path)) over a package-private
             LocalTypeSafeClient base, evaluating in-process on ONNX
             Runtime, from a model directory the caller fills with `hf download` (docs/how-to.md): Laya =
             onnx-community's export — fp32 default, fp16 same answers/half size/slow on CPU — and Qwen q4;
             ~/.cache/typesafe-local by convention. Onnx.model(dir) finds the one .onnx file, so HF file
-            names stay as-is. local/scripts is Python for test fixtures (laya/export_onnx.py: PyTorch fixture;
+            names stay as-is. client-local/scripts is Python for test fixtures (laya/export_onnx.py: PyTorch fixture;
             tokenizer/reference.py: HF tokenizer ids; clef/reference.py: Clef sequences) plus
             clef/quantize_q4.py, the one script users run (Clef in 4 bits); the CI summary is
             .github/scripts/local_summary.py. Caller text goes
@@ -94,8 +101,8 @@ local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local
             request's questions in one batch; a port of Laya's Python sequence builder), QwenEngine
             (one prefill per question, softmax over Yes/No/letter/digit logits) and ClefEngine (Qwen3.5-9B +
             joint schema head, a request in one forward pass). Own pure-Java BpeTokenizer
-            (tokenizer.json); JSON through typesafe-java's JsonCodec (ServiceLoader, like the API client),
-            so a jackson2/jackson3 module is needed at run time; BpeTokenizerTest checks ids
+            (tokenizer.json); JSON through typesafe-java's Codec (ServiceLoader, like the API client),
+            so a codec-jackson2/codec-jackson3 module is needed at run time; BpeTokenizerTest checks ids
             against HF tokenizers, LayaEngineTest checks logits against PyTorch (fixtures under
             src/test/resources). Tests needing model files are @Tag("model"), excluded by the module's
             own excludedGroups (acceptance,model); opt in with -DexcludedGroups=acceptance -Dengine=laya.
@@ -106,22 +113,22 @@ local     — one public TypeSafeClient per model (io.github.dfa1.typesafe.local
             (onnx/model.onnx, config.json "laya", bool marker_mask).
             The `Local engines` workflow runs tests, comparison and JMH on Linux/macOS and writes tables to
             the job summary.
-bom       — dependency-management POM listing core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping/local.
+bom       — dependency-management POM listing every published module (core, codec-*, client-*).
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
-            holds every test method; one concrete subclass per HttpTransport/JsonCodec
+            holds every test method; one concrete subclass per HttpTransport/Codec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
             `JdkHttpClientWithJackson3AcceptanceTest`) supplies the pair via two abstract
             hooks, explicitly constructing the codec/transport (`new Jackson2Codec()`, ...)
             rather than relying on ServiceLoader, since this module deliberately has more
-            than one of each on its test classpath at once. jackson2 and jackson3 both pull
+            than one of each on its test classpath at once. codec-jackson2 and codec-jackson3 both pull
             in `com.fasterxml.jackson.core:jackson-annotations` transitively, each at its own
             version; acceptance/pom.xml pins the newest one explicitly (bump it with either
             codec), or Maven's mediation can pick an older one and the other codec fails at
             runtime (`NoSuchFieldError`/`NoClassDefFoundError`). CI doesn't run acceptance, so a
             Jackson bump needs a local acceptance run. Also depends on
-            `mapping` (test scope) — one test wraps `sut` in a `MappingTypeSafeClient` to
+            `client-mapping` (test scope) — one test wraps `sut` in a `MappingTypeSafeClient` to
             exercise a `@Noul`/`@Choice`/`@Score`-annotated record against the live API.
-cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its main artifact
+cli       — command-line entry point (`Main`), over client-http-jdk + codec-jackson3. Its main artifact
             is a plain (non-executable) jar of just this module's own classes; the runnable
             uber-jar (maven-shade-plugin) is published separately under the `all` classifier
             (`typesafe-java-cli-VERSION-all.jar` — `java -jar` this one), so a normal
@@ -134,25 +141,26 @@ cli       — command-line entry point (`Main`), over client-jdk + jackson3. Its
             set by the shade plugin, and exits without calling the API), `--help`/`-h` (prints
             usage and exits without calling the API). Stdout is silent
             unless `--print <name>` (that answer's value) or `--verbose` (the full
-            `EvaluateResponse` as pretty-printed JSON, via `JsonCodec.writeValueAsPrettyString`)
+            `EvaluateResponse` as compact JSON — pipe it into `jq` to read it)
             is given.
 ```
 
-Dependency rule: `client-jdk → core`, `client-okhttp → core`, `jackson2 → core`, `jackson3 →
-core`, `testkit → core`, `mapping → core` (`mapping`'s own tests additionally depend on
-`testkit`, test scope only), `acceptance → core, client-jdk, client-okhttp, jackson2, jackson3,
-mapping` (test scope only), `cli → core, client-jdk, jackson3`, `local → core` (plus ONNX Runtime;
-its own tests additionally depend on `client-jdk` and `jackson2`, test scope only) — nothing production depends on
-`acceptance`, `cli`, or `testkit`. See
-[ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs
-exist at all.
+Dependency rule: `codec-jackson2 → codec, core`, `codec-jackson3 → codec, core`, `client → core`, `client-http → client, codec`,
+`client-http-jdk → client-http`, `client-http-okhttp → client-http`, `client-local → client, codec` (plus ONNX
+Runtime; its own tests additionally depend on `client-http-jdk` and `codec-jackson2`, test scope
+only), `client-mapping → client` (its own tests additionally depend on `client-testkit`, test scope
+only), `client-testkit → client`, `cli → client-http, client-http-jdk, codec-jackson3`, `acceptance →
+everything` (test scope only) — no `client-*` module depends on another in production, and nothing
+production depends on `acceptance`, `cli`, or `client-testkit`. See
+[ADR 0003](adr/0003-model-in-core-contract-in-client.md) for the layout and
+[ADR 0001](adr/0001-multi-module-layout-with-pluggable-json-codec.md) for why the SPIs exist at all.
 
 ## Commands
 
 ```bash
 ./mvnw clean verify                                                              # build + unit tests, all modules
-./mvnw test -pl jackson2 -am                                                     # one module (+ its dependencies)
-./mvnw test -pl jackson2 -am -Dtest=Jackson2CodecTest -Dsurefire.failIfNoSpecifiedTests=false
+./mvnw test -pl codec-jackson2 -am                                               # one module (+ its dependencies)
+./mvnw test -pl codec-jackson2 -am -Dtest=Jackson2CodecTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 No step here uses `install` — a routine build has no reason to write into `~/.m2/repository`.
@@ -162,7 +170,7 @@ resolving them from the local repo, so a single-module command works right after
 without it, surefire errors on the upstream modules `-am` rebuilds that don't contain the
 named test class.
 
-Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
+Acceptance tests (in `acceptance`, one concrete class per HttpTransport/Codec
 combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at
 `~/.typesafe.apikey`. Excluded from a routine `./mvnw test` via the `excludedGroups=acceptance`
 property (surefire). Opt in with:
@@ -176,9 +184,9 @@ property (surefire). Opt in with:
 - **`core` has zero Jackson dependency and the DTOs carry zero Jackson annotations.**
   Polymorphism (`Answer`/`Question`'s `type` discriminator) is wired up entirely inside
   each codec module via mixins, not on the DTOs. Adding a third JSON library means
-  adding one more codec module; `core`/`client-jdk` don't change.
-- **`JsonCodec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
-  consumer that depends on `client-jdk` but forgets a codec module gets a clear
+  adding one more codec module; `core`/`client-http` don't change.
+- **`Codec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
+  consumer that depends on `client-http-jdk` but forgets a codec module gets a clear
   `IllegalStateException` from `Builder.build()`, not a `NoClassDefFoundError`.
 - **Small public API.** Don't expose internals — when in doubt, leave it out or make it
   package-private.
@@ -188,14 +196,14 @@ property (surefire). Opt in with:
 JUnit 6 + AssertJ (`assertThat(...)`, not JUnit's `Assertions.assertEquals`/`assertTrue`) +
 Mockito (BDDMockito: static-import only `given`/`then`, e.g. `given(mock.m()).willReturn(v)` /
 `then(mock).should().m()` — never `willReturn`/`willThrow`/`verify` unqualified). JUnit Pioneer's
-`@SetEnvironmentVariable` (core only, for `ApiKeyTest`) sets an env var for one test method;
+`@SetEnvironmentVariable` (client-http only, for `ApiKeyTest`) sets an env var for one test method;
 needs the `--add-opens java.base/java.util`/`java.lang=ALL-UNNAMED` flags on surefire's `argLine`
 in the root pom (Java 17+ blocks the reflection it uses otherwise).
 Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
-`ObjectMapper` during the initial split. `TypeSafeClientTest` mocks `HttpTransport`/`JsonCodec`
-to verify `TypeSafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
+`ObjectMapper` during the initial split. `DefaultTypeSafeClientTest` mocks `HttpTransport`/`Codec`
+to verify `DefaultTypeSafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
 has `// Given` / `// When` / `// Then` comments marking its three phases (omit `// Given` when
 there's nothing to arrange). The pre-built instance a test invokes behavior on is named `sut`
 (e.g. a `Jackson2Codec` field, or an object constructed in `// Given` that `// When` calls a

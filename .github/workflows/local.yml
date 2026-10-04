@@ -1,14 +1,14 @@
 name: Local engines
 
-# Agreement with Jev and throughput of typesafe-java-local's engines, as a table in the job summary.
+# Agreement with Jev and throughput of typesafe-java-client-local's engines, as a table in the job summary.
 # Model directories are cached: Laya fp32 (+ fp16 on macOS, for the GPU) and Qwen 4-bit, all onnx-community exports.
 on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ['local/**', '.github/workflows/local.yml', '.github/scripts/local_summary.py']
+    paths: ['client-local/**', '.github/workflows/local.yml', '.github/scripts/local_summary.py']
   pull_request:
-    paths: ['local/**', '.github/workflows/local.yml', '.github/scripts/local_summary.py']
+    paths: ['client-local/**', '.github/workflows/local.yml', '.github/scripts/local_summary.py']
 
 jobs:
   numbers:
@@ -48,23 +48,23 @@ jobs:
           uvx --from huggingface_hub hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 tokenizer.json --local-dir $M/clef-flash
 
       - name: Build
-        run: ./mvnw -B -q -pl local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test
+        run: ./mvnw -B -q -pl client-local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test
 
       - name: Real-model tests
-        run: ./mvnw -B -pl local -am test -DexcludedGroups=acceptance -Dengine=laya -Dsurefire.failIfNoSpecifiedTests=false
+        run: ./mvnw -B -pl client-local -am test -DexcludedGroups=acceptance -Dengine=laya -Dsurefire.failIfNoSpecifiedTests=false
 
       - name: Agreement with Jev
-        working-directory: local
+        working-directory: client-local
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
           ENGINES="laya qwen"
           if [ "$RUNNER_OS" = macOS ]; then ENGINES="$ENGINES laya-fp16-gpu"; fi
           for e in $ENGINES; do
-            java -cp "$CP" io.github.dfa1.typesafe.local.JevComparison $e | tee -a ../jev.txt
+            java -cp "$CP" io.github.dfa1.typesafe.client.local.JevComparison $e | tee -a ../jev.txt
           done
 
       - name: Throughput
-        working-directory: local
+        working-directory: client-local
         run: |
           CP="$(cat ../cp.txt):target/classes:target/test-classes"
           ENGINES=LAYA,QWEN

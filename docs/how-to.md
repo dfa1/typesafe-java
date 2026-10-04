@@ -13,62 +13,62 @@ for a local TypeSafe-compatible server (`Builder.endpoint(...)`): without a key 
 ```java
 // 1. Default file (~/.typesafe.apikey)
 ApiKey token = ApiKey.fromDefaultFile();
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 // 2. A specific file
 ApiKey token = ApiKey.fromFile(Path.of("/secrets/typesafe.token"));
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 // 3. TYPESAFE_API_KEY environment variable
 ApiKey token = ApiKey.fromEnv();
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 // 4. Any other in-memory value (e.g. a secrets manager)
 ApiKey token = ApiKey.of(secretsManager.getSecret("typesafe-token"));
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 ```
 
 ## Choose a JSON codec
 
-`TypeSafeClient` doesn't depend on Jackson directly — it resolves a `JsonCodec` via
+`TypeSafeClient` doesn't depend on Jackson directly — it resolves a `Codec` via
 `ServiceLoader` from whatever codec module is on your classpath. Add exactly one of:
 
 ```xml
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-jackson2</artifactId>
+  <artifactId>typesafe-java-codec-jackson2</artifactId>
 </dependency>
 <!-- or -->
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-jackson3</artifactId>
+  <artifactId>typesafe-java-codec-jackson3</artifactId>
 </dependency>
 ```
 
-If neither is present, `TypeSafeClient.Builder.build()` throws `IllegalStateException` with a
+If neither is present, `DefaultTypeSafeClient.Builder.build()` throws `IllegalStateException` with a
 message telling you to add one. To bypass discovery and wire a codec explicitly (e.g. in tests,
-or if you have your own `JsonCodec` implementation):
+or if you have your own `Codec` implementation):
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
-        .jsonCodec(new Jackson2Codec())
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
+        .codec(new Jackson2Codec())
         .build();
 ```
 
 ## Choose an HTTP transport
 
-Likewise, `TypeSafeClient` doesn't depend on any HTTP library directly — it resolves an
-`HttpTransport` via `ServiceLoader`. Add one of:
+Likewise, `DefaultTypeSafeClient` doesn't depend on any HTTP library directly — it resolves an
+`HttpTransport` via `ServiceLoader`. Add one of (each brings `typesafe-java-client-http`):
 
 ```xml
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-client-jdk</artifactId>
+  <artifactId>typesafe-java-client-http-jdk</artifactId>
 </dependency>
 <!-- or, e.g. on Android, where java.net.http isn't available -->
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-client-okhttp</artifactId>
+  <artifactId>typesafe-java-client-http-okhttp</artifactId>
 </dependency>
 ```
 
@@ -77,7 +77,7 @@ the classpath makes `ServiceLoader` resolution between them non-deterministic. T
 explicitly, or to use your own `HttpTransport` (e.g. backed by Apache HttpClient):
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .httpTransport(new JdkHttpTransport())
         // or: .httpTransport(new OkHttpTransport())
         .build();
@@ -192,7 +192,7 @@ Each is `answers()` narrowed to that subtype, recomputed on every call.
 
 ## Get typed answers instead of `Map<String, Answer>`
 
-`typesafe-java-mapping` maps a **record**'s annotated components into the request's questions and
+`typesafe-java-client-mapping` maps a **record**'s annotated components into the request's questions and
 the response back into a new instance of that record — no `answers().get("name")`, no
 `(Answer.Noul)` cast:
 
@@ -205,7 +205,7 @@ record TicketUrgency(
         @Score(value = "How spicy?", levels = {"Mild", "Medium", "Hot", "Face-melting"}) double spiciness) {
 }
 
-MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
+MappingTypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build(MappingTypeSafeClient::decorate);
 TicketUrgency result = client.evaluateTyped(Content.text("..."), TicketUrgency.class);
 result.isUrgent();   // double, from Answer.Noul#noul()
 result.culprit();    // String, from Answer.Choice#choice()
@@ -294,7 +294,7 @@ unless you [add retries](#retry-transient-failures).
 
 ```java
 HttpClient http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(5)).build();
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token).httpTransport(new JdkHttpTransport(http)).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).httpTransport(new JdkHttpTransport(http)).build();
 ```
 
 ## Configure the per-request timeout
@@ -305,7 +305,7 @@ distinct from `HttpClient`'s `connectTimeout` above. Override it with the `(Http
 constructor, or pass `null` to disable it entirely:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .httpTransport(new JdkHttpTransport(HttpClient.newHttpClient(), Duration.ofSeconds(30)))
         .build();
 ```
@@ -321,7 +321,7 @@ A timed-out request surfaces as `TypeSafeException.Timeout`, not the transport's
 down the `OkHttpClient`'s dispatcher executor, evicts its connection pool, and closes its cache:
 
 ```java
-try (TypeSafeClient client = TypeSafeClient.builder().apiKey(token).build()) {
+try (TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build()) {
     client.evaluate(request);
 }
 ```
@@ -332,7 +332,7 @@ need closing.
 ## Configure the endpoint
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .endpoint(URI.create("https://staging.typesafe.ai/v1/systemone"))
         .build();
 ```
@@ -343,11 +343,11 @@ A client from `build()` makes exactly one attempt per call. Add retries with
 `RetryingTypeSafeClient`:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)       // 5 retries, backoff from 500ms
         .build();
 
-TypeSafeClient tuned = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient tuned = DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(c -> RetryingTypeSafeClient.decorate(c, 2, Duration.ofMillis(100)))
         .build();
 ```
@@ -369,7 +369,7 @@ a minute in the worst case. Decorate the retrying client with a `DeadlineTypeSaf
 the whole call:
 
 ```java
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))
         .build();
@@ -387,7 +387,7 @@ total, create a `TokenCounter` and add its decorator:
 
 ```java
 TokenCounter tokens = new TokenCounter();
-TypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .decorateWith(tokens::decorate)
         .build();
@@ -408,7 +408,7 @@ Each `decorateWith(...)` adds a decorator *around* everything added before it, a
 the stack from the inside out:
 
 ```java
-TypeSafeClient.builder().apiKey(token)
+DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(RetryingTypeSafeClient::decorate)                                  // 1
         .decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))  // 2
         .build(MappingTypeSafeClient::decorate);                                         // 3
@@ -459,7 +459,7 @@ record CachingTypeSafeClient(TypeSafeClient delegate, Map<EvaluateRequest, Evalu
 
 }
 
-TypeSafeClient client = new CachingTypeSafeClient(TypeSafeClient.builder().apiKey(token).build(), new ConcurrentHashMap<>());
+TypeSafeClient client = new CachingTypeSafeClient(DefaultTypeSafeClient.builder().apiKey(token).build(), new ConcurrentHashMap<>());
 ```
 
 `Builder#build(Function<TypeSafeClient, T>)` applies a decorator to the built client in one call,
@@ -467,7 +467,7 @@ returning `T` (the decorator's own type, e.g. `MappingTypeSafeClient` — no cas
 its extra methods) instead of the plain `TypeSafeClient`:
 
 ```java
-CachingTypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+CachingTypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .build(base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>()));
 ```
 
@@ -479,7 +479,7 @@ Stack more with `Builder#decorateWith(...)` (see
 ```java
 Function<TypeSafeClient, TypeSafeClient> caching = base -> new CachingTypeSafeClient(base, new ConcurrentHashMap<>());
 
-MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token)
+MappingTypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
         .decorateWith(caching)
         .decorateWith(RetryingTypeSafeClient::decorate)
         .build(MappingTypeSafeClient::decorate);
@@ -489,7 +489,7 @@ MappingTypeSafeClient client = TypeSafeClient.builder().apiKey(token)
 
 Two options:
 
-1. **Add `typesafe-java-testkit` (test scope) and use `RecordingTypeSafeClient`, or mock
+1. **Add `typesafe-java-client-testkit` (test scope) and use `RecordingTypeSafeClient`, or mock
    `TypeSafeClient` directly.** Both work at the `EvaluateRequest`/`EvaluateResponse` level, with
    no setup — the simplest option for testing code that just calls `evaluate()`/`listModels()`
    and reacts to the result:
@@ -515,7 +515,7 @@ Two options:
    in your domain code, or need a shape it doesn't have (e.g. a synchronous-only facade). Mock
    *that* interface instead.
 
-Don't mock the `HttpTransport`/`JsonCodec` SPIs directly, though — they're lower-level than
+Don't mock the `HttpTransport`/`Codec` SPIs directly, though — they're lower-level than
 anything your code calls (they don't even appear in `TypeSafeClient`'s public methods), and a
 test built on them breaks whenever this library's internals change for reasons that have nothing
 to do with your code.
@@ -542,22 +542,19 @@ each time, or a different one depending on external state. `failEvery` must be p
 
 ## Reuse the DTOs without pulling in an HTTP or JSON library
 
-`typesafe-java-core` has zero runtime dependencies — `TypeSafeClient` talks to `HttpTransport`/
-`JsonCodec`, never to a concrete HTTP or JSON library directly. If you only need to
-(de)serialize `EvaluateRequest`/`EvaluateResponse` payloads — for example to publish or consume
-them on a Kafka topic — depend on `typesafe-java-core` plus a codec module, and ignore
-`TypeSafeClient` entirely:
+`typesafe-java-core` has no dependencies and no HTTP code: the HTTP client is a separate module,
+`typesafe-java-client-http`. If you only need to (de)serialize `EvaluateRequest`/`EvaluateResponse`
+payloads — for example to publish or consume them on a Kafka topic — depend on a codec module
+(`typesafe-java-codec-jackson2` or `-jackson3`, which brings `core`) and nothing else:
 
 ```java
-JsonCodec codec = new Jackson2Codec();
-String json = codec.writeValueAsString(request);
+Codec codec = new Jackson2Codec();
+byte[] json = codec.writeValueAsBytes(request);              // UTF-8 JSON
 EvaluateResponse response = codec.readValue(json, EvaluateResponse.class);
 ```
 
-(A Kafka producer/consumer using a raw-`byte[]` serializer converts once at that boundary —
-`json.getBytes(UTF_8)` / `new String(bytes, UTF_8)` — the same one-line conversion any
-non-`String`-based transport needs; `TypeSafeClient` itself needs none, since `HttpTransport`
-is `String`-based too.)
+The codec speaks UTF-8 bytes, so a Kafka `Serializer`/`Deserializer` is one call each, with no
+`String` in between.
 
 ## Run a quick check from the command line
 
@@ -587,8 +584,8 @@ type, since unnamed ones of the same type overwrite each other. `--model <id>` (
 alias, any other id is pinned directly. Reads the token from `~/.typesafe.apikey`.
 
 Stdout is silent by default — reach for `--print`/`--verbose` below to see anything. `--verbose`
-prints the full `EvaluateResponse` as pretty-printed JSON to stdout, plus the outgoing request
-(also pretty-printed) and the response's request id to stderr; `--timing` prints how long the
+prints the full `EvaluateResponse` as compact JSON to stdout (pipe it into `jq` to read it), plus the
+outgoing request and the response's request id to stderr; `--timing` prints how long the
 API took, to stderr. Run with `--version` alone to print the jar's version, or `--help`/`-h`
 alone to print usage, and exit without calling the API.
 
@@ -617,7 +614,7 @@ java -jar cli/target/typesafe-java-cli-*-all.jar \
 
 ## Run without the API, on a local model
 
-`typesafe-java-local` evaluates in-process on ONNX Runtime: no network, no API key, same `EvaluateRequest`/
+`typesafe-java-client-local` evaluates in-process on ONNX Runtime: no network, no API key, same `EvaluateRequest`/
 `EvaluateResponse`. Jev's weights aren't public, so the answers come from an open model — Jev's contract, not Jev's
 judgement.
 
@@ -631,11 +628,11 @@ library for anything else, Intel Macs included — and [uv](https://docs.astral.
 ```xml
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-local</artifactId>
+  <artifactId>typesafe-java-client-local</artifactId>
 </dependency>
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-jackson2</artifactId>
+  <artifactId>typesafe-java-codec-jackson2</artifactId>
 </dependency>
 ```
 
@@ -664,7 +661,7 @@ try (TypeSafeClient client = LocalLayaTypeSafeClient.load(laya)) {
 
 Loading reads the whole model, so keep one client for the life of your application. If it fails:
 
-- `IllegalStateException: No JsonCodec found` — add `typesafe-java-jackson2` or `typesafe-java-jackson3`.
+- `IllegalStateException: No Codec found` — add `typesafe-java-codec-jackson2` or `typesafe-java-codec-jackson3`.
 - `IllegalArgumentException: ... not found` / `no .onnx file` — the directory isn't the one step 2 wrote.
 - an error from `ai.onnxruntime` loading its native library — a platform its jar doesn't cover (see above).
 
@@ -707,7 +704,7 @@ memory and a minute per request. To make it practical, convert it to 4-bit weigh
 the new `clef-flash-q4` directory hard-links the original files, so no extra copy):
 
 ```bash
-uv run https://raw.githubusercontent.com/dfa1/typesafe-java/main/local/scripts/clef/quantize_q4.py
+uv run https://raw.githubusercontent.com/dfa1/typesafe-java/main/client-local/scripts/clef/quantize_q4.py
 ```
 
 Then `LocalClefTypeSafeClient.load(Path.of(..., "clef-flash-q4"))`, or `loadOnGpu(...)` on macOS on Apple Silicon
@@ -720,7 +717,7 @@ The `Local engines` GitHub workflow re-measures agreement and throughput on Linu
 tables to its job summary. To reproduce from a checkout:
 
 ```bash
-./mvnw -pl local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, qwen, clef, ...)
+./mvnw -pl client-local -am test -DexcludedGroups=acceptance -Dengine=laya      # real-model tests (laya, qwen, clef, ...)
 ```
 
 ## Run Clef-flash on a Mac with MLX
@@ -728,7 +725,7 @@ tables to its job summary. To reproduce from a checkout:
 [Clef-flash](https://huggingface.co/Cloudflare/clef-flash) is the local model closest to Jev, and on Apple Silicon
 the fastest way to run it is [MLX](https://github.com/ml-explore/mlx), Apple's array framework for its GPUs.
 [mlx-community's 4-bit port](https://huggingface.co/mlx-community/clef-flash-4bit) ships a small server speaking
-TypeSafe's `POST /v1/systemone`, so the regular client talks to it: no `local` module, no API key.
+TypeSafe's `POST /v1/systemone`, so the regular client talks to it: no `client-local` module, no API key.
 
 Download the model (6.2 GB) and start the server (needs [uv](https://docs.astral.sh/uv/); it serves one request
 at a time):
@@ -742,7 +739,7 @@ uv run --with 'mlx-vlm>=0.7.4,<0.8' python $M/clef_mlx.py serve --model $M --por
 Then point the client at it:
 
 ```java
-try (TypeSafeClient client = TypeSafeClient.builder()
+try (TypeSafeClient client = DefaultTypeSafeClient.builder()
         .endpoint(URI.create("http://localhost:8000/v1/systemone"))
         .build()) {
     EvaluateResponse response = client.evaluate(request);
@@ -767,7 +764,7 @@ Things to know:
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/
-JsonCodec combination and are excluded from a routine build. Opt in once you have
+Codec combination and are excluded from a routine build. Opt in once you have
 `~/.typesafe.apikey` in place:
 
 ```bash

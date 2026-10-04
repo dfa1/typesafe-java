@@ -1,0 +1,17 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
+    <version>0.7.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>typesafe-java-codec</artifactId>
+  <packaging>jar</packaging>
+
+  <name>TypeSafe Codec</name>
+  <description>The Codec SPI: serialization to and from bytes, implemented by the codec-* modules
+    (codec-jackson2, codec-jackson3) and discovered via ServiceLoader. No dependencies.
+  </description>
+</project>

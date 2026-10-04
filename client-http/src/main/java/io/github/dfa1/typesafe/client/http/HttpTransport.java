@@ -1,0 +1,24 @@
+package io.github.dfa1.typesafe.client.http;
+
+import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+/**
+ * Sends the HTTP calls TypeSafeClient needs (a JSON POST for evaluate, a GET for listing
+ * models) without tying it to a particular HTTP library. Every call is asynchronous;
+ * {@code TypeSafeClient}'s synchronous methods block on the returned future. Implementations
+ * are discovered via {@link java.util.ServiceLoader} (see typesafe-java-client-http-jdk) or
+ * wired explicitly via {@code DefaultTypeSafeClient.builder().apiKey(...).httpTransport(...)}.
+ */
+public interface HttpTransport extends AutoCloseable {
+
+    /** POSTs {@code body} (UTF-8 JSON) to {@code uri}. */
+    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, byte[] body);
+
+    CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers);
+
+    /** Releases any resources held by this transport. */
+    @Override
+    void close();
+}

@@ -4,9 +4,9 @@ import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Model;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.core.Usage;
-import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
+import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -262,7 +262,7 @@ class MainTest {
     }
 
     @Test
-    void runPrintsTheFullResponseAsPrettyJsonToStdoutWhenVerbose() throws Exception {
+    void runPrintsTheFullResponseAsJsonToStdoutWhenVerbose() throws Exception {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
@@ -273,7 +273,7 @@ class MainTest {
 
         // Then
         assertThat(result).isZero();
-        assertThat(outBuffer.toString()).contains("\"noul\" : 0.5").contains("\n");
+        assertThat(outBuffer.toString()).contains("\"noul\":0.5");
     }
 
     @Test

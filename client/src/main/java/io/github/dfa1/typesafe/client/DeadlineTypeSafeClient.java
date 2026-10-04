@@ -1,0 +1,88 @@
+package io.github.dfa1.typesafe.client;
+
+import io.github.dfa1.typesafe.core.EvaluateRequest;
+import io.github.dfa1.typesafe.core.EvaluateResponse;
+import io.github.dfa1.typesafe.core.ModelDetails;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
+/**
+ * {@link TypeSafeClient} decorator that bounds how long one {@link #evaluate}/{@link #evaluateAsync}
+ * call may take in total, failing it with {@link TypeSafeException.Timeout} once {@code deadline}
+ * elapses. Placed outside a {@link RetryingTypeSafeClient} — e.g.
+ * {@code builder().apiKey(apiKey).decorateWith(RetryingTypeSafeClient::decorate).decorateWith(c -> DeadlineTypeSafeClient.decorate(c, deadline))} — that total
+ * includes every retry and backoff, and no further retry is started once it's hit. An attempt
+ * already in flight isn't aborted; its response is just ignored.
+ *
+ * <p>Placed <em>inside</em> a {@link RetryingTypeSafeClient} instead, it's a per-attempt timeout:
+ * {@link TypeSafeException.Timeout} is retryable. {@link #listModels} has no async form to time out,
+ * so it passes through unbounded.
+ */
+public final class DeadlineTypeSafeClient implements TypeSafeClient {
+
+    private final TypeSafeClient delegate;
+    private final Duration deadline;
+
+    DeadlineTypeSafeClient(TypeSafeClient delegate, Duration deadline) {
+        this.delegate = delegate;
+        this.deadline = deadline;
+    }
+
+    /** Wraps {@code delegate} with {@code deadline}. Pass it to
+     *  {@code DefaultTypeSafeClient.Builder.decorateWith(...)}, e.g.
+     *  {@code decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))}. */
+    public static DeadlineTypeSafeClient decorate(TypeSafeClient delegate, Duration deadline) {
+        return new DeadlineTypeSafeClient(delegate, deadline);
+    }
+
+    /** Runs through {@link #evaluateAsync}, so the deadline holds without a watchdog thread. */
+    @Override
+    public EvaluateResponse evaluate(EvaluateRequest request) {
+        return await(evaluateAsync(request));
+    }
+
+    @Override
+    public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
+        // orTimeout on the delegate's own future, not a copy: that's what lets a
+        // RetryingTypeSafeClient underneath see it's done and stop retrying.
+        return delegate.evaluateAsync(request)
+                .orTimeout(deadline.toMillis(), TimeUnit.MILLISECONDS)
+                .exceptionallyCompose(error -> CompletableFuture.failedFuture(error instanceof TimeoutException
+                        ? new TypeSafeException.Timeout(new TimeoutException("deadline of " + deadline + " exceeded"))
+                        : error));
+    }
+
+    @Override
+    public List<ModelDetails> listModels() {
+        return delegate.listModels();
+    }
+
+    @Override
+    public void close() {
+        delegate.close();
+    }
+
+    /** Blocks on {@code future}, rethrowing its failure as the {@link TypeSafeException} it already is (or wrapping
+     *  any other cause), like {@code DefaultTypeSafeClient}'s blocking calls. */
+    private static <T> T await(CompletableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            if (cause instanceof Error er) {
+                throw er;
+            }
+            throw new TypeSafeException.Connection(cause);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TypeSafeException.Interrupted(e);
+        }
+    }
+}

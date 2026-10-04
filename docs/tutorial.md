@@ -12,7 +12,7 @@ a support message is.
 
 Import the BOM, then add an HTTP transport (the JDK one, unless you have your own) plus one JSON
 codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Both pull in
-`typesafe-java-core`, which holds `TypeSafeClient` itself, transitively (see the
+`typesafe-java-client`, which holds `TypeSafeClient` itself, transitively (see the
 [Maven Central badge](../README.md) for the latest version):
 
 ```xml
@@ -31,11 +31,11 @@ codec (Jackson 2 or Jackson 3 — pick whichever your project already uses). Bot
 <dependencies>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-client-jdk</artifactId>
+    <artifactId>typesafe-java-client-http-jdk</artifactId>
   </dependency>
   <dependency>
     <groupId>io.github.dfa1.typesafe-java</groupId>
-    <artifactId>typesafe-java-jackson2</artifactId>
+    <artifactId>typesafe-java-codec-jackson2</artifactId>
   </dependency>
 </dependencies>
 ```
@@ -52,10 +52,11 @@ echo "your-token-here" > ~/.typesafe.apikey
 ## 3. Build the client
 
 ```java
-import io.github.dfa1.typesafe.core.ApiKey;
-import io.github.dfa1.typesafe.core.TypeSafeClient;
+import io.github.dfa1.typesafe.client.http.ApiKey;
+import io.github.dfa1.typesafe.client.http.DefaultTypeSafeClient;
+import io.github.dfa1.typesafe.client.TypeSafeClient;
 
-TypeSafeClient client = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).build();
+TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).build();
 ```
 
 ## 4. Ask a question
@@ -90,24 +91,24 @@ System.out.println("request id: " + response.metadata().requestId().value());
 
 ## 6. Optional: get a typed record back instead
 
-Add `typesafe-java-mapping` alongside the BOM, and the same round trip becomes one typed method
+Add `typesafe-java-client-mapping` alongside the BOM, and the same round trip becomes one typed method
 call — no question map to build, no `nouls()`/cast to read back:
 
 ```xml
 <dependency>
   <groupId>io.github.dfa1.typesafe-java</groupId>
-  <artifactId>typesafe-java-mapping</artifactId>
+  <artifactId>typesafe-java-client-mapping</artifactId>
 </dependency>
 ```
 
 ```java
-import io.github.dfa1.typesafe.mapping.MappingTypeSafeClient;
-import io.github.dfa1.typesafe.mapping.Noul;
+import io.github.dfa1.typesafe.client.mapping.MappingTypeSafeClient;
+import io.github.dfa1.typesafe.client.mapping.Noul;
 
 record UrgencyCheck(@Noul("Does this convey urgency?") double isUrgent) {
 }
 
-MappingTypeSafeClient typedClient = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
+MappingTypeSafeClient typedClient = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
         .build(MappingTypeSafeClient::decorate);
 
 UrgencyCheck result = typedClient.evaluateTyped(

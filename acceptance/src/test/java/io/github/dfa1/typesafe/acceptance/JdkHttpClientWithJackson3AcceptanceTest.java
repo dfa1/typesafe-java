@@ -1,9 +1,9 @@
 package io.github.dfa1.typesafe.acceptance;
 
-import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
-import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
-import io.github.dfa1.typesafe.json.JsonCodec;
-import io.github.dfa1.typesafe.transport.HttpTransport;
+import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
+import io.github.dfa1.typesafe.client.http.jdk.JdkHttpTransport;
+import io.github.dfa1.typesafe.codec.Codec;
+import io.github.dfa1.typesafe.client.http.HttpTransport;
 
 class JdkHttpClientWithJackson3AcceptanceTest extends AbstractTypeSafeClientAcceptanceTest {
 
@@ -13,7 +13,7 @@ class JdkHttpClientWithJackson3AcceptanceTest extends AbstractTypeSafeClientAcce
     }
 
     @Override
-    protected JsonCodec jsonCodec() {
+    protected Codec codec() {
         return new Jackson3Codec();
     }
 }
