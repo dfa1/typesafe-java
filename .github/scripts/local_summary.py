@@ -1,13 +1,14 @@
 """Markdown for the GitHub job summary: agreement with Jev (JevComparison output) and throughput (JMH JSON).
-Usage: python3 .github/scripts/local_summary.py jev.txt jmh.json >> $GITHUB_STEP_SUMMARY"""
+Reads jev.txt and jmh.json from the working directory, the files the Local engines workflow writes there.
+Usage: python3 .github/scripts/local_summary.py >> $GITHUB_STEP_SUMMARY"""
 import json
 import math
 import os
 import platform
 import re
-import sys
 
-jev_file, jmh_file = sys.argv[1], sys.argv[2]
+# fixed names, not arguments: nothing outside this workflow decides which files get opened
+jev_file, jmh_file = "jev.txt", "jmh.json"
 print(f"## Local engines on `{os.environ.get('RUNNER_OS', platform.system())}` "
       f"({platform.machine()}, {os.cpu_count()} CPUs)\n")
 

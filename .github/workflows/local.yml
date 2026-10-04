@@ -74,4 +74,4 @@ jobs:
 
       - name: Summary
         if: always()
-        run: python3 .github/scripts/local_summary.py jev.txt jmh.json >> "$GITHUB_STEP_SUMMARY"
+        run: python3 .github/scripts/local_summary.py >> "$GITHUB_STEP_SUMMARY"
