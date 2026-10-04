@@ -30,7 +30,7 @@ TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 ## Choose a JSON codec
 
-`TypeSafeClient` doesn't depend on Jackson directly — it resolves a `JsonCodec` via
+`TypeSafeClient` doesn't depend on Jackson directly — it resolves a `Codec` via
 `ServiceLoader` from whatever codec module is on your classpath. Add exactly one of:
 
 ```xml
@@ -47,11 +47,11 @@ TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token).build();
 
 If neither is present, `DefaultTypeSafeClient.Builder.build()` throws `IllegalStateException` with a
 message telling you to add one. To bypass discovery and wire a codec explicitly (e.g. in tests,
-or if you have your own `JsonCodec` implementation):
+or if you have your own `Codec` implementation):
 
 ```java
 TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(token)
-        .jsonCodec(new Jackson2Codec())
+        .codec(new Jackson2Codec())
         .build();
 ```
 
@@ -515,7 +515,7 @@ Two options:
    in your domain code, or need a shape it doesn't have (e.g. a synchronous-only facade). Mock
    *that* interface instead.
 
-Don't mock the `HttpTransport`/`JsonCodec` SPIs directly, though — they're lower-level than
+Don't mock the `HttpTransport`/`Codec` SPIs directly, though — they're lower-level than
 anything your code calls (they don't even appear in `TypeSafeClient`'s public methods), and a
 test built on them breaks whenever this library's internals change for reasons that have nothing
 to do with your code.
@@ -548,7 +548,7 @@ payloads — for example to publish or consume them on a Kafka topic — depend 
 (`typesafe-java-codec-jackson2` or `-jackson3`, which brings `core`) and nothing else:
 
 ```java
-JsonCodec codec = new Jackson2Codec();
+Codec codec = new Jackson2Codec();
 byte[] json = codec.writeValueAsBytes(request);              // UTF-8 JSON
 EvaluateResponse response = codec.readValue(json, EvaluateResponse.class);
 ```
@@ -661,7 +661,7 @@ try (TypeSafeClient client = LocalLayaTypeSafeClient.load(laya)) {
 
 Loading reads the whole model, so keep one client for the life of your application. If it fails:
 
-- `IllegalStateException: No JsonCodec found` — add `typesafe-java-codec-jackson2` or `typesafe-java-codec-jackson3`.
+- `IllegalStateException: No Codec found` — add `typesafe-java-codec-jackson2` or `typesafe-java-codec-jackson3`.
 - `IllegalArgumentException: ... not found` / `no .onnx file` — the directory isn't the one step 2 wrote.
 - an error from `ai.onnxruntime` loading its native library — a platform its jar doesn't cover (see above).
 
@@ -764,7 +764,7 @@ Things to know:
 ## Run the acceptance tests against the live API
 
 The acceptance tests in the `acceptance` module run every scenario once per HttpTransport/
-JsonCodec combination and are excluded from a routine build. Opt in once you have
+Codec combination and are excluded from a routine build. Opt in once you have
 `~/.typesafe.apikey` in place:
 
 ```bash

@@ -5,7 +5,7 @@ Date: 2026-10-04
 ## Status
 
 Accepted. Refines the module layout of [ADR 0001](0001-multi-module-layout-with-pluggable-json-codec.md);
-its reasons for the `JsonCodec`/`HttpTransport` SPIs still hold.
+its reasons for the `Codec`/`HttpTransport` SPIs still hold.
 
 ## Context
 
@@ -27,14 +27,14 @@ ones, and the layout stopped saying what depended on what:
 Three layers, each a module (or a family of modules) that only depends on the layers below it:
 
 - **`core`, the model**, with no dependencies: `Answer`, `Question`, `Content`, `EvaluateRequest`,
-  `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, and the `JsonCodec` SPI. With a
+  `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, and the `Codec` SPI. With a
   `codec-*` module it serializes TypeSafe payloads without any client code.
 - **`client`, the contract**: the `TypeSafeClient` interface, `TypeSafeException`, and the decorators
   that wrap any implementation (`RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter`).
 - **`client-*`, the implementations and what builds on the contract**, none depending on another:
   `client-http` (`DefaultTypeSafeClient`, `ApiKey`, the `HttpTransport` SPI) with its transports
   `client-http-jdk` and `client-http-okhttp`; `client-local`; `client-mapping`; `client-testkit`.
-- **`codec-*`** modules implement `JsonCodec` on `core` alone: `codec-jackson2`, `codec-jackson3`.
+- **`codec-*`** modules implement `Codec` on `core` alone: `codec-jackson2`, `codec-jackson3`.
 
 **One name per module**: its directory, its artifact (`typesafe-java-<module>`) and its single package
 (`io.github.dfa1.typesafe.<module>`, dashes as dots) are the same, and no package spans two modules. A
@@ -43,7 +43,11 @@ module named `X-Y` builds on module `X`.
 `TypeSafeClient.builder()` is removed: `client` can't reference `client-http`. Callers write
 `DefaultTypeSafeClient.builder()`.
 
-`JsonCodec` stays in `core` rather than in a `codec` module of its own: everything that uses it
+The serialization SPI is `Codec` (it was `JsonCodec`), with `byte[]` in and out: the JSON codecs
+write UTF-8 straight to the wire with no `String` copy, and a binary format (e.g. protobuf, #37) can
+implement the same interface. `client-http` still needs a JSON one, since the API speaks JSON.
+
+`Codec` stays in `core` rather than in a `codec` module of its own: everything that uses it
 (`client-http`, `client-local`, the codecs) needs `core` anyway, so a separate artifact would always
 travel with it.
 

@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestId;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import tools.jackson.databind.ObjectMapper;
@@ -14,11 +14,11 @@ import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.module.SimpleModule;
 
 /**
- * JsonCodec backed by Jackson 3.x. Owns the polymorphic {@code type} discriminator for
+ * Codec backed by Jackson 3.x. Owns the polymorphic {@code type} discriminator for
  * {@link Answer} and {@link Question} via mixins, since the client DTOs carry no Jackson
  * annotations of their own.
  */
-public final class Jackson3Codec implements JsonCodec {
+public final class Jackson3Codec implements Codec {
 
     private final ObjectMapper mapper = JsonMapper.builder()
             .propertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)

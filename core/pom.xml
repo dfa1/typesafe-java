@@ -13,7 +13,7 @@
   <name>TypeSafe Core</name>
   <description>
     The TypeSafe wire model (Answer, Question, Content, EvaluateRequest/EvaluateResponse, Usage,
-    RequestId, Model, ModelDetails) and the JsonCodec SPI. No dependencies. With a codec-* module it
+    RequestId, Model, ModelDetails) and the Codec SPI. No dependencies. With a codec-* module it
     serializes TypeSafe payloads without any client code, e.g. for a Kafka producer/consumer; the
     client contract is typesafe-java-client.
   </description>

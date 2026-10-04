@@ -23,7 +23,7 @@ slightly better on choices (68% vs 64%). Clef-flash, trained for exactly these d
 The module depends on `core` and ONNX Runtime. Tokenization is a small pure-Java byte-level BPE reading
 `tokenizer.json`, checked id for id against HuggingFace `tokenizers`. The alternatives were an 18 MB native tokenizer
 library, or a Java ML library whose tokenizer silently dropped newlines and special tokens. JSON (`tokenizer.json`,
-Laya's config, structured states) goes through the same `JsonCodec` the API client uses. Laya was trained on
+Laya's config, structured states) goes through the same `Codec` the API client uses. Laya was trained on
 Python's `json.dumps` spacing, but Jackson's compact output measured no different against Jev. Model files come from a
 directory the caller fills with `hf download`, never from a download at run time: the client works offline and a
 deployment pins exactly the files it runs. Laya's ONNX is
@@ -82,7 +82,7 @@ discriminator logic into private mixins inside `codec-jackson2`/`codec-jackson3`
 See [ADR 0001](../adr/0001-multi-module-layout-with-pluggable-json-codec.md) for the full
 decision record.
 
-## Why `JsonCodec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
+## Why `Codec` and `HttpTransport` are resolved via `ServiceLoader`, not a compile dependency
 
 `client-http` cannot declare a compile dependency on `codec-jackson2`/`codec-jackson3` or on
 `client-http-jdk` — any of those choices would undo the whole point of splitting them out.
@@ -97,13 +97,13 @@ design avoids.
 ## Why `HttpTransport` exists
 
 `TypeSafeClient` originally called `java.net.http.HttpClient` directly. Abstracting that behind
-`HttpTransport` — mirroring `JsonCodec` — means someone who wants Apache HttpClient, OkHttp, or a
+`HttpTransport` — mirroring `Codec` — means someone who wants Apache HttpClient, OkHttp, or a
 mocked transport for tests can implement one interface (`post`/`get`, both already
 `CompletableFuture`-returning) instead of forking the client.
 
 ## Why the model is in `core`, the contract in `client`, and each client in its own module
 
-`core` is the model and the `JsonCodec` SPI, nothing else. `client` is what every client agrees on:
+`core` is the model and the `Codec` SPI, nothing else. `client` is what every client agrees on:
 the `TypeSafeClient` interface, the decorators that wrap any implementation (retries, a deadline,
 token counting), and `TypeSafeException`. Each implementation is a `client-*` module on top of it:
 `client-http` calls the API, `client-local` runs a model in-process, and
@@ -111,7 +111,7 @@ token counting), and `TypeSafeException`. Each implementation is a `client-*` mo
 compiler enforces it: `client` can't see `DefaultTypeSafeClient`, which is why `TypeSafeClient` has
 no `builder()`.
 
-`JsonCodec` stays in `core`, next to the model it serializes: `client-local` reads its model configs
+`Codec` stays in `core`, next to the model it serializes: `client-local` reads its model configs
 through it too, and the model plus a `codec-*` module is enough to serialize TypeSafe payloads (e.g.
 onto a Kafka topic) without any client code. Every module's directory, artifact and
 package share one name. See [ADR 0003](../adr/0003-model-in-core-contract-in-client.md).
@@ -137,7 +137,7 @@ was expected.
 
 `Builder` moved with it, onto `DefaultTypeSafeClient` rather than staying on the `TypeSafeClient`
 interface: constructing a `DefaultTypeSafeClient` — picking defaults, discovering a
-`HttpTransport`/`JsonCodec` via `ServiceLoader` — is that class's own concern, not something a
+`HttpTransport`/`Codec` via `ServiceLoader` — is that class's own concern, not something a
 pure contract interface should carry. That required making `DefaultTypeSafeClient` itself
 public (a nested class can't be more accessible than its enclosing class). The interface kept a
 one-line `TypeSafeClient.builder()` delegating to it until the module split moved
@@ -207,7 +207,7 @@ a `FailingTypeSafeClient` for testing, a test double) — a builder that constru
 `DefaultTypeSafeClient` internally would bake in "wrap a fresh default client" as the only path,
 against the entire reason the decorator shape exists (see "Why `TypeSafeClient` is an interface,
 not a final class" above). It would also duplicate `DefaultTypeSafeClient.Builder`'s whole
-surface (`httpTransport`, `jsonCodec`, `endpoint`, ...) as forwarding
+surface (`httpTransport`, `codec`, `endpoint`, ...) as forwarding
 methods that go stale the moment the original gains an option this copy doesn't.
 
 What shipped instead is a single addition to the *existing* `Builder`:
@@ -224,7 +224,7 @@ decorator" below). It returns the builder, not the decorator's type, so `build()
 
 ## Why `Content` is a sealed interface, not `Object`
 
-`EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `JsonCodec` can
+`EvaluateRequest.state()` used to be a bare `Object` — "whatever the caller's `Codec` can
 serialize." But [docs.typesafe.ai/concepts/state](https://docs.typesafe.ai/concepts/state)
 documents `state` as exactly three shapes: a string, a JSON object, or an array of text values —
 not open-ended JSON. `Object` was strictly looser than the real API contract: a caller could pass

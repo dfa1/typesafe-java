@@ -15,7 +15,7 @@ Naming rule: a module's directory, artifact (`typesafe-java-<module>`) and singl
 and a module named `X-Y` builds on module `X` (ADR 0003).
 
 core      — the model, no dependencies: Answer, Question, Content, EvaluateRequest/
-            EvaluateResponse, Usage, RequestId, Model, ModelDetails, plus the JsonCodec SPI, all
+            EvaluateResponse, Usage, RequestId, Model, ModelDetails, plus the Codec SPI, all
             in io.github.dfa1.typesafe.core. The model + a codec serializes payloads (e.g. for
             Kafka) without any client code.
 client    — the contract, on core: TypeSafeClient (interface; no builder() — client can't see
@@ -34,7 +34,7 @@ client    — the contract, on core: TypeSafeClient (interface; no builder() —
             stack. RetryingTypeSafeClient stops retrying once its returned future is done.
             javadoc can't {@link} upwards (core → client, client → client-*: javadoc-check
             fails); name those types in {@code ...}.
-codec-jackson2 — JsonCodec backed by Jackson 2.x. Depends only on core. Owns the `type`
+codec-jackson2 — Codec backed by Jackson 2.x. Depends only on core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
             (no discriminator — string/object/array on the wire; backs both
             EvaluateRequest.state and Question.instructions) via a custom serializer,
@@ -43,9 +43,9 @@ codec-jackson3 — same, backed by Jackson 3.x (tools.jackson.databind).
 client-http — DefaultTypeSafeClient (public, owns Builder: DefaultTypeSafeClient.builder()),
             ApiKey, and the HttpTransport SPI, in io.github.dfa1.typesafe.client.http. One
             request, one response, no retries by default. build() throws if
-            RetryingTypeSafeClient is added more than once. Talks to HttpTransport/JsonCodec,
+            RetryingTypeSafeClient is added more than once. Talks to HttpTransport/Codec,
             never to a concrete library; both discovered via ServiceLoader at build() time (or
-            Builder.httpTransport(...)/jsonCodec(...)).
+            Builder.httpTransport(...)/codec(...)).
 client-http-jdk — HttpTransport backed by java.net.http (class JdkHttpTransport). Depends
             only on client-http. Discovered via ServiceLoader at Builder.build() time (or an
             explicit Builder.httpTransport(...) override).
@@ -98,7 +98,7 @@ client-local — one public TypeSafeClient per model (io.github.dfa1.typesafe.cl
             request's questions in one batch; a port of Laya's Python sequence builder), QwenEngine
             (one prefill per question, softmax over Yes/No/letter/digit logits) and ClefEngine (Qwen3.5-9B +
             joint schema head, a request in one forward pass). Own pure-Java BpeTokenizer
-            (tokenizer.json); JSON through typesafe-java's JsonCodec (ServiceLoader, like the API client),
+            (tokenizer.json); JSON through typesafe-java's Codec (ServiceLoader, like the API client),
             so a codec-jackson2/codec-jackson3 module is needed at run time; BpeTokenizerTest checks ids
             against HF tokenizers, LayaEngineTest checks logits against PyTorch (fixtures under
             src/test/resources). Tests needing model files are @Tag("model"), excluded by the module's
@@ -112,7 +112,7 @@ client-local — one public TypeSafeClient per model (io.github.dfa1.typesafe.cl
             the job summary.
 bom       — dependency-management POM listing every published module (core, codec-*, client-*).
 acceptance — live-API tests only; not published. `AbstractTypeSafeClientAcceptanceTest`
-            holds every test method; one concrete subclass per HttpTransport/JsonCodec
+            holds every test method; one concrete subclass per HttpTransport/Codec
             combination (`JdkHttpClientWithJackson2AcceptanceTest`,
             `JdkHttpClientWithJackson3AcceptanceTest`) supplies the pair via two abstract
             hooks, explicitly constructing the codec/transport (`new Jackson2Codec()`, ...)
@@ -138,7 +138,7 @@ cli       — command-line entry point (`Main`), over client-http-jdk + codec-ja
             set by the shade plugin, and exits without calling the API), `--help`/`-h` (prints
             usage and exits without calling the API). Stdout is silent
             unless `--print <name>` (that answer's value) or `--verbose` (the full
-            `EvaluateResponse` as pretty-printed JSON, via `JsonCodec.writeValueAsPrettyBytes`)
+            `EvaluateResponse` as pretty-printed JSON, via `Codec.writeValueAsPrettyBytes`)
             is given.
 ```
 
@@ -167,7 +167,7 @@ resolving them from the local repo, so a single-module command works right after
 without it, surefire errors on the upstream modules `-am` rebuilds that don't contain the
 named test class.
 
-Acceptance tests (in `acceptance`, one concrete class per HttpTransport/JsonCodec
+Acceptance tests (in `acceptance`, one concrete class per HttpTransport/Codec
 combination) are `@Tag("acceptance")`, hit the real TypeSafe API, and need a token at
 `~/.typesafe.apikey`. Excluded from a routine `./mvnw test` via the `excludedGroups=acceptance`
 property (surefire). Opt in with:
@@ -182,7 +182,7 @@ property (surefire). Opt in with:
   Polymorphism (`Answer`/`Question`'s `type` discriminator) is wired up entirely inside
   each codec module via mixins, not on the DTOs. Adding a third JSON library means
   adding one more codec module; `core`/`client-http` don't change.
-- **`JsonCodec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
+- **`Codec` is discovered via `ServiceLoader`, not a hard compile dependency.** A
   consumer that depends on `client-http-jdk` but forgets a codec module gets a clear
   `IllegalStateException` from `Builder.build()`, not a `NoClassDefFoundError`.
 - **Small public API.** Don't expose internals — when in doubt, leave it out or make it
@@ -199,7 +199,7 @@ in the root pom (Java 17+ blocks the reflection it uses otherwise).
 Prefer testing behavior through the real classes involved (e.g.
 `Jackson2CodecTest`/`Jackson3CodecTest` exercise the codec, not a bare `ObjectMapper`) —
 this is what caught that Jackson 3's builder API differs from Jackson 2's mutable
-`ObjectMapper` during the initial split. `DefaultTypeSafeClientTest` mocks `HttpTransport`/`JsonCodec`
+`ObjectMapper` during the initial split. `DefaultTypeSafeClientTest` mocks `HttpTransport`/`Codec`
 to verify `DefaultTypeSafeClient` calls the SPIs correctly, without a real HTTP round trip. Every test
 has `// Given` / `// When` / `// Then` comments marking its three phases (omit `// Given` when
 there's nothing to arrange). The pre-built instance a test invokes behavior on is named `sut`

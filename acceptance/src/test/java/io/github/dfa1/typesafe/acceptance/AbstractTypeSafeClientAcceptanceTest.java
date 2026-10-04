@@ -8,7 +8,7 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 import io.github.dfa1.typesafe.client.mapping.Choice;
 import io.github.dfa1.typesafe.client.mapping.MappingTypeSafeClient;
 import io.github.dfa1.typesafe.client.mapping.Noul;
@@ -32,7 +32,7 @@ import static org.assertj.core.api.Assertions.within;
 
 /**
  * Acceptance tests against the live TypeSafe API, run once per {@link HttpTransport}/
- * {@link JsonCodec} combination by a concrete subclass (e.g.
+ * {@link Codec} combination by a concrete subclass (e.g.
  * {@code JdkHttpClientWithJackson2AcceptanceTest}). The model's judgment can change over time,
  * so assertions on {@code Choice}/{@code Score} answers only check the response is structurally
  * well-formed (values in range, probabilities summing to ~1, keys matching what was asked)
@@ -46,13 +46,13 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
 
     protected abstract HttpTransport httpTransport();
 
-    protected abstract JsonCodec jsonCodec();
+    protected abstract Codec codec();
 
     @BeforeEach
     void setUp() throws Exception {
         sut = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
                 .httpTransport(httpTransport())
-                .jsonCodec(jsonCodec())
+                .codec(codec())
                 .build();
     }
 

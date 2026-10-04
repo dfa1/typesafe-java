@@ -4,7 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -46,9 +46,9 @@ final class Onnx {
         return OnnxTensor.createTensor(ENV, LongBuffer.wrap(data), shape);
     }
 
-    /** typesafe-java's JsonCodec (jackson2 or jackson3), found the way the API client finds it. */
-    static JsonCodec json() {
-        return Codec.INSTANCE;
+    /** typesafe-java's Codec (jackson2 or jackson3), found the way the API client finds it. */
+    static Codec json() {
+        return LazyCodec.INSTANCE;
     }
 
     /** {@code value} as compact JSON text, for a model that reads JSON as part of its prompt. */
@@ -56,9 +56,9 @@ final class Onnx {
         return new String(json().writeValueAsBytes(value), StandardCharsets.UTF_8);
     }
 
-    private static final class Codec {
-        static final JsonCodec INSTANCE = ServiceLoader.load(JsonCodec.class).findFirst()
-                .orElseThrow(() -> new IllegalStateException("No JsonCodec found on the classpath. Add typesafe-java-codec-jackson2 "
+    private static final class LazyCodec {
+        static final Codec INSTANCE = ServiceLoader.load(Codec.class).findFirst()
+                .orElseThrow(() -> new IllegalStateException("No Codec found on the classpath. Add typesafe-java-codec-jackson2 "
                         + "or typesafe-java-codec-jackson3 as a dependency."));
     }
 

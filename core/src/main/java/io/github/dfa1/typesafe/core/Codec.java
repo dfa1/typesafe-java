@@ -1,11 +1,12 @@
 package io.github.dfa1.typesafe.core;
 
 /**
- * JSON serialization plugged in by a codec module (typesafe-java-codec-jackson2 or -jackson3), as
- * UTF-8 bytes: what goes over the wire, with no {@code String} in between. Implementations are
+ * Serialization of the model to and from bytes, plugged in by a codec module, with no {@code String}
+ * in between. The ones shipped (typesafe-java-codec-jackson2, -jackson3) write UTF-8 JSON, which is
+ * what typesafe-java-client-http sends, since the TypeSafe API speaks JSON. Implementations are
  * discovered via {@link java.util.ServiceLoader}.
  */
-public interface JsonCodec {
+public interface Codec {
 
     byte[] writeValueAsBytes(Object value);
 

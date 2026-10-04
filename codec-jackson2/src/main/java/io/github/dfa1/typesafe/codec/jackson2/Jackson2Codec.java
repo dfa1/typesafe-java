@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestId;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonFactory;
@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 
 /**
- * JsonCodec backed by Jackson 2.x. Owns the polymorphic {@code type} discriminator for
+ * Codec backed by Jackson 2.x. Owns the polymorphic {@code type} discriminator for
  * {@link Answer} and {@link Question} via mixins, since the client DTOs carry no Jackson
  * annotations of their own.
  */
-public final class Jackson2Codec implements JsonCodec {
+public final class Jackson2Codec implements Codec {
 
     // UTF-8 output escapes characters outside the BMP (e.g. emoji) as surrogate pairs unless told otherwise;
     // a local model tokenizes the text, so they must stay one character, as Jackson 3 writes them

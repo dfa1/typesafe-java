@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.codec.jackson2.Jackson2Codec;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
@@ -75,7 +75,7 @@ public final class JevComparison {
 
     public static void main(String[] args) throws Exception {
         String model = args.length > 0 ? args[0] : "laya";
-        JsonCodec codec = new Jackson2Codec();
+        Codec codec = new Jackson2Codec();
         List<JevCases.Case> cases = JevCases.all();
         List<EvaluateResponse> jev = jevAnswers(codec, cases);
 
@@ -152,7 +152,7 @@ public final class JevComparison {
 
     /** JEV's answers, one JSON line per request in jev/<suite>.jsonl; requests missing from the cache (first run,
      *  or cases added to a suite) are fetched from the real TypeSafe API and appended. */
-    private static List<EvaluateResponse> jevAnswers(JsonCodec codec, List<JevCases.Case> cases) throws IOException {
+    private static List<EvaluateResponse> jevAnswers(Codec codec, List<JevCases.Case> cases) throws IOException {
         Files.createDirectories(CACHE);
         List<EvaluateResponse> result = new ArrayList<>();
         Map<String, List<String>> cached = new LinkedHashMap<>();
@@ -163,7 +163,7 @@ public final class JevComparison {
                 List<String> lines = cached.computeIfAbsent(c.suite(), k -> readLines(file));
                 if (c.index() >= lines.size()) {
                     if (api == null) {
-                        api = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).jsonCodec(codec).build();
+                        api = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile()).codec(codec).build();
                     }
                     EvaluateResponse r = api.evaluate(c.request());
                     // metadata (request id, timing) is per call, not part of the answer

@@ -5,7 +5,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 - [Module layout](#module-layout)
 - [Core types](#core-types)
-- [JsonCodec SPI](#jsoncodec-spi)
+- [Codec SPI](#codec-spi)
 - [HttpTransport SPI](#httptransport-spi)
 - [Testkit](#testkit)
 - [Answer mapping](#answer-mapping)
@@ -15,7 +15,7 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`), `JsonCodec` |
+| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`), `Codec` |
 | `typesafe-java-codec-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
 | `typesafe-java-codec-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-client` | `core` | `TypeSafeClient`, `TypeSafeException`, `RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter` |
@@ -162,12 +162,12 @@ record ModelDetails(String name, String description, String releaseDate)
 One entry of `TypeSafeClient.listModels()`'s result. `model()` returns this model's id as a
 plain `Model`, usable directly as an `EvaluateRequest`'s model.
 
-## JsonCodec SPI
+## Codec SPI
 
 ```java
 package io.github.dfa1.typesafe.core;
 
-public interface JsonCodec {
+public interface Codec {
     byte[] writeValueAsBytes(Object value);
     byte[] writeValueAsPrettyBytes(Object value); // same, indented for human reading
     <T> T readValue(byte[] content, Class<T> type);
@@ -175,8 +175,8 @@ public interface JsonCodec {
 ```
 
 Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
-`ServiceLoader.load(JsonCodec.class)` and registered through
-`META-INF/services/io.github.dfa1.typesafe.core.JsonCodec`. Both own the `Answer`/`Question` polymorphic
+`ServiceLoader.load(Codec.class)` and registered through
+`META-INF/services/io.github.dfa1.typesafe.core.Codec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
 JSON is UTF-8 bytes in and out (RFC 8259), so nothing builds a `String` on the way to or from the
@@ -210,7 +210,7 @@ the async-native shape most HTTP libraries actually provide.
 
 Bodies are `String`, not `byte[]`: `TypeSafeClient` only ever sends/receives JSON over this SPI,
 and JSON text is UTF-8 by construction (RFC 8259), so there's no charset this layer needs to
-guess at. `JsonCodec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
+guess at. `Codec` stays `byte[]`-based (it's reused standalone, e.g. for a Kafka producer/
 consumer, where messages are raw bytes); `TypeSafeClient` converts once at the boundary between
 the two SPIs. `HttpTransportResponse` copies `headers` defensively (`Map.copyOf`) so a caller
 that mutates the map it passed in afterward can't reach back into an already-returned response.
@@ -340,7 +340,7 @@ public final class LocalClefTypeSafeClient implements TypeSafeClient {
 
 One class per model, each a `TypeSafeClient` that evaluates on ONNX Runtime in-process, reading the model from `dir`: `tokenizer.json`
 (plus `config.json` for Laya) and the one `.onnx` file in `dir/onnx` or `dir`, as `hf download` lays them out (see the
-[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `JsonCodec` module
+[how-to](how-to.md#run-without-the-api-on-a-local-model)). Nothing is downloaded at run time. A `Codec` module
 (`typesafe-java-codec-jackson2` or `-jackson3`) must be on the classpath, as for the API client. The module depends on
 `com.microsoft.onnxruntime:onnxruntime` (56 MB, native code for Linux x64/ARM64, macOS Apple Silicon and Windows x64
 only).
@@ -426,10 +426,10 @@ try-with-resources, or skip closing for a client that lives as long as the proce
 | Method | Default |
 |---|---|
 | `httpTransport(HttpTransport)` | resolved via `ServiceLoader` at `build()` time |
-| `jsonCodec(JsonCodec)` | resolved via `ServiceLoader` at `build()` time |
+| `codec(Codec)` | resolved via `ServiceLoader` at `build()` time |
 | `endpoint(URI)` | `https://api.typesafe.ai/v1/systemone` |
 | `decorateWith(Function<TypeSafeClient, ? extends TypeSafeClient>)` | none — adds a decorator around the built client; repeatable, each one around everything added before it (last added outermost). See [how-to](how-to.md#choose-the-order-of-decorators) |
-| `build()` | throws `IllegalStateException` if no `HttpTransport` or `JsonCodec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
+| `build()` | throws `IllegalStateException` if no `HttpTransport` or `Codec` is set or discoverable, or if more than one `RetryingTypeSafeClient` was added |
 | `<T extends TypeSafeClient> build(Function<TypeSafeClient, T> decorate)` | `decorate.apply(build())` — wraps the built client in a decorator (e.g. `MappingTypeSafeClient::decorate`) in one call, returning `T` instead of the plain `TypeSafeClient`. Applied outermost, after every `decorateWith(...)`. |
 
 ### `RetryingTypeSafeClient`
@@ -491,7 +491,7 @@ sealed class TypeSafeException extends RuntimeException {
 ```
 
 The base class is also the catch-all: constructed directly for a status with no dedicated
-subclass below. A `200` response the configured `JsonCodec` couldn't decode throws
+subclass below. A `200` response the configured `Codec` couldn't decode throws
 `TypeSafeException.ResponseDecoding` (`statusCode()` `200`, `getCause()` the codec's original
 exception) instead of that exception escaping directly. This mirrors the per-status hierarchy of
 the Python SDK (`typesafe-ai/typesafe-sdk-python`'s `TypeSafeAPIError` subclasses); unlike

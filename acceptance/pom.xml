@@ -13,7 +13,7 @@
   <name>TypeSafe Acceptance Tests</name>
   <description>
     Tests TypeSafeClient end-to-end against the live TypeSafe API, once per HttpTransport/
-    JsonCodec combination. Not published — exists only to run its own tests.
+    Codec combination. Not published — exists only to run its own tests.
   </description>
 
   <properties>

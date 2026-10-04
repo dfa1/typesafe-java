@@ -107,9 +107,9 @@ for `typesafe-java-client-http-okhttp`.
 
 | Module | Contains |
 |---|---|
-| `core` | the model (`EvaluateRequest`, `EvaluateResponse`, `Question`, `Answer`, ...) and the `JsonCodec` SPI; no dependencies |
+| `core` | the model (`EvaluateRequest`, `EvaluateResponse`, `Question`, `Answer`, ...) and the `Codec` SPI; no dependencies |
 | `client` | the `TypeSafeClient` interface, `TypeSafeException`, and the decorators that wrap any client (retries, deadline, token counting) |
-| `codec-jackson2` / `codec-jackson3` | `JsonCodec` backed by Jackson 2.x / 3.x |
+| `codec-jackson2` / `codec-jackson3` | `Codec` backed by Jackson 2.x / 3.x |
 | `client-http` | `DefaultTypeSafeClient`, the `TypeSafeClient` that calls the API, and the `HttpTransport` SPI |
 | `client-http-jdk` | `HttpTransport` backed by `java.net.http` |
 | `client-http-okhttp` | `HttpTransport` backed by OkHttp — an alternative for environments `java.net.http` doesn't cover, e.g. Android |

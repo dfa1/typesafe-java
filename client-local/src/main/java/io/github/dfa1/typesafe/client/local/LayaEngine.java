@@ -271,7 +271,7 @@ final class LayaEngine implements Engine {
     }
 
     /** rl_common.serialize_state: text as is, anything else as JSON. Laya was trained on Python's json.dumps spacing;
-     *  JsonCodec's compact form measured no different against Jev (104 requests), so it isn't reproduced. */
+     *  Codec's compact form measured no different against Jev (104 requests), so it isn't reproduced. */
     static String serialize(Content content) {
         return switch (content) {
             case Content.Text(String value) -> value;

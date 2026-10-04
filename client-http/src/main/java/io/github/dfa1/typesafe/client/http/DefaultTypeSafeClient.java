@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.RequestId;
 import io.github.dfa1.typesafe.client.RetryingTypeSafeClient;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.client.TypeSafeException;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -32,15 +32,15 @@ import java.util.function.Function;
 public final class DefaultTypeSafeClient implements TypeSafeClient {
 
     private final HttpTransport transport;
-    private final JsonCodec jsonCodec;
+    private final Codec codec;
     private final ApiKey apiKey;
     private final URI endpoint;
     private final URI modelsEndpoint;
 
-    private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, JsonCodec jsonCodec, URI endpoint) {
+    private DefaultTypeSafeClient(ApiKey apiKey, HttpTransport transport, Codec codec, URI endpoint) {
         this.apiKey = apiKey;
         this.transport = transport;
-        this.jsonCodec = jsonCodec;
+        this.codec = codec;
         this.endpoint = endpoint;
         this.modelsEndpoint = URI.create(endpoint.getScheme() + "://" + endpoint.getAuthority() + "/v1/models");
     }
@@ -59,7 +59,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         Map<String, String> headers = requestHeaders();
         byte[] body;
         try {
-            body = jsonCodec.writeValueAsBytes(request);
+            body = codec.writeValueAsBytes(request);
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -183,7 +183,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     }
 
     private EvaluateResponse toEvaluateResponse(HttpTransportResponse response) {
-        EvaluateResponse body = jsonCodec.readValue(response.body(), EvaluateResponse.class);
+        EvaluateResponse body = codec.readValue(response.body(), EvaluateResponse.class);
         EvaluateResponse.Metadata metadata = new EvaluateResponse.Metadata(
                 response.header("x-typesafe-request-id").map(RequestId::new).orElse(null),
                 response.header("x-envoy-upstream-service-time")
@@ -192,7 +192,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     }
 
     private List<ModelDetails> toModelDetails(HttpTransportResponse response) {
-        return jsonCodec.readValue(response.body(), ModelsResponse.class).models();
+        return codec.readValue(response.body(), ModelsResponse.class).models();
     }
 
     /**
@@ -218,7 +218,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
 
         private ApiKey apiKey;
         private HttpTransport transport;
-        private JsonCodec jsonCodec;
+        private Codec codec;
         private URI endpoint = DEFAULT_ENDPOINT;
         private final List<Function<TypeSafeClient, ? extends TypeSafeClient>> decorators = new ArrayList<>();
 
@@ -235,8 +235,8 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             return this;
         }
 
-        public Builder jsonCodec(JsonCodec jsonCodec) {
-            this.jsonCodec = jsonCodec;
+        public Builder codec(Codec codec) {
+            this.codec = codec;
             return this;
         }
 
@@ -281,7 +281,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
         /**
          * Builds the client, applying every {@link #decorateWith} decorator in the order added.
          *
-         * @throws IllegalStateException if no {@link HttpTransport} or {@link JsonCodec} is set or
+         * @throws IllegalStateException if no {@link HttpTransport} or {@link Codec} is set or
          *         discoverable, or if more than one {@link RetryingTypeSafeClient} was added (the
          *         attempts would multiply)
          */
@@ -303,7 +303,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
          */
         public <T extends TypeSafeClient> T build(Function<TypeSafeClient, T> decorate) {
             HttpTransport resolvedTransport = transport != null ? transport : loadDefaultHttpTransport();
-            JsonCodec resolvedCodec = jsonCodec != null ? jsonCodec : loadDefaultJsonCodec();
+            Codec resolvedCodec = codec != null ? codec : loadDefaultCodec();
             TypeSafeClient client = new DefaultTypeSafeClient(apiKey, resolvedTransport, resolvedCodec, endpoint);
             int retrying = 0;
             for (Function<TypeSafeClient, ? extends TypeSafeClient> decorator : decorators) {
@@ -327,11 +327,11 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
                                     + "as a dependency, or call Builder.httpTransport(...)."));
         }
 
-        private static JsonCodec loadDefaultJsonCodec() {
-            return ServiceLoader.load(JsonCodec.class).findFirst()
+        private static Codec loadDefaultCodec() {
+            return ServiceLoader.load(Codec.class).findFirst()
                     .orElseThrow(() -> new IllegalStateException(
-                            "No JsonCodec found on the classpath. Add typesafe-java-codec-jackson2 or "
-                                    + "typesafe-java-codec-jackson3 as a dependency, or call Builder.jsonCodec(...)."));
+                            "No Codec found on the classpath. Add typesafe-java-codec-jackson2 or "
+                                    + "typesafe-java-codec-jackson3 as a dependency, or call Builder.codec(...)."));
         }
     }
 }

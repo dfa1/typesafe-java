@@ -11,7 +11,7 @@ import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.client.http.jdk.JdkHttpTransport;
-import io.github.dfa1.typesafe.core.JsonCodec;
+import io.github.dfa1.typesafe.core.Codec;
 
 import java.nio.charset.StandardCharsets;
 import java.io.PrintStream;
@@ -70,7 +70,7 @@ public final class Main {
 
         Jackson3Codec codec = new Jackson3Codec();
         try (TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
-                .jsonCodec(codec)
+                .codec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build()) {
             return run(client, codec, parsed, out, err);
@@ -79,7 +79,7 @@ public final class Main {
 
     /** The evaluate-and-print flow, taking an already-built client so it's testable without a
      *  network call. */
-    static int run(TypeSafeClient client, JsonCodec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
+    static int run(TypeSafeClient client, Codec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
             throws Exception {
         EvaluateRequest request = EvaluateRequest.of(Content.text(parsed.state()), parsed.model(), parsed.questions());
 
@@ -214,7 +214,7 @@ public final class Main {
         return 1;
     }
 
-    private static String pretty(JsonCodec codec, Object value) {
+    private static String pretty(Codec codec, Object value) {
         return new String(codec.writeValueAsPrettyBytes(value), StandardCharsets.UTF_8);
     }
 }
