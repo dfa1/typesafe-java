@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.RequestId;
 import io.github.dfa1.typesafe.core.RetryingTypeSafeClient;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
 import io.github.dfa1.typesafe.core.TypeSafeException;
-import io.github.dfa1.typesafe.codec.JsonCodec;
+import io.github.dfa1.typesafe.core.JsonCodec;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;

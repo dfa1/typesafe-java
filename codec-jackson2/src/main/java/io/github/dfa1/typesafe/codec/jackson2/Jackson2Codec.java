@@ -5,7 +5,7 @@ import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.RequestId;
-import io.github.dfa1.typesafe.codec.JsonCodec;
+import io.github.dfa1.typesafe.core.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.core.JsonProcessingException;

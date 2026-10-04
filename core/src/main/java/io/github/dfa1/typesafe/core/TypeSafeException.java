@@ -99,7 +99,7 @@ public sealed class TypeSafeException extends RuntimeException {
         }
     }
 
-    /** {@code 200}, but the configured {@link io.github.dfa1.typesafe.codec.JsonCodec} couldn't
+    /** {@code 200}, but the configured {@link io.github.dfa1.typesafe.core.JsonCodec} couldn't
      *  decode the response body. */
     public static final class ResponseDecoding extends TypeSafeException {
         public ResponseDecoding(String body, Throwable cause) {

@@ -28,7 +28,7 @@ core      — the contract, no dependencies. TypeSafeClient (interface; no build
             stack. RetryingTypeSafeClient stops retrying once its returned future is done.
             TypeSafeException and the wire model (Answer, Question, Content,
             EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails), all in
-            io.github.dfa1.typesafe.core; plus the JsonCodec SPI (io.github.dfa1.typesafe.codec),
+            io.github.dfa1.typesafe.core, as is the JsonCodec SPI,
             kept here so client-local and the codecs need nothing else, and the model + a codec
             serializes payloads (e.g. for Kafka) without HTTP code. javadoc in core can't
             {@link} into client-* modules (javadoc-check fails); name them in {@code ...}.

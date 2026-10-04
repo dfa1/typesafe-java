@@ -164,7 +164,7 @@ plain `Model`, usable directly as an `EvaluateRequest`'s model.
 ## JsonCodec SPI
 
 ```java
-package io.github.dfa1.typesafe.codec;
+package io.github.dfa1.typesafe.core;
 
 public interface JsonCodec {
     String writeValueAsString(Object value);
@@ -175,7 +175,7 @@ public interface JsonCodec {
 
 Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `ServiceLoader.load(JsonCodec.class)` and registered through
-`META-INF/services/io.github.dfa1.typesafe.codec.JsonCodec`. Both own the `Answer`/`Question` polymorphic
+`META-INF/services/io.github.dfa1.typesafe.core.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
 `readValue`'s `content` is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by

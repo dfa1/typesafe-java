@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe.codec;
+package io.github.dfa1.typesafe.core;
 
 /**
  * JSON serialization plugged in by a codec module (typesafe-jackson2 or typesafe-jackson3).

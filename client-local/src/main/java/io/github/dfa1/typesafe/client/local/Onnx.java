@@ -4,7 +4,7 @@ import ai.onnxruntime.OnnxTensor;
 import ai.onnxruntime.OrtEnvironment;
 import ai.onnxruntime.OrtException;
 import ai.onnxruntime.OrtSession;
-import io.github.dfa1.typesafe.codec.JsonCodec;
+import io.github.dfa1.typesafe.core.JsonCodec;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
