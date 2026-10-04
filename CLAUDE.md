@@ -14,10 +14,13 @@ Naming rule: a module's directory, artifact (`typesafe-java-<module>`) and singl
 (`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name, no package spans two modules,
 and a module named `X-Y` builds on module `X` (ADR 0003).
 
-core      — the model, no dependencies: Answer, Question, Content, EvaluateRequest/
-            EvaluateResponse, Usage, RequestId, Model, ModelDetails, plus the Codec SPI, all
-            in io.github.dfa1.typesafe.core. The model + a codec serializes payloads (e.g. for
-            Kafka) without any client code.
+core      — the model as plain records, no dependencies: Answer, Question, Content,
+            EvaluateRequest/EvaluateResponse, Usage, RequestId, Model, ModelDetails, in
+            io.github.dfa1.typesafe.core. The model + a codec-* module serializes payloads (e.g.
+            for Kafka) without any client code.
+codec     — the Codec SPI (byte[] in/out; writeValueAsBytes/readValue), no dependencies.
+            Implemented by codec-*, discovered via ServiceLoader; client-http and client-local
+            need a JSON one (the API, model configs and prompts are JSON).
 client    — the contract, on core: TypeSafeClient (interface; no builder() — client can't see
             its implementations: DefaultTypeSafeClient in client-http, the local clients in
             client-local. A consumer can implement TypeSafeClient itself to decorate one, e.g.
@@ -34,7 +37,7 @@ client    — the contract, on core: TypeSafeClient (interface; no builder() —
             stack. RetryingTypeSafeClient stops retrying once its returned future is done.
             javadoc can't {@link} upwards (core → client, client → client-*: javadoc-check
             fails); name those types in {@code ...}.
-codec-jackson2 — Codec backed by Jackson 2.x. Depends only on core. Owns the `type`
+codec-jackson2 — Codec backed by Jackson 2.x. Depends only on codec and core. Owns the `type`
             discriminator for Answer/Question via private Jackson mixins (addMixIn); Content
             (no discriminator — string/object/array on the wire; backs both
             EvaluateRequest.state and Question.instructions) via a custom serializer,
@@ -142,8 +145,8 @@ cli       — command-line entry point (`Main`), over client-http-jdk + codec-ja
             is given.
 ```
 
-Dependency rule: `codec-jackson2 → core`, `codec-jackson3 → core`, `client → core`, `client-http → client`,
-`client-http-jdk → client-http`, `client-http-okhttp → client-http`, `client-local → client` (plus ONNX
+Dependency rule: `codec-jackson2 → codec, core`, `codec-jackson3 → codec, core`, `client → core`, `client-http → client, codec`,
+`client-http-jdk → client-http`, `client-http-okhttp → client-http`, `client-local → client, codec` (plus ONNX
 Runtime; its own tests additionally depend on `client-http-jdk` and `codec-jackson2`, test scope
 only), `client-mapping → client` (its own tests additionally depend on `client-testkit`, test scope
 only), `client-testkit → client`, `cli → client-http, client-http-jdk, codec-jackson3`, `acceptance →

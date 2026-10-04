@@ -25,6 +25,12 @@
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-codec</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
         <artifactId>typesafe-java-client</artifactId>
         <version>${project.version}</version>
       </dependency>

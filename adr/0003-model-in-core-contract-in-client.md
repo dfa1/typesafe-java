@@ -24,17 +24,19 @@ ones, and the layout stopped saying what depended on what:
 
 ## Decision
 
-Three layers, each a module (or a family of modules) that only depends on the layers below it:
+Layers, each a module (or a family of modules) that only depends on the layers below it:
 
-- **`core`, the model**, with no dependencies: `Answer`, `Question`, `Content`, `EvaluateRequest`,
-  `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`, and the `Codec` SPI. With a
-  `codec-*` module it serializes TypeSafe payloads without any client code.
+- **`core`, the model**, as plain records with no dependencies: `Answer`, `Question`, `Content`,
+  `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`.
+- **`codec`, the serialization SPI** (`Codec`), with no dependencies. With a `codec-*` module, `core`
+  serializes TypeSafe payloads without any client code.
 - **`client`, the contract**: the `TypeSafeClient` interface, `TypeSafeException`, and the decorators
   that wrap any implementation (`RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter`).
 - **`client-*`, the implementations and what builds on the contract**, none depending on another:
   `client-http` (`DefaultTypeSafeClient`, `ApiKey`, the `HttpTransport` SPI) with its transports
   `client-http-jdk` and `client-http-okhttp`; `client-local`; `client-mapping`; `client-testkit`.
-- **`codec-*`** modules implement `Codec` on `core` alone: `codec-jackson2`, `codec-jackson3`.
+- **`codec-*`** modules implement `Codec` for the model, on `codec` and `core`: `codec-jackson2`,
+  `codec-jackson3`. `client-http` and `client-local` depend on `codec` too.
 
 **One name per module**: its directory, its artifact (`typesafe-java-<module>`) and its single package
 (`io.github.dfa1.typesafe.<module>`, dashes as dots) are the same, and no package spans two modules. A
@@ -47,9 +49,8 @@ The serialization SPI is `Codec` (it was `JsonCodec`), with `byte[]` in and out:
 write UTF-8 straight to the wire with no `String` copy, and a binary format (e.g. protobuf, #37) can
 implement the same interface. `client-http` still needs a JSON one, since the API speaks JSON.
 
-`Codec` stays in `core` rather than in a `codec` module of its own: everything that uses it
-(`client-http`, `client-local`, the codecs) needs `core` anyway, so a separate artifact would always
-travel with it.
+`Codec` is a module of its own rather than a class in `core`: it is the only behaviour `core` would
+otherwise hold, and without a `codec` module the `codec-*` modules would break the `X-Y` rule.
 
 ## Consequences
 

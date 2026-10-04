@@ -8,7 +8,7 @@ import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
-import io.github.dfa1.typesafe.core.Codec;
+import io.github.dfa1.typesafe.codec.Codec;
 import io.github.dfa1.typesafe.client.mapping.Choice;
 import io.github.dfa1.typesafe.client.mapping.MappingTypeSafeClient;
 import io.github.dfa1.typesafe.client.mapping.Noul;

@@ -38,6 +38,7 @@
 
   <modules>
     <module>core</module>
+    <module>codec</module>
     <module>codec-jackson2</module>
     <module>codec-jackson3</module>
     <module>client</module>

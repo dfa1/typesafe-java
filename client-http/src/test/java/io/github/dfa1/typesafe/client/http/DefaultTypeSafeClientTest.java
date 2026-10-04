@@ -12,7 +12,7 @@ import io.github.dfa1.typesafe.client.RetryingTypeSafeClient;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.client.TypeSafeException;
 import io.github.dfa1.typesafe.core.Usage;
-import io.github.dfa1.typesafe.core.Codec;
+import io.github.dfa1.typesafe.codec.Codec;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

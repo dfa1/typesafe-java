@@ -12,7 +12,7 @@
 
   <name>TypeSafe Client HTTP</name>
   <description>The TypeSafeClient that calls the TypeSafe API over HTTP: DefaultTypeSafeClient and its
-    Builder, plus the HttpTransport SPI it sends through. Depends only on typesafe-java-client; needs one
+    Builder, plus the HttpTransport SPI it sends through. Depends only on typesafe-java-client and typesafe-java-codec; needs one
     transport (typesafe-java-client-http-jdk or -okhttp) and one codec (typesafe-java-codec-jackson2 or
     -jackson3) at run time, discovered via ServiceLoader.
   </description>
@@ -21,6 +21,11 @@
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-codec</artifactId>
       <version>${project.version}</version>
     </dependency>
 

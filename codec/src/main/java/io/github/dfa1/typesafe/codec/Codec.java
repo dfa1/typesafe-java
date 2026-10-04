@@ -1,4 +1,4 @@
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.codec;
 
 /**
  * Serialization of the model to and from bytes, plugged in by a codec module, with no {@code String}

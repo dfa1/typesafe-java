@@ -11,11 +11,16 @@
   <packaging>jar</packaging>
 
   <name>TypeSafe Codec Jackson 2</name>
-  <description>Codec SPI implementation backed by Jackson 2.x. Depends only on
-    typesafe-java-core; discovered via ServiceLoader.
+  <description>Codec implementation backed by Jackson 2.x. Depends only on
+    typesafe-java-codec and typesafe-java-core; discovered via ServiceLoader.
   </description>
 
   <dependencies>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
       <artifactId>typesafe-java-core</artifactId>

@@ -15,17 +15,18 @@ For task-oriented usage see [how-to.md](how-to.md); for design rationale see [ex
 
 | Module | Depends on | Contains |
 |---|---|---|
-| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`), `Codec` |
-| `typesafe-java-codec-jackson2` | `core` | `Jackson2Codec` (Jackson 2.x) |
-| `typesafe-java-codec-jackson3` | `core` | `Jackson3Codec` (Jackson 3.x) |
+| `typesafe-java-core` | — | the model (`Answer`, `Question`, `Content`, `EvaluateRequest`, `EvaluateResponse`, `Usage`, `RequestId`, `Model`, `ModelDetails`) |
+| `typesafe-java-codec` | — | `Codec` |
+| `typesafe-java-codec-jackson2` | `codec`, `core` | `Jackson2Codec` (Jackson 2.x) |
+| `typesafe-java-codec-jackson3` | `codec`, `core` | `Jackson3Codec` (Jackson 3.x) |
 | `typesafe-java-client` | `core` | `TypeSafeClient`, `TypeSafeException`, `RetryingTypeSafeClient`, `DeadlineTypeSafeClient`, `TokenCounter` |
-| `typesafe-java-client-http` | `client` | `DefaultTypeSafeClient` (the TypeSafe API over HTTP), `ApiKey`, `HttpTransport` |
+| `typesafe-java-client-http` | `client`, `codec` | `DefaultTypeSafeClient` (the TypeSafe API over HTTP), `ApiKey`, `HttpTransport` |
 | `typesafe-java-client-http-jdk` | `client-http` | `JdkHttpTransport` (java.net.http) |
 | `typesafe-java-client-http-okhttp` | `client-http` | `OkHttpTransport` (OkHttp) |
-| `typesafe-java-client-local` | `client`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
+| `typesafe-java-client-local` | `client`, `codec`, ONNX Runtime | `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`, `LocalClefTypeSafeClient` (in-process models) |
 | `typesafe-java-client-mapping` | `client` | `MappingTypeSafeClient`, `@Noul`/`@Choice`/`@Score`/`@Option` |
 | `typesafe-java-client-testkit` | `client` | `RecordingTypeSafeClient`, `FailingTypeSafeClient` |
-| `typesafe-java-bom` | — | dependency management for the ten above |
+| `typesafe-java-bom` | — | dependency management for the eleven above |
 
 A module's package is its name with dashes as dots: `typesafe-java-client-http-jdk` holds
 `io.github.dfa1.typesafe.client.http.jdk`. `core` (the model) has no dependencies; `client` is the
@@ -164,8 +165,10 @@ plain `Model`, usable directly as an `EvaluateRequest`'s model.
 
 ## Codec SPI
 
+In `typesafe-java-codec`.
+
 ```java
-package io.github.dfa1.typesafe.core;
+package io.github.dfa1.typesafe.codec;
 
 public interface Codec {
     byte[] writeValueAsBytes(Object value);
@@ -175,7 +178,7 @@ public interface Codec {
 
 Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `ServiceLoader.load(Codec.class)` and registered through
-`META-INF/services/io.github.dfa1.typesafe.core.Codec`. Both own the `Answer`/`Question` polymorphic
+`META-INF/services/io.github.dfa1.typesafe.codec.Codec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
 JSON is UTF-8 bytes in and out (RFC 8259), so nothing builds a `String` on the way to or from the

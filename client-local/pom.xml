@@ -33,6 +33,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-codec</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.microsoft.onnxruntime</groupId>
       <artifactId>onnxruntime</artifactId>
       <version>${onnxruntime.version}</version>

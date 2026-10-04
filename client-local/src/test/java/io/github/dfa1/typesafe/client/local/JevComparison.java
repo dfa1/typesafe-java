@@ -7,7 +7,7 @@ import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.codec.jackson2.Jackson2Codec;
-import io.github.dfa1.typesafe.core.Codec;
+import io.github.dfa1.typesafe.codec.Codec;
 
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;

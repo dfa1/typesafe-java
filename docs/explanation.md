@@ -103,7 +103,7 @@ mocked transport for tests can implement one interface (`post`/`get`, both alrea
 
 ## Why the model is in `core`, the contract in `client`, and each client in its own module
 
-`core` is the model and the `Codec` SPI, nothing else. `client` is what every client agrees on:
+`core` is the model, as plain records, and nothing else. `client` is what every client agrees on:
 the `TypeSafeClient` interface, the decorators that wrap any implementation (retries, a deadline,
 token counting), and `TypeSafeException`. Each implementation is a `client-*` module on top of it:
 `client-http` calls the API, `client-local` runs a model in-process, and
@@ -111,10 +111,11 @@ token counting), and `TypeSafeException`. Each implementation is a `client-*` mo
 compiler enforces it: `client` can't see `DefaultTypeSafeClient`, which is why `TypeSafeClient` has
 no `builder()`.
 
-`Codec` stays in `core`, next to the model it serializes: `client-local` reads its model configs
-through it too, and the model plus a `codec-*` module is enough to serialize TypeSafe payloads (e.g.
-onto a Kafka topic) without any client code. Every module's directory, artifact and
-package share one name. See [ADR 0003](../adr/0003-model-in-core-contract-in-client.md).
+`Codec`, the serialization SPI, is its own `codec` module, so `core` stays pure data and every
+`codec-*` module builds on `codec`, the way every `client-http-*` module builds on `client-http`.
+`client-http` and `client-local` use it; `core` plus a `codec-*` module is enough to serialize
+TypeSafe payloads (e.g. onto a Kafka topic) without any client code. Every module's directory,
+artifact and package share one name. See [ADR 0003](../adr/0003-model-in-core-contract-in-client.md).
 
 ## Why `TypeSafeClient` is an interface, not a final class
 
