@@ -9,6 +9,9 @@ import java.util.Map;
  */
 public sealed interface Question permits Question.Noul, Question.Choice, Question.Score {
 
+    /** What the question asks; every variant has one. */
+    Content instructions();
+
     static Noul noul(String instructions, Map<String, String> criteria) {
         return noul(Content.text(instructions), criteria);
     }

@@ -42,11 +42,7 @@ public final class TokenizerInputs {
             Content state = c.request().state();
             laya.add(LayaEngine.serialize(state));
             for (Question q : c.request().questions().values()) {
-                Content instructions = switch (q) {
-                    case Question.Noul n -> n.instructions();
-                    case Question.Choice ch -> ch.instructions();
-                    case Question.Score s -> s.instructions();
-                };
+                Content instructions = q.instructions();
                 String type = switch (q) {
                     case Question.Noul ignored -> "noul";
                     case Question.Choice ignored -> "choice";

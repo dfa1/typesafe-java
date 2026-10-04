@@ -51,7 +51,7 @@ public final class TokenCounter {
         return inputTokens() + outputTokens();
     }
 
-    private EvaluateResponse record(EvaluateResponse response) {
+    private EvaluateResponse count(EvaluateResponse response) {
         Usage usage = response.usage();
         if (usage != null) {
             inputTokens.add(usage.inputTokens());
@@ -69,12 +69,12 @@ public final class TokenCounter {
 
         @Override
         public EvaluateResponse evaluate(EvaluateRequest request) {
-            return record(delegate.evaluate(request));
+            return count(delegate.evaluate(request));
         }
 
         @Override
         public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
-            return delegate.evaluateAsync(request).thenApply(TokenCounter.this::record);
+            return delegate.evaluateAsync(request).thenApply(TokenCounter.this::count);
         }
 
         @Override

@@ -29,7 +29,7 @@ import java.util.stream.LongStream;
 /**
  * Answers from a chat LLM's next-token logits, never from generated text: one prefill per
  * question, ending where the answer token goes, then a softmax over just the candidate tokens
- * ({@code Yes}/{@code No}, option letters, level digits). Deterministic, nothing to parse.
+ * ({@code Yes}/{@code No}, option letterIds, level digitIds). Deterministic, nothing to parse.
  * Prompted with Qwen2.5's ChatML template.
  */
 final class QwenEngine implements Engine {
@@ -54,8 +54,8 @@ final class QwenEngine implements Engine {
     private final Model model;
     private final int yes;
     private final int no;
-    private final int[] letters = new int[LETTERS.length()];
-    private final int[] digits = new int[DIGITS.length()];
+    private final int[] letterIds = new int[LETTERS.length()];
+    private final int[] digitIds = new int[DIGITS.length()];
 
     /** @param encode for the ChatML template, {@code encodeText} for the user turn (special tokens stay text) */
     QwenEngine(Function<String, long[]> encode, Function<String, long[]> encodeText, Forward forward, Runnable close,
@@ -67,11 +67,11 @@ final class QwenEngine implements Engine {
         this.model = model;
         this.yes = singleToken("Yes");
         this.no = singleToken("No");
-        for (int i = 0; i < letters.length; i++) {
-            letters[i] = singleToken(String.valueOf(LETTERS.charAt(i)));
+        for (int i = 0; i < letterIds.length; i++) {
+            letterIds[i] = singleToken(String.valueOf(LETTERS.charAt(i)));
         }
-        for (int i = 0; i < digits.length; i++) {
-            digits[i] = singleToken(String.valueOf(DIGITS.charAt(i)));
+        for (int i = 0; i < digitIds.length; i++) {
+            digitIds[i] = singleToken(String.valueOf(DIGITS.charAt(i)));
         }
     }
 
@@ -162,9 +162,9 @@ final class QwenEngine implements Engine {
         return switch (question) {
             case Question.Noul ignored -> new Answer.Noul(Probabilities.softmax(logits[yes], logits[no])[0]);
             case Question.Choice(Content ignored, Map<String, String> criteria) ->
-                    Probabilities.choice(criteria, Probabilities.softmax(pick(logits, letters, criteria.size())));
+                    Probabilities.choice(criteria, Probabilities.softmax(pick(logits, letterIds, criteria.size())));
             case Question.Score(Content ignored, List<String> criteria) ->
-                    Probabilities.score(criteria, Probabilities.softmax(pick(logits, digits, criteria.size())));
+                    Probabilities.score(criteria, Probabilities.softmax(pick(logits, digitIds, criteria.size())));
         };
     }
 
@@ -180,6 +180,7 @@ final class QwenEngine implements Engine {
     static void validate(String name, Question question) {
         switch (question) {
             case Question.Noul ignored -> {
+                // Yes/No: nothing to check
             }
             case Question.Choice(Content ignored, Map<String, String> criteria) -> {
                 if (criteria == null || criteria.isEmpty() || criteria.size() > LETTERS.length()) {

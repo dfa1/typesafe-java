@@ -128,11 +128,7 @@ final class LayaEngine implements Engine {
             case Question.Score ignored -> "score";
             case Question.Noul ignored -> "noul";
         };
-        Content instructions = switch (question) {
-            case Question.Choice c -> c.instructions();
-            case Question.Score s -> s.instructions();
-            case Question.Noul n -> n.instructions();
-        };
+        Content instructions = question.instructions();
         long[] head = encode(type + " question: " + serialize(instructions).replace("[MASK]", " "));
         List<long[]> opts = new ArrayList<>();
         for (String option : options(question)) {

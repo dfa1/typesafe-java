@@ -221,11 +221,7 @@ final class ClefEngine implements Engine {
     }
 
     private static Content instructions(Question question) {
-        Content c = switch (question) {
-            case Question.Noul q -> q.instructions();
-            case Question.Choice q -> q.instructions();
-            case Question.Score q -> q.instructions();
-        };
+        Content c = question.instructions();
         return c == null ? new Content.Text("") : c;
     }
 

@@ -51,7 +51,8 @@ object holding the question in one field and data it refers to in others:
 | `Question.score(instructions, List<String> criteria)` | `instructions`, `criteria` | Rank against an ordered list of labels |
 
 Each `Question` variant's `instructions` component is typed `Content`, not `String` — see
-[`Content`](#content-sealed-interface) below.
+[`Content`](#content-sealed-interface) below — and `Question.instructions()` reads it from any
+variant, without a switch.
 
 ### `Answer` (sealed interface)
 
