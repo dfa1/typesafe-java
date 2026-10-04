@@ -46,14 +46,15 @@ final class Onnx {
         return OnnxTensor.createTensor(ENV, LongBuffer.wrap(data), shape);
     }
 
-    /** typesafe-java's Codec (jackson2 or jackson3), found the way the API client finds it. */
-    static Codec json() {
+    /** The Codec on the classpath (codec-jackson2 or -jackson3), found via ServiceLoader as client-http finds it; a JSON one, since
+     *  model configs, tokenizer.json and {@link #toJson} are JSON. */
+    static Codec codec() {
         return LazyCodec.INSTANCE;
     }
 
     /** {@code value} as compact JSON text, for a model that reads JSON as part of its prompt. */
     static String toJson(Object value) {
-        return new String(json().writeValueAsBytes(value), StandardCharsets.UTF_8);
+        return new String(codec().writeValueAsBytes(value), StandardCharsets.UTF_8);
     }
 
     private static final class LazyCodec {

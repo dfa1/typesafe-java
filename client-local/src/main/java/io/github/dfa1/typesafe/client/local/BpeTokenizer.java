@@ -66,7 +66,7 @@ final class BpeTokenizer {
 
     @SuppressWarnings("unchecked")
     static BpeTokenizer load(Path tokenizerJson) throws IOException {
-        Map<String, Object> root = Onnx.json().readValue(Files.readAllBytes(tokenizerJson), Map.class);
+        Map<String, Object> root = Onnx.codec().readValue(Files.readAllBytes(tokenizerJson), Map.class);
         Map<String, Object> normalizer = (Map<String, Object>) root.get("normalizer");
         require(normalizer == null || "NFC".equals(normalizer.get("type")), "normalizer " + normalizer);
 

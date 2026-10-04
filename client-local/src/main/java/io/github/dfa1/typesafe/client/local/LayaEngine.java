@@ -84,7 +84,7 @@ final class LayaEngine implements Engine {
     /** Sequence and calibration settings: the "laya" section of onnx-community's config.json (Laya's rl_agent_config.json values). */
     @SuppressWarnings("unchecked")
     private static Map<String, Object> config(Path dir) throws IOException {
-        Map<String, Object> config = Onnx.json().readValue(Files.readAllBytes(Onnx.require(dir, "config.json")), Map.class);
+        Map<String, Object> config = Onnx.codec().readValue(Files.readAllBytes(Onnx.require(dir, "config.json")), Map.class);
         Object laya = config.get("laya");
         if (!(laya instanceof Map)) {
             throw new IllegalArgumentException(dir.resolve("config.json") + " has no \"laya\" section");
