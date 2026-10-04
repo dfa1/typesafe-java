@@ -9,6 +9,7 @@ import io.github.dfa1.typesafe.core.JsonCodec;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.LongBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -48,6 +49,11 @@ final class Onnx {
     /** typesafe-java's JsonCodec (jackson2 or jackson3), found the way the API client finds it. */
     static JsonCodec json() {
         return Codec.INSTANCE;
+    }
+
+    /** {@code value} as compact JSON text, for a model that reads JSON as part of its prompt. */
+    static String toJson(Object value) {
+        return new String(json().writeValueAsBytes(value), StandardCharsets.UTF_8);
     }
 
     private static final class Codec {

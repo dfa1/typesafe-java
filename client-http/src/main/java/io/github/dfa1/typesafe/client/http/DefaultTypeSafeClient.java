@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.URI;
 import java.net.http.HttpTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -56,9 +57,9 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
     @Override
     public CompletableFuture<EvaluateResponse> evaluateAsync(EvaluateRequest request) {
         Map<String, String> headers = requestHeaders();
-        String body;
+        byte[] body;
         try {
-            body = jsonCodec.writeValueAsString(request);
+            body = jsonCodec.writeValueAsBytes(request);
         } catch (RuntimeException e) {
             return CompletableFuture.failedFuture(e);
         }
@@ -85,15 +86,20 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
             try {
                 return decode.apply(response);
             } catch (RuntimeException e) {
-                throw new CompletionException(new TypeSafeException.ResponseDecoding(response.body(), e));
+                throw new CompletionException(new TypeSafeException.ResponseDecoding(text(response), e));
             }
         });
+    }
+
+    /** The body as text, for an error message; the success path never builds a {@code String}. */
+    private static String text(HttpTransportResponse response) {
+        return new String(response.body(), StandardCharsets.UTF_8);
     }
 
     /** Most specific {@link TypeSafeException} subclass for {@code status}, or the plain
      *  base class as a catch-all when no subclass matches. */
     private static TypeSafeException toException(int status, HttpTransportResponse response) {
-        String body = response.body();
+        String body = text(response);
         return switch (status) {
             case 400 -> new TypeSafeException.BadRequest(body);
             case 401 -> new TypeSafeException.Authentication(body);

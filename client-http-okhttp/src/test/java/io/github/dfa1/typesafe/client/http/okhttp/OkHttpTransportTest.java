@@ -16,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.net.URI;
 import java.time.Duration;
@@ -49,7 +50,7 @@ class OkHttpTransportTest {
 
         // When
         CompletableFuture<HttpTransportResponse> future =
-                sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), "{\"a\":1}");
+                sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), bytes("{\"a\":1}"));
 
         // Then
         ArgumentCaptor<Request> requestCaptor = ArgumentCaptor.forClass(Request.class);
@@ -66,7 +67,7 @@ class OkHttpTransportTest {
         HttpTransportResponse result = future.get();
         assertThat(result.statusCode()).isEqualTo(200);
         assertThat(result.header("Content-Type")).contains("application/json");
-        assertThat(result.body()).isEqualTo("{\"ok\":true}");
+        assertThat(result.body()).asString(StandardCharsets.UTF_8).isEqualTo("{\"ok\":true}");
     }
 
     @Test
@@ -116,7 +117,7 @@ class OkHttpTransportTest {
 
         HttpTransportResponse result = future.get();
         assertThat(result.statusCode()).isEqualTo(200);
-        assertThat(result.body()).isEqualTo("{\"models\":[]}");
+        assertThat(result.body()).asString(StandardCharsets.UTF_8).isEqualTo("{\"models\":[]}");
     }
 
     @Test
@@ -171,5 +172,9 @@ class OkHttpTransportTest {
             builder.header("Content-Type", contentType);
         }
         return builder.build();
+    }
+
+    private static byte[] bytes(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
     }
 }

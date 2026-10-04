@@ -61,7 +61,7 @@ class BpeTokenizerTest {
     void matchesHuggingFaceTokenizersOnEveryString(String name, Engines engine) throws Exception {
         // Given
         BpeTokenizer sut = BpeTokenizer.load(engine.dir().resolve("tokenizer.json"));
-        List<Object> expected = new Jackson2Codec().readValue(Files.readString(Path.of("src/test/resources/tokenizer/expected-" + name + ".json")), List.class);
+        List<Object> expected = new Jackson2Codec().readValue(Files.readAllBytes(Path.of("src/test/resources/tokenizer/expected-" + name + ".json")), List.class);
         List<String> mismatches = new ArrayList<>();
 
         for (Object o : expected) {

@@ -8,12 +8,15 @@ import io.github.dfa1.typesafe.core.RequestId;
 import io.github.dfa1.typesafe.core.JsonCodec;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.json.JsonWriteFeature;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 
+import java.io.IOException;
 import java.io.UncheckedIOException;
 
 /**
@@ -23,7 +26,11 @@ import java.io.UncheckedIOException;
  */
 public final class Jackson2Codec implements JsonCodec {
 
-    private final ObjectMapper mapper = new ObjectMapper()
+    // UTF-8 output escapes characters outside the BMP (e.g. emoji) as surrogate pairs unless told otherwise;
+    // a local model tokenizes the text, so they must stay one character, as Jackson 3 writes them
+    private final ObjectMapper mapper = new ObjectMapper(JsonFactory.builder()
+            .enable(JsonWriteFeature.COMBINE_UNICODE_SURROGATES_IN_UTF8)
+            .build())
             .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES) // a field the API adds must not break old clients; Jackson 3's default
             .setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE)
             .addMixIn(Answer.class, AnswerMixIn.class)
@@ -36,28 +43,28 @@ public final class Jackson2Codec implements JsonCodec {
                     .addDeserializer(RequestId.class, new RequestIdDeserializer()));
 
     @Override
-    public String writeValueAsString(Object value) {
+    public byte[] writeValueAsBytes(Object value) {
         try {
-            return mapper.writeValueAsString(value);
+            return mapper.writeValueAsBytes(value);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public String writeValueAsPrettyString(Object value) {
+    public byte[] writeValueAsPrettyBytes(Object value) {
         try {
-            return mapper.writerWithDefaultPrettyPrinter().writeValueAsString(value);
+            return mapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(value);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public <T> T readValue(String content, Class<T> type) {
+    public <T> T readValue(byte[] content, Class<T> type) {
         try {
             return mapper.readValue(content, type);
-        } catch (JsonProcessingException e) {
+        } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }

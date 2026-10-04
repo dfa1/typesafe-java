@@ -58,8 +58,8 @@ public final class TokenizerInputs {
             }
         }
         Path dir = Files.createDirectories(Path.of("src/test/resources/tokenizer"));
-        Files.writeString(dir.resolve("inputs-laya.json"), new Jackson2Codec().writeValueAsString(new ArrayList<>(laya)));
-        Files.writeString(dir.resolve("inputs-qwen.json"), new Jackson2Codec().writeValueAsString(new ArrayList<>(qwen)));
+        Files.write(dir.resolve("inputs-laya.json"), new Jackson2Codec().writeValueAsBytes(new ArrayList<>(laya)));
+        Files.write(dir.resolve("inputs-qwen.json"), new Jackson2Codec().writeValueAsBytes(new ArrayList<>(qwen)));
         System.out.println(laya.size() + " laya / " + qwen.size() + " qwen strings");
     }
 }

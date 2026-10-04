@@ -7,6 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **Breaking: `JsonCodec` and `HttpTransport` speak `byte[]`** — `writeValueAsBytes`/`writeValueAsPrettyBytes`/`readValue(byte[], ...)` and a `byte[]` request/response body, so JSON goes to and from the wire as UTF-8 with no `String` copy; `Jackson2Codec` now writes emoji and other non-BMP characters unescaped, like `Jackson3Codec`. (#35)
 - **Breaking: modules split into model (`core`), contract (`client`) and implementations (`client-*`), names aligned** — `core` keeps the model and `JsonCodec`; `TypeSafeClient`, `TypeSafeException` and the decorators move to the new `client`, and `DefaultTypeSafeClient`/`ApiKey`/`HttpTransport` to the new `client-http`; `TypeSafeClient.builder()` becomes `DefaultTypeSafeClient.builder()`, and every module's artifact and package now match its directory (`client-http-jdk`, `client-http-okhttp`, `codec-jackson2`, `codec-jackson3`, `client-local`, `client-mapping`, `client-testkit`); see ADR 0003. (#35)
 - **docs: local-model setup as three steps** — dependency, Laya download, code, then a model comparison; the optional Clef 4-bit script runs from its GitHub URL with `uv run`, and load errors link to the how-to.
 - **`client-local`: hardening** — special tokens in caller text stay plain text (no prompt injection via `<|im_end|>`), the tokenizer cache is bounded, and Clef checks its weights' sha256 on first load.

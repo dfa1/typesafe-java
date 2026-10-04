@@ -13,6 +13,7 @@ import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.client.http.jdk.JdkHttpTransport;
 import io.github.dfa1.typesafe.core.JsonCodec;
 
+import java.nio.charset.StandardCharsets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -83,13 +84,13 @@ public final class Main {
         EvaluateRequest request = EvaluateRequest.of(Content.text(parsed.state()), parsed.model(), parsed.questions());
 
         if (parsed.verbose()) {
-            err.println("request: " + codec.writeValueAsPrettyString(request));
+            err.println("request: " + pretty(codec, request));
         }
 
         EvaluateResponse response = client.evaluate(request);
 
         if (parsed.verbose()) {
-            err.println("response: " + codec.writeValueAsPrettyString(response));
+            err.println("response: " + pretty(codec, response));
             err.println("request-id: " + response.metadata().requestId());
         }
         if (parsed.timing()) {
@@ -99,7 +100,7 @@ public final class Main {
             if (!parsed.printNames().isEmpty()) {
                 parsed.printNames().forEach(name -> out.println(answerValue(response, name)));
             } else if (parsed.verbose()) {
-                out.println(codec.writeValueAsPrettyString(response));
+                out.println(pretty(codec, response));
             }
 
             List<String> failures = minFailures(response, parsed.minSpecs());
@@ -211,5 +212,9 @@ public final class Main {
         err.println(message);
         err.println(USAGE);
         return 1;
+    }
+
+    private static String pretty(JsonCodec codec, Object value) {
+        return new String(codec.writeValueAsPrettyBytes(value), StandardCharsets.UTF_8);
     }
 }

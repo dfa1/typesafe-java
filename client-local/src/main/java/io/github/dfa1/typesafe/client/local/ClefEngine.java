@@ -232,8 +232,8 @@ final class ClefEngine implements Engine {
     static String render(Content content) {
         return switch (content) {
             case Content.Text(String value) -> value;
-            case Content.Fields(Map<String, Object> fields) -> Onnx.json().writeValueAsString(sorted(fields));
-            case Content.Messages(List<String> values) -> Onnx.json().writeValueAsString(values);
+            case Content.Fields(Map<String, Object> fields) -> Onnx.toJson(sorted(fields));
+            case Content.Messages(List<String> values) -> Onnx.toJson(values);
         };
     }
 

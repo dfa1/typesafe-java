@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.codec.jackson3;
 
+import java.nio.charset.StandardCharsets;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
@@ -34,7 +35,7 @@ class Jackson3CodecTest {
                 ));
 
         // When
-        String result = sut.writeValueAsString(request);
+        String result = json(sut.writeValueAsBytes(request));
 
         // Then
         assertThat(result)
@@ -51,7 +52,7 @@ class Jackson3CodecTest {
         Content state = Content.fields(Map.of("order_id", "A-104"));
 
         // When
-        String result = sut.writeValueAsPrettyString(state);
+        String result = json(sut.writeValueAsPrettyBytes(state));
 
         // Then
         assertThat(result).isEqualTo("{\n  \"order_id\" : \"A-104\"\n}");
@@ -65,7 +66,7 @@ class Jackson3CodecTest {
                 "question", "Is the resume for the same person as `potential_duplicate`?")));
 
         // When
-        String result = sut.writeValueAsString(question);
+        String result = json(sut.writeValueAsBytes(question));
 
         // Then
         assertThat(result)
@@ -77,10 +78,10 @@ class Jackson3CodecTest {
     @Test
     void serializesEachStateShapeAsItsRawJsonType() {
         // When / Then
-        assertThat(sut.writeValueAsString(Content.text("hi"))).isEqualTo("\"hi\"");
-        assertThat(sut.writeValueAsString(Content.fields(Map.of("order_id", "A-104"))))
+        assertThat(json(sut.writeValueAsBytes(Content.text("hi")))).isEqualTo("\"hi\"");
+        assertThat(json(sut.writeValueAsBytes(Content.fields(Map.of("order_id", "A-104")))))
                 .isEqualTo("{\"order_id\":\"A-104\"}");
-        assertThat(sut.writeValueAsString(Content.messages(List.of("hi", "there"))))
+        assertThat(json(sut.writeValueAsBytes(Content.messages(List.of("hi", "there")))))
                 .isEqualTo("[\"hi\",\"there\"]");
     }
 
@@ -103,7 +104,7 @@ class Jackson3CodecTest {
                 """;
 
         // When
-        EvaluateResponse result = sut.readValue(json, EvaluateResponse.class);
+        EvaluateResponse result = sut.readValue(bytes(json), EvaluateResponse.class);
 
         // Then
         assertThat(result.model()).isEqualTo(Model.LATEST);
@@ -124,7 +125,7 @@ class Jackson3CodecTest {
                 """;
 
         // When
-        ModelDetails result = sut.readValue(json, ModelDetails.class);
+        ModelDetails result = sut.readValue(bytes(json), ModelDetails.class);
 
         // Then
         assertThat(result).isEqualTo(new ModelDetails("jev-1.13.0", "System One model.", "2026-01-01"));
@@ -143,7 +144,7 @@ class Jackson3CodecTest {
                 """;
 
         // When
-        EvaluateResponse result = sut.readValue(json, EvaluateResponse.class);
+        EvaluateResponse result = sut.readValue(bytes(json), EvaluateResponse.class);
 
         // Then
         assertThat(result.usage().inputTokens()).isEqualTo(312);
@@ -157,10 +158,27 @@ class Jackson3CodecTest {
         RequestId requestId = new RequestId("req_01a0c08d990e7e44ba9a80416308258a");
 
         // When
-        String result = sut.writeValueAsString(requestId);
+        String result = json(sut.writeValueAsBytes(requestId));
 
         // Then
         assertThat(result).isEqualTo("\"req_01a0c08d990e7e44ba9a80416308258a\"");
-        assertThat(sut.readValue(result, RequestId.class)).isEqualTo(requestId);
+        assertThat(sut.readValue(bytes(result), RequestId.class)).isEqualTo(requestId);
+    }
+
+    @Test
+    void writesCharactersOutsideTheBmpAsTheyAreNotAsEscapedSurrogates() {
+        // When
+        String result = json(sut.writeValueAsBytes(Content.text("refund now \uD83D\uDE21")));
+
+        // Then — a local model tokenizes this text, so the emoji must survive as one UTF-8 character
+        assertThat(result).isEqualTo("\"refund now \uD83D\uDE21\"");
+    }
+
+    private static byte[] bytes(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
+    }
+
+    private static String json(byte[] utf8) {
+        return new String(utf8, StandardCharsets.UTF_8);
     }
 }

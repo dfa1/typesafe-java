@@ -50,7 +50,7 @@ public final class OkHttpTransport implements HttpTransport {
     }
 
     @Override
-    public CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body) {
+    public CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, byte[] body) {
         Request request = request(uri, headers)
                 .post(RequestBody.create(body, null))
                 .build();
@@ -91,7 +91,7 @@ public final class OkHttpTransport implements HttpTransport {
                     Map<String, String> responseHeaders = new LinkedHashMap<>();
                     response.headers().toMultimap().forEach((name, values) -> responseHeaders.put(name, values.get(0)));
                     // OkHttp 5: body() is never null (an empty body for a bodiless response)
-                    future.complete(new HttpTransportResponse(response.code(), responseHeaders, response.body().string()));
+                    future.complete(new HttpTransportResponse(response.code(), responseHeaders, response.body().bytes()));
                 } catch (IOException e) {
                     future.completeExceptionally(e);
                 }

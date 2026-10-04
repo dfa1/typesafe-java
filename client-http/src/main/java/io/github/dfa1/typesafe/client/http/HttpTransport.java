@@ -13,7 +13,8 @@ import java.util.concurrent.CompletableFuture;
  */
 public interface HttpTransport extends AutoCloseable {
 
-    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body);
+    /** POSTs {@code body} (UTF-8 JSON) to {@code uri}. */
+    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, byte[] body);
 
     CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers);
 

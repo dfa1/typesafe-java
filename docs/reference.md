@@ -168,9 +168,9 @@ plain `Model`, usable directly as an `EvaluateRequest`'s model.
 package io.github.dfa1.typesafe.core;
 
 public interface JsonCodec {
-    String writeValueAsString(Object value);
-    String writeValueAsPrettyString(Object value); // same, indented for human reading
-    <T> T readValue(String content, Class<T> type);
+    byte[] writeValueAsBytes(Object value);
+    byte[] writeValueAsPrettyBytes(Object value); // same, indented for human reading
+    <T> T readValue(byte[] content, Class<T> type);
 }
 ```
 
@@ -179,10 +179,9 @@ Implementations (`Jackson2Codec`, `Jackson3Codec`) are discovered via
 `META-INF/services/io.github.dfa1.typesafe.core.JsonCodec`. Both own the `Answer`/`Question` polymorphic
 `type` discriminator via Jackson mixins — `core`'s DTOs carry no serialization annotations.
 Both ignore fields they don't know, so a field the API adds to a response doesn't break an older client.
-`readValue`'s `content` is `String`, not `byte[]`: this is always JSON text, which is UTF-8 by
-construction (RFC 8259) — a caller integrating with a raw-`byte[]` system (e.g. Kafka) converts
-once at that boundary (`.getBytes(UTF_8)` / `new String(bytes, UTF_8)`), same reasoning as
-`HttpTransport`.
+JSON is UTF-8 bytes in and out (RFC 8259), so nothing builds a `String` on the way to or from the
+wire, and a `byte[]` system (e.g. Kafka) uses the codec as is. Characters outside the BMP (e.g.
+emoji) are written as themselves, not as escaped surrogate pairs.
 
 ## HttpTransport SPI
 
@@ -192,12 +191,12 @@ In `typesafe-java-client-http`.
 package io.github.dfa1.typesafe.client.http;
 
 public interface HttpTransport extends AutoCloseable {
-    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, String body);
+    CompletableFuture<HttpTransportResponse> post(URI uri, Map<String, String> headers, byte[] body);
     CompletableFuture<HttpTransportResponse> get(URI uri, Map<String, String> headers);
     void close();   // no default -- every implementation must define one, even a no-op
 }
 
-public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, byte[] body) {
     Optional<String> header(String name);   // case-insensitive lookup
 }
 ```

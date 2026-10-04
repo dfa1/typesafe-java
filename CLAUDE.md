@@ -138,7 +138,7 @@ cli       — command-line entry point (`Main`), over client-http-jdk + codec-ja
             set by the shade plugin, and exits without calling the API), `--help`/`-h` (prints
             usage and exits without calling the API). Stdout is silent
             unless `--print <name>` (that answer's value) or `--verbose` (the full
-            `EvaluateResponse` as pretty-printed JSON, via `JsonCodec.writeValueAsPrettyString`)
+            `EvaluateResponse` as pretty-printed JSON, via `JsonCodec.writeValueAsPrettyBytes`)
             is given.
 ```
 

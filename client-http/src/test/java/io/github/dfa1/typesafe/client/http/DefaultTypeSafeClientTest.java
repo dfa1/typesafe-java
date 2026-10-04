@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.client.http;
 
+import java.nio.charset.StandardCharsets;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.client.DeadlineTypeSafeClient;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
@@ -64,11 +65,11 @@ class DefaultTypeSafeClientTest {
         Map<String, String> expectedHeaders = Map.of(
                 "Authorization", "Bearer secret",
                 "Content-Type", "application/json");
-        String requestBody = "{\"request\":true}";
-        String responseBody = "{\"response\":true}";
+        byte[] requestBody = bytes("{\"request\":true}");
+        byte[] responseBody = bytes("{\"response\":true}");
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(10, 5), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(requestBody);
         given(httpTransport.post(ENDPOINT, expectedHeaders, requestBody))
                 .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), responseBody)));
         given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
@@ -77,7 +78,7 @@ class DefaultTypeSafeClientTest {
         EvaluateResponse result = sut.evaluate(request);
 
         // Then
-        then(jsonCodec).should().writeValueAsString(request);
+        then(jsonCodec).should().writeValueAsBytes(request);
         then(httpTransport).should().post(ENDPOINT, expectedHeaders, requestBody);
         then(jsonCodec).should().readValue(responseBody, EvaluateResponse.class);
         assertThat(result.model()).isEqualTo(Model.LATEST);
@@ -95,11 +96,11 @@ class DefaultTypeSafeClientTest {
 
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         Map<String, String> expectedHeaders = Map.of("Content-Type", "application/json");
-        String requestBody = "{\"request\":true}";
-        String responseBody = "{\"response\":true}";
+        byte[] requestBody = bytes("{\"request\":true}");
+        byte[] responseBody = bytes("{\"response\":true}");
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(10, 0), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn(requestBody);
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(requestBody);
         given(httpTransport.post(ENDPOINT, expectedHeaders, requestBody))
                 .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), responseBody)));
         given(jsonCodec.readValue(responseBody, EvaluateResponse.class)).willReturn(decodedResponse);
@@ -126,8 +127,8 @@ class DefaultTypeSafeClientTest {
         List<ModelDetails> models = List.of(new ModelDetails("jev-latest", "Most recent stable release.", "2026-01-01"));
 
         given(httpTransport.get(modelsEndpoint, expectedHeaders))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "models-json")));
-        given(jsonCodec.readValue("models-json", DefaultTypeSafeClient.ModelsResponse.class))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("models-json"))));
+        given(jsonCodec.readValue(bytes("models-json"), DefaultTypeSafeClient.ModelsResponse.class))
                 .willReturn(new DefaultTypeSafeClient.ModelsResponse(models));
 
         // When
@@ -159,9 +160,9 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(400, Map.of(), "bad request")));
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(400, Map.of(), bytes("bad request"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -179,9 +180,9 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(401, Map.of(), "no token")));
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(401, Map.of(), bytes("no token"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -194,10 +195,10 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF, 0);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(429, Map.of("retry-after-ms", "1500"), "slow down")));
+                        new HttpTransportResponse(429, Map.of("retry-after-ms", "1500"), bytes("slow down"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -213,11 +214,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(429, Map.of(), "slow down")))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(429, Map.of(), bytes("slow down"))))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -233,9 +234,9 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(529, Map.of(), "overloaded")));
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(529, Map.of(), bytes("overloaded"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -251,11 +252,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(503, Map.of(), "unavailable")))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(503, Map.of(), bytes("unavailable"))))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -271,11 +272,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(408, Map.of(), "request timeout")))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(408, Map.of(), bytes("request timeout"))))
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -291,11 +292,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.failedFuture(new IOException("connection reset")))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -312,7 +313,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         IOException connectionFailure = new IOException("connection reset");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any())).willReturn(CompletableFuture.failedFuture(connectionFailure));
 
         // When / Then
@@ -329,7 +330,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         HttpTimeoutException timeout = new HttpTimeoutException("request timed out");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any())).willReturn(CompletableFuture.failedFuture(timeout));
 
         // When / Then
@@ -345,7 +346,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         CompletableFuture<HttpTransportResponse> neverCompletes = new CompletableFuture<>();
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any())).willReturn(neverCompletes);
 
         AtomicReference<Throwable> thrown = new AtomicReference<>();
@@ -380,7 +381,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         Error transportError = new StackOverflowError("boom");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any())).willReturn(CompletableFuture.failedFuture(transportError));
 
         // When / Then
@@ -398,10 +399,10 @@ class DefaultTypeSafeClientTest {
                 "x-typesafe-request-id", "req_123",
                 "x-envoy-upstream-service-time", "42");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, responseHeaders, "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, responseHeaders, bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluate(request);
@@ -418,11 +419,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                        new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluateAsync(request).join();
@@ -438,13 +439,13 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(429, Map.of(), "slow down")))
+                        new HttpTransportResponse(429, Map.of(), bytes("slow down"))))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                        new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluateAsync(request).join();
@@ -460,10 +461,10 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF, 1);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(529, Map.of(), "overloaded")));
+                        new HttpTransportResponse(529, Map.of(), bytes("overloaded"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
@@ -478,11 +479,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         EvaluateResponse decodedResponse = new EvaluateResponse(Model.LATEST, Map.of(), new Usage(1, 1), null);
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.failedFuture(new IOException("connection reset")))
-                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), "ok")));
-        given(jsonCodec.readValue("ok", EvaluateResponse.class)).willReturn(decodedResponse);
+                .willReturn(CompletableFuture.completedFuture(new HttpTransportResponse(200, Map.of(), bytes("ok"))));
+        given(jsonCodec.readValue(bytes("ok"), EvaluateResponse.class)).willReturn(decodedResponse);
 
         // When
         EvaluateResponse result = sut.evaluateAsync(request).join();
@@ -499,7 +500,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         IOException connectionFailure = new IOException("connection reset");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.failedFuture(connectionFailure));
 
@@ -518,7 +519,7 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         RuntimeException encodingFailure = new RuntimeException("boom");
 
-        given(jsonCodec.writeValueAsString(request)).willThrow(encodingFailure);
+        given(jsonCodec.writeValueAsBytes(request)).willThrow(encodingFailure);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
@@ -533,11 +534,11 @@ class DefaultTypeSafeClientTest {
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
         RuntimeException decodingFailure = new RuntimeException("boom");
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(200, Map.of(), "not json")));
-        given(jsonCodec.readValue("not json", EvaluateResponse.class)).willThrow(decodingFailure);
+                        new HttpTransportResponse(200, Map.of(), bytes("not json"))));
+        given(jsonCodec.readValue(bytes("not json"), EvaluateResponse.class)).willThrow(decodingFailure);
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluateAsync(request).get())
@@ -664,10 +665,10 @@ class DefaultTypeSafeClientTest {
         TypeSafeClient sut = clientWith(NO_BACKOFF, 0);
         EvaluateRequest request = EvaluateRequest.of(Content.text("hi"), Map.of());
 
-        given(jsonCodec.writeValueAsString(request)).willReturn("{}");
+        given(jsonCodec.writeValueAsBytes(request)).willReturn(bytes("{}"));
         given(httpTransport.post(any(), any(), any()))
                 .willReturn(CompletableFuture.completedFuture(
-                        new HttpTransportResponse(503, Map.of("retry-after", "3"), "unavailable")));
+                        new HttpTransportResponse(503, Map.of("retry-after", "3"), bytes("unavailable"))));
 
         // When / Then
         assertThatThrownBy(() -> sut.evaluate(request))
@@ -726,7 +727,7 @@ class DefaultTypeSafeClientTest {
     @Test
     void retryAfterParsesSeconds() {
         // Given
-        HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "2"), "");
+        HttpTransportResponse response = new HttpTransportResponse(429, Map.of("retry-after", "2"), bytes(""));
 
         // When
         Optional<Duration> result = DefaultTypeSafeClient.retryAfter(response);
@@ -739,7 +740,7 @@ class DefaultTypeSafeClientTest {
     void retryAfterPrefersMillisecondsOverSeconds() {
         // Given
         HttpTransportResponse response =
-                new HttpTransportResponse(429, Map.of("retry-after-ms", "250", "retry-after", "5"), "");
+                new HttpTransportResponse(429, Map.of("retry-after-ms", "250", "retry-after", "5"), bytes(""));
 
         // When
         Optional<Duration> result = DefaultTypeSafeClient.retryAfter(response);
@@ -752,9 +753,9 @@ class DefaultTypeSafeClientTest {
     void retryAfterIsEmptyWhenTheHeaderIsAnHttpDateOrAbsent() {
         // When / Then
         assertThat(DefaultTypeSafeClient.retryAfter(
-                new HttpTransportResponse(429, Map.of("retry-after", "Wed, 21 Oct 2026 07:28:00 GMT"), "")))
+                new HttpTransportResponse(429, Map.of("retry-after", "Wed, 21 Oct 2026 07:28:00 GMT"), bytes(""))))
                 .isEmpty();
-        assertThat(DefaultTypeSafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), ""))).isEmpty();
+        assertThat(DefaultTypeSafeClient.retryAfter(new HttpTransportResponse(429, Map.of(), bytes("")))).isEmpty();
     }
 
     private TypeSafeClient clientWith(Duration backoff) {
@@ -768,5 +769,9 @@ class DefaultTypeSafeClientTest {
                 .jsonCodec(jsonCodec)
                 .decorateWith(c -> RetryingTypeSafeClient.decorate(c, maxRetries, backoff))
                 .build();
+    }
+
+    private static byte[] bytes(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
     }
 }

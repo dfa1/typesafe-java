@@ -58,7 +58,7 @@ class ClefEngineTest {
         // Given
         Jackson2Codec codec = new Jackson2Codec();
         ClefEngine sut = new ClefEngine(null, BpeTokenizer.load(Engines.CLEF.dir().resolve("tokenizer.json")), null);
-        Map<String, Object> fixture = codec.readValue(Files.readString(Path.of("src/test/resources/clef/expected.json")), Map.class);
+        Map<String, Object> fixture = codec.readValue(Files.readAllBytes(Path.of("src/test/resources/clef/expected.json")), Map.class);
         List<Object> requests = (List<Object>) fixture.get("requests");
         List<Map<String, Object>> expected = (List<Map<String, Object>>) fixture.get("expected");
 

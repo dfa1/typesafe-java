@@ -549,14 +549,12 @@ payloads — for example to publish or consume them on a Kafka topic — depend 
 
 ```java
 JsonCodec codec = new Jackson2Codec();
-String json = codec.writeValueAsString(request);
+byte[] json = codec.writeValueAsBytes(request);              // UTF-8 JSON
 EvaluateResponse response = codec.readValue(json, EvaluateResponse.class);
 ```
 
-(A Kafka producer/consumer using a raw-`byte[]` serializer converts once at that boundary —
-`json.getBytes(UTF_8)` / `new String(bytes, UTF_8)` — the same one-line conversion any
-non-`String`-based transport needs; `TypeSafeClient` itself needs none, since `HttpTransport`
-is `String`-based too.)
+The codec speaks UTF-8 bytes, so a Kafka `Serializer`/`Deserializer` is one call each, with no
+`String` in between.
 
 ## Run a quick check from the command line
 

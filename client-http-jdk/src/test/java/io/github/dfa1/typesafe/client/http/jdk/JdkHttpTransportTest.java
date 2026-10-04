@@ -8,6 +8,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.charset.StandardCharsets;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
@@ -32,7 +33,7 @@ class JdkHttpTransportTest {
     private HttpClient httpClient;
 
     @Mock
-    private HttpResponse<String> httpResponse;
+    private HttpResponse<byte[]> httpResponse;
 
     @Test
     void postSendsAHeadedJsonPostAndMapsTheResponse() throws Exception {
@@ -41,17 +42,17 @@ class JdkHttpTransportTest {
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(
                 HttpHeaders.of(Map.of("Content-Type", List.of("application/json")), (name, value) -> true));
-        given(httpResponse.body()).willReturn("{\"ok\":true}");
-        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
+        given(httpResponse.body()).willReturn(bytes("{\"ok\":true}"));
+        given(httpClient.<byte[]>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
         HttpTransportResponse result =
-                sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), "{\"a\":1}").get();
+                sut.post(ENDPOINT, Map.of("Authorization", "Bearer secret"), bytes("{\"a\":1}")).get();
 
         // Then
         assertThat(result.statusCode()).isEqualTo(200);
         assertThat(result.headers()).containsEntry("Content-Type", "application/json");
-        assertThat(result.body()).isEqualTo("{\"ok\":true}");
+        assertThat(result.body()).asString(StandardCharsets.UTF_8).isEqualTo("{\"ok\":true}");
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         then(httpClient).should().sendAsync(captor.capture(), any());
@@ -68,11 +69,11 @@ class JdkHttpTransportTest {
         JdkHttpTransport sut = new JdkHttpTransport(httpClient, Duration.ofSeconds(3));
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
-        given(httpResponse.body()).willReturn("{}");
-        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
+        given(httpResponse.body()).willReturn(bytes("{}"));
+        given(httpClient.<byte[]>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        sut.post(ENDPOINT, Map.of(), "{}").get();
+        sut.post(ENDPOINT, Map.of(), bytes("{}")).get();
 
         // Then
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
@@ -86,11 +87,11 @@ class JdkHttpTransportTest {
         JdkHttpTransport sut = new JdkHttpTransport(httpClient, null);
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
-        given(httpResponse.body()).willReturn("{}");
-        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
+        given(httpResponse.body()).willReturn(bytes("{}"));
+        given(httpClient.<byte[]>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
-        sut.post(ENDPOINT, Map.of(), "{}").get();
+        sut.post(ENDPOINT, Map.of(), bytes("{}")).get();
 
         // Then
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
@@ -104,15 +105,15 @@ class JdkHttpTransportTest {
         JdkHttpTransport sut = new JdkHttpTransport(httpClient);
         given(httpResponse.statusCode()).willReturn(200);
         given(httpResponse.headers()).willReturn(HttpHeaders.of(Map.of(), (name, value) -> true));
-        given(httpResponse.body()).willReturn("{\"models\":[]}");
-        given(httpClient.<String>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
+        given(httpResponse.body()).willReturn(bytes("{\"models\":[]}"));
+        given(httpClient.<byte[]>sendAsync(any(), any())).willReturn(CompletableFuture.completedFuture(httpResponse));
 
         // When
         HttpTransportResponse result = sut.get(ENDPOINT, Map.of("Authorization", "Bearer secret")).get();
 
         // Then
         assertThat(result.statusCode()).isEqualTo(200);
-        assertThat(result.body()).isEqualTo("{\"models\":[]}");
+        assertThat(result.body()).asString(StandardCharsets.UTF_8).isEqualTo("{\"models\":[]}");
 
         ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
         then(httpClient).should().sendAsync(captor.capture(), any());
@@ -133,5 +134,9 @@ class JdkHttpTransportTest {
 
         // Then
         then(httpClient).should().close();
+    }
+
+    private static byte[] bytes(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
     }
 }

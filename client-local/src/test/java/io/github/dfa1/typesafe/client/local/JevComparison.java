@@ -9,6 +9,7 @@ import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.codec.jackson2.Jackson2Codec;
 import io.github.dfa1.typesafe.core.JsonCodec;
 
+import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
@@ -166,11 +167,11 @@ public final class JevComparison {
                     }
                     EvaluateResponse r = api.evaluate(c.request());
                     // metadata (request id, timing) is per call, not part of the answer
-                    String line = codec.writeValueAsString(new EvaluateResponse(r.model(), r.answers(), r.usage(), null));
+                    String line = new String(codec.writeValueAsBytes(new EvaluateResponse(r.model(), r.answers(), r.usage(), null)), StandardCharsets.UTF_8);
                     Files.writeString(file, line + "\n", StandardOpenOption.CREATE, StandardOpenOption.APPEND);
                     lines.add(line);
                 }
-                result.add(codec.readValue(lines.get(c.index()), EvaluateResponse.class));
+                result.add(codec.readValue(lines.get(c.index()).getBytes(StandardCharsets.UTF_8), EvaluateResponse.class));
             }
         } finally {
             if (api != null) {

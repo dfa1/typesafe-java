@@ -3,7 +3,8 @@ package io.github.dfa1.typesafe.client.http;
 import java.util.Map;
 import java.util.Optional;
 
-public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
+/** An HTTP response; {@code body} is the raw bytes, decoded by the {@code JsonCodec} without a {@code String} in between. */
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, byte[] body) {
 
     public HttpTransportResponse {
         headers = Map.copyOf(headers);

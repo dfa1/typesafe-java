@@ -1,5 +1,6 @@
 package io.github.dfa1.typesafe.client.http;
 
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
@@ -13,7 +14,7 @@ class HttpTransportResponseTest {
     @Test
     void headerLooksUpCaseInsensitively() {
         // Given
-        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-Request-Id", "abc"), "body");
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-Request-Id", "abc"), bytes("body"));
 
         // When
         var result = sut.header("x-request-id");
@@ -26,7 +27,7 @@ class HttpTransportResponseTest {
     void copiesHeadersDefensivelySoLaterMutationIsNotVisible() {
         // Given
         Map<String, String> headers = new HashMap<>(Map.of("X-A", "1"));
-        HttpTransportResponse sut = new HttpTransportResponse(200, headers, "body");
+        HttpTransportResponse sut = new HttpTransportResponse(200, headers, bytes("body"));
 
         // When
         headers.put("X-A", "mutated");
@@ -38,10 +39,14 @@ class HttpTransportResponseTest {
     @Test
     void headersAreImmutable() {
         // Given
-        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-A", "1"), "body");
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("body"));
 
         // When / Then
         assertThatThrownBy(() -> sut.headers().put("X-B", "2"))
                 .isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    private static byte[] bytes(String text) {
+        return text.getBytes(StandardCharsets.UTF_8);
     }
 }
