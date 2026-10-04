@@ -130,16 +130,16 @@ Each module's directory, artifact (`typesafe-java-<module>`) and package
 Every model we tested behind the same `TypeSafeClient`, measured on an Apple M5 (32 GB). "Agrees with Jev"
 compares answers with the real `jev-1.13.0` on 104 cached requests (yes/no on the same side of 0.5 · same choice).
 
-| Model | Runs on | Download | Memory | Time per request (1–3 questions) | Agrees with Jev |
+| Model | Runs on | Download | Memory | Seconds per request (1–3 questions) | Agrees with Jev |
 |---|---|---|---|---|---|
-| TypeSafe API (`jev-1.13.0`) | `api.typesafe.ai` | — | — | ≈ 0.35 s (network included) | — |
-| Laya fp32 | `client-local`, CPU | 1.7 GB | not measured | 55–165 ms | 85% · 64% |
-| Laya fp16 | `client-local`, CPU | 0.85 GB | not measured | 2–3× slower than fp32 (same answers) | as fp32 |
-| Qwen2.5-1.5B, 4-bit | `client-local`, CPU | 1.8 GB | not measured | ≈ 0.8 s per question | 80% · 68% |
-| Clef-flash (9B), bf16 as published | `client-local`, CPU | 19 GB | 20 GB peak | ≈ 1 min | not measured |
-| Clef-flash, 4-bit | `client-local`, CPU | 19 GB + 4.4 GB | 7.7 GB | 7–13 s | not measured |
-| Clef-flash, 4-bit | `client-local`, Apple GPU (`loadOnGpu`) | 19 GB + 4.4 GB | 7.7 GB | 2–4 s | not measured |
-| Clef-flash, MLX 4-bit | local MLX server, regular client | 6.2 GB | ≈ 7 GB | ≈ 0.55 s | 95% · 88% |
+| TypeSafe API (`jev-1.13.0`) | `api.typesafe.ai` | — | — | ≈ 0.35 (network included) | — |
+| Laya fp32 | `client-local`, CPU | 1.7 GB | not measured | 0.055–0.165 | 85% · 64% |
+| Laya fp16 | `client-local`, CPU | 0.85 GB | not measured | 0.11–0.5 (2–3× fp32, same answers) | as fp32 |
+| Qwen2.5-1.5B, 4-bit | `client-local`, CPU | 1.8 GB | not measured | 0.8–2.1 | 80% · 68% |
+| Clef-flash (9B), bf16 as published | `client-local`, CPU | 19 GB | 20 GB peak | ≈ 60 | not measured |
+| Clef-flash, 4-bit | `client-local`, CPU | 19 GB + 4.4 GB | 7.7 GB | 7–13 | not measured |
+| Clef-flash, 4-bit | `client-local`, Apple GPU (`loadOnGpu`) | 19 GB + 4.4 GB | 7.7 GB | 2–4 | not measured |
+| Clef-flash, MLX 4-bit | local MLX server, regular client | 6.2 GB | ≈ 7 GB | ≈ 0.55 | 95% · 88% |
 
 Laya is the fastest; Clef-flash is the closest to Jev, at the cost of size. The 4-bit ONNX graph keeps
 Clef-flash's embeddings and output layer in Cloudflare's original bf16 files, so those 19 GB stay on disk next to it
