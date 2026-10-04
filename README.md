@@ -125,6 +125,30 @@ Each module's directory, artifact (`typesafe-java-<module>`) and package
 (`io.github.dfa1.typesafe.<module>`, dashes as dots) share one name. See
 [ADR 0003](adr/0003-model-in-core-contract-in-client.md) for why it's split this way.
 
+## Local models at a glance
+
+Every model we tested behind the same `TypeSafeClient`, measured on an Apple M5 (32 GB). "Agrees with Jev"
+compares answers with the real `jev-1.13.0` on 104 cached requests (yes/no on the same side of 0.5 · same choice);
+"Trivia" is 11 general-knowledge multiple-choice questions (geography, history, science), a check of what the model
+knows on its own rather than what it reads in the request.
+
+| Model | Runs on | Download | Memory | Time per request (1–3 questions) | Agrees with Jev | Trivia |
+|---|---|---|---|---|---|---|
+| TypeSafe API (`jev-1.13.0`) | `api.typesafe.ai` | — | — | ≈ 0.35 s (network included) | — | 11/11 |
+| Laya fp32 | `client-local`, CPU | 1.7 GB | not measured | 55–165 ms | 85% · 64% | 0/11 |
+| Laya fp16 | `client-local`, CPU | 0.85 GB | not measured | 2–3× slower than fp32 (same answers) | as fp32 | not measured |
+| Qwen2.5-1.5B, 4-bit | `client-local`, CPU | 1.8 GB | not measured | ≈ 0.8 s per question | 80% · 68% | 4/11 |
+| Clef-flash (9B), bf16 as published | `client-local`, CPU | 19 GB | 20 GB peak | ≈ 1 min | not measured | not measured |
+| Clef-flash, 4-bit | `client-local`, CPU | 19 GB + 4.4 GB | 7.7 GB | 7–13 s | not measured | not measured |
+| Clef-flash, 4-bit | `client-local`, Apple GPU (`loadOnGpu`) | 19 GB + 4.4 GB | 7.7 GB | 2–4 s | not measured | 11/11 |
+| Clef-flash, MLX 4-bit | local MLX server, regular client | 6.2 GB | ≈ 7 GB | ≈ 0.55 s | 95% · 88% | not measured |
+
+Laya is fast and good at reading a request, but knows little on its own; Clef-flash is the closest to Jev and as
+good as the API at both, at the cost of size. The 4-bit ONNX graph keeps Clef-flash's embeddings and output layer in
+Cloudflare's original bf16 files, so those 19 GB stay on disk next to it (hard-linked, not copied); the MLX port
+doesn't need them. Setup for each: [run without the API](docs/how-to.md#run-without-the-api-on-a-local-model) and
+[Clef-flash on a Mac with MLX](docs/how-to.md#run-clef-flash-on-a-mac-with-mlx).
+
 ## Docs
 
 Structured by [Diataxis](https://diataxis.fr/):
