@@ -26,7 +26,7 @@ jobs:
           java-version: '21'
           cache: maven
 
-      - uses: astral-sh/setup-uv@v7
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
 
       - name: Cache model directories
         id: models
@@ -39,13 +39,13 @@ jobs:
         if: steps.models.outputs.cache-hit != 'true'
         run: |
           M=~/.cache/typesafe-local
-          uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir $M/laya-fp32
+          uvx --no-build --from huggingface_hub==2.1.1 hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir $M/laya-fp32
           if [ "$RUNNER_OS" = macOS ]; then
-            uvx --from huggingface_hub hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model_fp16.onnx onnx/model_fp16.onnx_data --local-dir $M/laya-fp16
+            uvx --no-build --from huggingface_hub==2.1.1 hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model_fp16.onnx onnx/model_fp16.onnx_data --local-dir $M/laya-fp16
           fi
-          uvx --from huggingface_hub hf download onnx-community/Qwen2.5-1.5B-Instruct tokenizer.json onnx/model_q4.onnx --local-dir $M/qwen2.5-1.5b
+          uvx --no-build --from huggingface_hub==2.1.1 hf download onnx-community/Qwen2.5-1.5B-Instruct tokenizer.json onnx/model_q4.onnx --local-dir $M/qwen2.5-1.5b
           # ClefEngineTest needs only the tokenizer, not the 19 GB of weights
-          uvx --from huggingface_hub hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 tokenizer.json --local-dir $M/clef-flash
+          uvx --no-build --from huggingface_hub==2.1.1 hf download Cloudflare/clef-flash --revision 17f0b0ad64efb65d273590632833508766b2aae6 tokenizer.json --local-dir $M/clef-flash
 
       - name: Build
         run: ./mvnw -B -q -pl client-local -am test-compile dependency:build-classpath -Dmdep.outputFile=$PWD/cp.txt -Dmdep.includeScope=test
