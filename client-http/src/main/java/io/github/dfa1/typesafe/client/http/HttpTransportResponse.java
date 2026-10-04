@@ -1,0 +1,18 @@
+package io.github.dfa1.typesafe.client.http;
+
+import java.util.Map;
+import java.util.Optional;
+
+public record HttpTransportResponse(int statusCode, Map<String, String> headers, String body) {
+
+    public HttpTransportResponse {
+        headers = Map.copyOf(headers);
+    }
+
+    public Optional<String> header(String name) {
+        return headers.entrySet().stream()
+                .filter(e -> e.getKey().equalsIgnoreCase(name))
+                .map(Map.Entry::getValue)
+                .findFirst();
+    }
+}

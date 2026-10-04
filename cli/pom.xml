@@ -22,19 +22,19 @@
   <dependencies>
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-core</artifactId>
+      <artifactId>typesafe-java-client-http</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-client-jdk</artifactId>
+      <artifactId>typesafe-java-client-http-jdk</artifactId>
       <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>io.github.dfa1.typesafe-java</groupId>
-      <artifactId>typesafe-java-jackson3</artifactId>
+      <artifactId>typesafe-java-codec-jackson3</artifactId>
       <version>${project.version}</version>
     </dependency>
 

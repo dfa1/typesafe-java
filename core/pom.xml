@@ -12,11 +12,11 @@
 
   <name>TypeSafe Core</name>
   <description>
-    TypeSafeClient, ApiKey, TypeSafeException, the wire DTOs, and the JsonCodec/HttpTransport
-    SPIs. Zero dependency on any particular JSON or HTTP library — plug in
-    typesafe-java-jackson2/typesafe-java-jackson3 and typesafe-java-client-jdk (or your
-    own implementations). The DTOs and JsonCodec SPI alone are also reusable by any other
-    integration (e.g. a Kafka producer/consumer) that needs to (de)serialize TypeSafe payloads.
+    The TypeSafe contract: the TypeSafeClient interface and its decorators (retries, deadline, token
+    counting), TypeSafeException, the wire model, and the JsonCodec SPI. No dependencies. Every
+    client-* module implements or builds on TypeSafeClient (client-http calls the API, client-local
+    runs a model in-process); the model plus a codec-* module serializes TypeSafe payloads without
+    any HTTP code, e.g. for a Kafka producer/consumer.
   </description>
 
   <dependencies>
@@ -35,12 +35,6 @@
     <dependency>
       <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>org.junit-pioneer</groupId>
-      <artifactId>junit-pioneer</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

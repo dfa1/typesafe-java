@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.LongAdder;
  *
  * <pre>{@code
  * TokenCounter tokens = new TokenCounter();
- * TypeSafeClient client = TypeSafeClient.builder().apiKey(apiKey)
+ * TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(apiKey)
  *         .decorateWith(tokens::decorate)
  *         .build();
  * // ...
@@ -29,7 +29,7 @@ public final class TokenCounter {
     private final LongAdder outputTokens = new LongAdder();
 
     /** Wraps {@code delegate} so every successful {@code evaluate}/{@code evaluateAsync} adds its
-     *  usage to this counter. Pass it to {@link DefaultTypeSafeClient.Builder#decorateWith} as
+     *  usage to this counter. Pass it to {@code DefaultTypeSafeClient.Builder.decorateWith(...)} as
      *  {@code tokens::decorate}. */
     public TypeSafeClient decorate(TypeSafeClient delegate) {
         return new Counting(delegate);

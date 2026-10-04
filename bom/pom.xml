@@ -12,7 +12,7 @@
 
   <name>TypeSafe BOM</name>
   <description>Bill of Materials for typesafe-java. Import in dependencyManagement to get
-    consistent versions of core/client-jdk/client-okhttp/jackson2/jackson3/testkit/mapping.
+    consistent versions of every published module (core, codec-*, client-*).
   </description>
 
   <dependencyManagement>
@@ -25,43 +25,49 @@
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-client-jdk</artifactId>
+        <artifactId>typesafe-java-client-http</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-client-okhttp</artifactId>
+        <artifactId>typesafe-java-client-http-jdk</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-jackson2</artifactId>
+        <artifactId>typesafe-java-client-http-okhttp</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-jackson3</artifactId>
+        <artifactId>typesafe-java-codec-jackson2</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-testkit</artifactId>
+        <artifactId>typesafe-java-codec-jackson3</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-mapping</artifactId>
+        <artifactId>typesafe-java-client-testkit</artifactId>
         <version>${project.version}</version>
       </dependency>
 
       <dependency>
         <groupId>io.github.dfa1.typesafe-java</groupId>
-        <artifactId>typesafe-java-local</artifactId>
+        <artifactId>typesafe-java-client-mapping</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.github.dfa1.typesafe-java</groupId>
+        <artifactId>typesafe-java-client-local</artifactId>
         <version>${project.version}</version>
       </dependency>
     </dependencies>

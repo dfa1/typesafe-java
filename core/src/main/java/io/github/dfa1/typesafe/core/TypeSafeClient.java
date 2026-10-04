@@ -1,25 +1,20 @@
 package io.github.dfa1.typesafe.core;
 
-import io.github.dfa1.typesafe.transport.HttpTransport;
-
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * An interface, not a final class, so a caller can wrap one behind a decorator (caching,
- * metrics, a circuit breaker, ...) that's itself substitutable anywhere a {@code TypeSafeClient}
- * is expected. {@link #builder} is the only supported way to obtain a real one, backed by
- * {@link DefaultTypeSafeClient}, the sole implementation this library ships.
+ * The TypeSafe contract: a request in, a response out. An interface, so a caller can wrap one
+ * behind a decorator (caching, metrics, a circuit breaker, ...) that's itself substitutable
+ * anywhere a {@code TypeSafeClient} is expected. Implemented by {@code DefaultTypeSafeClient}
+ * (typesafe-java-client-http, the TypeSafe API over HTTP) and the in-process clients of
+ * typesafe-java-client-local.
  */
 public interface TypeSafeClient extends AutoCloseable {
 
-    static DefaultTypeSafeClient.Builder builder() {
-        return DefaultTypeSafeClient.builder();
-    }
-
     /**
      * Evaluates {@code request} synchronously, blocking until a response arrives. A client from
-     * {@link #builder} makes exactly one attempt; wrap it in {@link RetryingTypeSafeClient} to
+     * {@code DefaultTypeSafeClient} makes exactly one attempt; wrap it in {@link RetryingTypeSafeClient} to
      * retry. All of the
      * following throw {@link TypeSafeException}: any other non-{@code 200} status; a connection
      * failure/timeout ({@link TypeSafeException.Connection}/
@@ -39,7 +34,7 @@ public interface TypeSafeClient extends AutoCloseable {
     /** Lists the models available to the account. */
     List<ModelDetails> listModels();
 
-    /** Closes the underlying {@link HttpTransport}, releasing any resources it holds. */
+    /** Releases whatever the client holds (an HTTP transport, a model session, ...). */
     @Override
     void close();
 }

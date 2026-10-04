@@ -1,0 +1,51 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
+    <version>0.7.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>typesafe-java-client-http</artifactId>
+  <packaging>jar</packaging>
+
+  <name>TypeSafe Client HTTP</name>
+  <description>The TypeSafeClient that calls the TypeSafe API over HTTP: DefaultTypeSafeClient and its
+    Builder, plus the HttpTransport SPI it sends through. Depends only on typesafe-java-core; needs one
+    transport (typesafe-java-client-http-jdk or -okhttp) and one codec (typesafe-java-codec-jackson2 or
+    -jackson3) at run time, discovered via ServiceLoader.
+  </description>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit-pioneer</groupId>
+      <artifactId>junit-pioneer</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+</project>

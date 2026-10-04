@@ -3,9 +3,9 @@ package io.github.dfa1.typesafe.core;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 
 /**
  * {@link TypeSafeClient} decorator that bounds how long one {@link #evaluate}/{@link #evaluateAsync}
@@ -30,7 +30,7 @@ public final class DeadlineTypeSafeClient implements TypeSafeClient {
     }
 
     /** Wraps {@code delegate} with {@code deadline}. Pass it to
-     *  {@link DefaultTypeSafeClient.Builder#decorateWith(Function)}, e.g.
+     *  {@code DefaultTypeSafeClient.Builder.decorateWith(...)}, e.g.
      *  {@code decorateWith(c -> DeadlineTypeSafeClient.decorate(c, Duration.ofSeconds(20)))}. */
     public static DeadlineTypeSafeClient decorate(TypeSafeClient delegate, Duration deadline) {
         return new DeadlineTypeSafeClient(delegate, deadline);
@@ -39,7 +39,7 @@ public final class DeadlineTypeSafeClient implements TypeSafeClient {
     /** Runs through {@link #evaluateAsync}, so the deadline holds without a watchdog thread. */
     @Override
     public EvaluateResponse evaluate(EvaluateRequest request) {
-        return DefaultTypeSafeClient.await(evaluateAsync(request));
+        return await(evaluateAsync(request));
     }
 
     @Override
@@ -61,5 +61,25 @@ public final class DeadlineTypeSafeClient implements TypeSafeClient {
     @Override
     public void close() {
         delegate.close();
+    }
+
+    /** Blocks on {@code future}, rethrowing its failure as the {@link TypeSafeException} it already is (or wrapping
+     *  any other cause), like {@code DefaultTypeSafeClient}'s blocking calls. */
+    private static <T> T await(CompletableFuture<T> future) {
+        try {
+            return future.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re) {
+                throw re;
+            }
+            if (cause instanceof Error er) {
+                throw er;
+            }
+            throw new TypeSafeException.Connection(cause);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new TypeSafeException.Interrupted(e);
+        }
     }
 }

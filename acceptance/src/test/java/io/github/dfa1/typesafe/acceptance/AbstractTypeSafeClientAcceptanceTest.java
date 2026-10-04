@@ -1,19 +1,20 @@
 package io.github.dfa1.typesafe.acceptance;
 
-import io.github.dfa1.typesafe.core.ApiKey;
+import io.github.dfa1.typesafe.client.http.DefaultTypeSafeClient;
+import io.github.dfa1.typesafe.client.http.ApiKey;
 import io.github.dfa1.typesafe.core.Answer;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
-import io.github.dfa1.typesafe.json.JsonCodec;
-import io.github.dfa1.typesafe.mapping.Choice;
-import io.github.dfa1.typesafe.mapping.MappingTypeSafeClient;
-import io.github.dfa1.typesafe.mapping.Noul;
-import io.github.dfa1.typesafe.mapping.Option;
-import io.github.dfa1.typesafe.mapping.Score;
-import io.github.dfa1.typesafe.transport.HttpTransport;
+import io.github.dfa1.typesafe.codec.JsonCodec;
+import io.github.dfa1.typesafe.client.mapping.Choice;
+import io.github.dfa1.typesafe.client.mapping.MappingTypeSafeClient;
+import io.github.dfa1.typesafe.client.mapping.Noul;
+import io.github.dfa1.typesafe.client.mapping.Option;
+import io.github.dfa1.typesafe.client.mapping.Score;
+import io.github.dfa1.typesafe.client.http.HttpTransport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,7 +50,7 @@ abstract class AbstractTypeSafeClientAcceptanceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        sut = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
+        sut = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
                 .httpTransport(httpTransport())
                 .jsonCodec(jsonCodec())
                 .build();

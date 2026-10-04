@@ -1,0 +1,96 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.github.dfa1.typesafe-java</groupId>
+    <artifactId>typesafe-java</artifactId>
+    <version>0.7.0-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>typesafe-java-client-local</artifactId>
+  <packaging>jar</packaging>
+
+  <name>TypeSafe Client Local</name>
+  <description>A TypeSafeClient that evaluates in-process on ONNX Runtime instead of calling the
+    TypeSafe API: Laya (a ModernBERT decision model), Clef-flash (Qwen3.5-9B + joint schema head) or
+    Qwen2.5 (next-token logits), read from a
+    local model directory. API parity, not model parity with Jev. Depends on typesafe-java-core and
+    ONNX Runtime, plus a JsonCodec module (codec-jackson2 or codec-jackson3) at run time, like the API client.
+  </description>
+
+  <properties>
+    <onnxruntime.version>1.30.0</onnxruntime.version>
+    <jmh.version>1.37</jmh.version>
+    <!-- "model" tests need model directories under ~/.cache/typesafe-local (see client-local/scripts);
+         opt in with -DexcludedGroups=acceptance -->
+    <excludedGroups>acceptance,model</excludedGroups>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.onnxruntime</groupId>
+      <artifactId>onnxruntime</artifactId>
+      <version>${onnxruntime.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.openjdk.jmh</groupId>
+      <artifactId>jmh-core</artifactId>
+      <version>${jmh.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- the real TypeSafe API, for JevComparison's cached answers -->
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-client-http</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-client-http-jdk</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.github.dfa1.typesafe-java</groupId>
+      <artifactId>typesafe-java-codec-jackson2</artifactId>
+      <version>${project.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <!-- JMH's benchmark generator; JDK 23+ no longer discovers annotation processors on the classpath -->
+          <annotationProcessorPaths>
+            <path>
+              <groupId>org.openjdk.jmh</groupId>
+              <artifactId>jmh-generator-annprocess</artifactId>
+              <version>${jmh.version}</version>
+            </path>
+          </annotationProcessorPaths>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

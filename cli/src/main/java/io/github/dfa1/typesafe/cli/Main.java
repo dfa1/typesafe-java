@@ -1,16 +1,17 @@
 package io.github.dfa1.typesafe.cli;
 
+import io.github.dfa1.typesafe.client.http.DefaultTypeSafeClient;
 import io.github.dfa1.typesafe.core.Answer;
-import io.github.dfa1.typesafe.core.ApiKey;
+import io.github.dfa1.typesafe.client.http.ApiKey;
 import io.github.dfa1.typesafe.core.EvaluateRequest;
 import io.github.dfa1.typesafe.core.EvaluateResponse;
 import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.core.Question;
 import io.github.dfa1.typesafe.core.Content;
 import io.github.dfa1.typesafe.core.TypeSafeClient;
-import io.github.dfa1.typesafe.jackson3.Jackson3Codec;
-import io.github.dfa1.typesafe.jdk.JdkHttpTransport;
-import io.github.dfa1.typesafe.json.JsonCodec;
+import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
+import io.github.dfa1.typesafe.client.http.jdk.JdkHttpTransport;
+import io.github.dfa1.typesafe.codec.JsonCodec;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -67,7 +68,7 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        try (TypeSafeClient client = TypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
+        try (TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
                 .jsonCodec(codec)
                 .httpTransport(new JdkHttpTransport())
                 .build()) {

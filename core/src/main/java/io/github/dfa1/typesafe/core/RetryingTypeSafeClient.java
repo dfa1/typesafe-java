@@ -6,7 +6,6 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -17,7 +16,7 @@ import java.util.function.Supplier;
  * ({@link TypeSafeException.RateLimit#retryAfter()}/{@link TypeSafeException.InternalServer#retryAfter()}),
  * exponential backoff from {@code initialBackoff} otherwise. Anything else propagates unchanged.
  *
- * <p>Add one via {@link DefaultTypeSafeClient.Builder#decorateWith(Function)}, e.g.
+ * <p>Add one via {@code DefaultTypeSafeClient.Builder.decorateWith(...)}, e.g.
  * {@code builder().apiKey(apiKey).decorateWith(RetryingTypeSafeClient::decorate).build()}. Don't stack two: the
  * attempts multiply, and {@code build()} rejects it.
  */
@@ -34,7 +33,7 @@ public final class RetryingTypeSafeClient implements TypeSafeClient {
     }
 
     /** Wraps {@code delegate} with 5 retries, backoff starting at 500ms (500ms, 1s, 2s, 4s, 8s).
-     *  Pass it to {@link DefaultTypeSafeClient.Builder#decorateWith(Function)} as
+     *  Pass it to {@code DefaultTypeSafeClient.Builder.decorateWith(...)} as
      *  {@code decorateWith(RetryingTypeSafeClient::decorate)}. */
     public static RetryingTypeSafeClient decorate(TypeSafeClient delegate) {
         return decorate(delegate, 5, Duration.ofMillis(500));
