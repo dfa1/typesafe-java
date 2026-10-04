@@ -286,7 +286,7 @@ public final class DefaultTypeSafeClient implements TypeSafeClient {
          *         attempts would multiply)
          */
         public TypeSafeClient build() {
-            return build(Function.<TypeSafeClient>identity());
+            return build(Function.identity());
         }
 
         /**

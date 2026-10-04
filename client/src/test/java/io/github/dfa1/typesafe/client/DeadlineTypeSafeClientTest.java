@@ -21,7 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.after;
 
 @ExtendWith(MockitoExtension.class)
 class DeadlineTypeSafeClientTest {
@@ -86,15 +86,16 @@ class DeadlineTypeSafeClientTest {
         // Given
         given(delegate.evaluateAsync(REQUEST))
                 .willReturn(CompletableFuture.failedFuture(new TypeSafeException.InternalServer(503, "unavailable")));
+        // the first retry is scheduled before the deadline's timer starts, so its backoff must clear the
+        // deadline by a wide margin even on a slow CI runner (100ms against 50ms wasn't: it retried once)
         DeadlineTypeSafeClient sut = new DeadlineTypeSafeClient(
-                new RetryingTypeSafeClient(delegate, 5, Duration.ofMillis(100)), SHORT_DEADLINE);
+                new RetryingTypeSafeClient(delegate, 5, Duration.ofMillis(500)), SHORT_DEADLINE);
 
         // When
         assertThatThrownBy(() -> sut.evaluate(REQUEST)).isInstanceOf(TypeSafeException.Timeout.class);
-        Thread.sleep(300);
 
-        // Then
-        then(delegate).should(times(1)).evaluateAsync(REQUEST);
+        // Then — still one call well after the retry would have fired
+        then(delegate).should(after(800).times(1)).evaluateAsync(REQUEST);
     }
 
     @Test
