@@ -7,29 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **docs: local models at a glance** — a README table of every model tested behind `TypeSafeClient` (API, Laya, Qwen, Clef-flash on CPU, GPU and MLX): download size, memory, time per request and agreement with Jev.
-- **`core`: `Question.instructions()`** — the sealed interface declares the accessor every variant already has, so callers read a question's instructions without switching on its type.
-- **Breaking: `JsonCodec` is now `Codec`, and it and `HttpTransport` speak `byte[]`** — `writeValueAsBytes`/`readValue(byte[], ...)` (no pretty-printing variant: the CLI's `--verbose` prints compact JSON), `Builder.codec(...)` (was `jsonCodec(...)`), and a `byte[]` request/response body, so JSON goes to and from the wire as UTF-8 with no `String` copy and a binary codec can implement the same SPI; `Jackson2Codec` now writes emoji and other non-BMP characters unescaped, like `Jackson3Codec`. (#35)
-- **Breaking: modules split into model (`core`), serialization (`codec`), contract (`client`) and implementations (`client-*`), names aligned** — `core` keeps the model; `Codec` is the new `codec` module; `TypeSafeClient`, `TypeSafeException` and the decorators move to the new `client`, and `DefaultTypeSafeClient`/`ApiKey`/`HttpTransport` to the new `client-http`; `TypeSafeClient.builder()` becomes `DefaultTypeSafeClient.builder()`, and every module's artifact and package now match its directory (`client-http-jdk`, `client-http-okhttp`, `codec-jackson2`, `codec-jackson3`, `client-local`, `client-mapping`, `client-testkit`); see ADR 0003. (#35)
-- **docs: local-model setup as three steps** — dependency, Laya download, code, then a model comparison; the optional Clef 4-bit script runs from its GitHub URL with `uv run`, and load errors link to the how-to.
-- **`client-local`: hardening** — special tokens in caller text stay plain text (no prompt injection via `<|im_end|>`), the tokenizer cache is bounded, and Clef checks its weights' sha256 on first load.
-- **`client-local`: shared request validation, `evaluateAsync` off virtual threads** — every engine rejects no questions or empty criteria with `BadRequest` (Laya used to NPE or answer a null choice), and `evaluateAsync` runs on one platform thread so native inference can't pin the JVM's virtual-thread carriers.
-- **`client-local`: `LocalClefTypeSafeClient.loadOnGpu(...)`** — Clef-flash on ONNX Runtime's WebGPU backend (macOS on Apple Silicon), same answers as the CPU; Laya gets no GPU option, since its WebGPU answers drift between launches. (#19)
-- **docs: run Clef-flash on a Mac with MLX** — a how-to pointing the regular client at mlx-community's local Clef-flash server: about 0.55 s per request on an M5, much closer to Jev than Laya. (#14)
-- **`client-local`: `LocalClefTypeSafeClient`** — Cloudflare's Clef-flash (Qwen3.5-9B + joint schema head) on Ollaya's ONNX graph over the upstream bf16 weights; one forward pass per request; `scripts/clef/quantize_q4.py` converts it to 4-bit weights (7.7 GB, 2–4 s per request on an M5 GPU). (#14)
-- **`client-local`: `LocalLayaTypeSafeClient`, `LocalQwenTypeSafeClient`** — new module, one client class per model, evaluating in-process on ONNX Runtime from a local model directory (Laya fp32 from onnx-community, or Qwen2.5 as a prompted-LLM baseline), with a `Local engines` workflow publishing agreement-with-Jev and throughput tables. (#14)
-- **build: checkstyle engine 14.3.0** — the plugin's default 9.3 can't parse Java 21 pattern matching for switch; same rules. (#14)
-- **Breaking: optional API key, `ApiKey` without a public constructor** — `TypeSafeClient.builder()` takes no argument and `.apiKey(key)` is optional (no key, no `Authorization` header, for local servers); `ApiKey` is a final class built with `of(String)`/`fromFile`/`fromDefaultFile`/`fromEnv`, and no longer exposes its value. (#18)
-- **`codec-jackson2`: ignore unknown fields, like `codec-jackson3`** — a field the API adds to a response no longer fails decoding with `ResponseDecoding`; Jackson 2's default rejected it. (#18)
-- **`core`: `Content.fields(...)` and `EvaluateRequest.Builder` keep their order** — both copied with `Map.copyOf`, which reshuffles keys per JVM run, so the same request serialized with fields/questions in a different order each run; they now keep the caller's iteration order.
-- **`client`: `TokenCounter`** — running totals of input/output tokens from `EvaluateResponse#usage()`, added via `.decorateWith(tokens::decorate)`; thread-safe, shareable across clients.
-- **`client-http`: `Builder.decorateWith(...)` naming and docs** — named to read as additive and to pair with the `decorate(...)` factories; `Builder` javadoc and the how-to explain decorator ordering.
-- **`client-http`: `build()` rejects a second `RetryingTypeSafeClient`** — throws `IllegalStateException`, since stacked retries multiply attempts; `decorate(...)` now takes the delegate first on every decorator.
-- **Breaking: retries are opt-in** — `build()` makes one attempt per call; `Builder.maxRetries`/`initialBackoff` are gone (use `.decorateWith(RetryingTypeSafeClient::decorate)`, 5 retries from 500ms), and `Builder.decorator(...)` is renamed `decorateWith(...)`.
-- **`client-http`: `Builder.decorator(...)`** (renamed `decorateWith(...)` below) — stacks decorators from the builder, last added outermost; `build(Function)` stays for a type-preserving outermost decorator.
-- **`client`: `RetryingTypeSafeClient.decorate(...)`/`DeadlineTypeSafeClient.decorate(...)`** — static factories taking the client to wrap first, matching `MappingTypeSafeClient::decorate`; constructors are package-private.
-- **`client`: `DeadlineTypeSafeClient` caps a call's total time, retries included** — fails with `TypeSafeException.Timeout` past the deadline; `RetryingTypeSafeClient` stops retrying once its future is done.
-- **`client`: retry/backoff extracted into a `RetryingTypeSafeClient` decorator** — `DefaultTypeSafeClient` no longer retries itself, and `InternalServer` gains `retryAfter()`.
+## [0.7.0] - 2026-10-04
+
+- **Run TypeSafe on your own machine: `client-local`** — in-process clients for [Cloudflare's Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (`LocalClefTypeSafeClient`, the closest to Jev, 4-bit and on the Apple GPU via `loadOnGpu`) and [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) (`LocalLayaTypeSafeClient`, about 0.1 s per request), plus Qwen2.5 as a baseline, all on ONNX Runtime behind the same `TypeSafeClient`; sizes and speeds are in the README. (#14, #19)
+- **Clef-flash on a Mac via MLX** — the regular client talks to mlx-community's local Clef-flash server, about 0.55 s per request. (#14)
+- **Breaking: new module layout** — `core` (the model), `codec`, `client` (the contract and its decorators) and `client-*` implementations, with every artifact and package renamed to match; `TypeSafeClient.builder()` is now `DefaultTypeSafeClient.builder()` (ADR 0003). (#35)
+- **Breaking: `JsonCodec` is now `Codec`, and speaks `byte[]`** — JSON goes to and from the wire with no `String` copy; `HttpTransport` does the same. (#35)
+- **Breaking: retries are opt-in** — `RetryingTypeSafeClient` and the new `DeadlineTypeSafeClient` wrap any client via `Builder.decorateWith(...)`; `build()` makes one attempt per call.
+- **Breaking: optional API key** — no key means no `Authorization` header, for local TypeSafe-compatible servers; `ApiKey` is built with `of`/`fromFile`/`fromDefaultFile`/`fromEnv`. (#18)
+- **`TokenCounter` and `Question.instructions()`** — running token totals for any client, and a question's instructions without switching on its type.
+- **Fixes** — `codec-jackson2` ignores unknown fields like `codec-jackson3`, `Content.fields(...)` and `EvaluateRequest.Builder` keep their order, and `Jackson2Codec` writes emoji unescaped. (#15, #18)
 
 ## [0.6.0] - 2026-09-30
 
