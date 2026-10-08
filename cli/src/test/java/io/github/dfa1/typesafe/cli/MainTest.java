@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -66,6 +67,26 @@ class MainTest {
 
         // Then
         assertThat(result.questions()).containsOnlyKeys("noul");
+    }
+
+    @Test
+    void parseReadsEndpoint() {
+        // When
+        Main.ParsedArgs result = Main.parse(new String[] {
+                "--state", "hi", "--endpoint", "http://localhost:8000/v1/systemone", "--noul", "Is this urgent?"
+        });
+
+        // Then
+        assertThat(result.endpoint()).isEqualTo(URI.create("http://localhost:8000/v1/systemone"));
+    }
+
+    @Test
+    void parseLeavesEndpointNullByDefault() {
+        // When
+        Main.ParsedArgs result = Main.parse(new String[] {"--state", "hi", "--noul", "Is this urgent?"});
+
+        // Then
+        assertThat(result.endpoint()).isNull();
     }
 
     @Test
@@ -251,7 +272,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -266,7 +287,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -281,7 +302,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), false, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), false, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -296,7 +317,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), true, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("urgent"), true, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -311,7 +332,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.2))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of("urgent=0.5"), List.of(), false, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of("urgent=0.5"), List.of(), false, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);
@@ -326,7 +347,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), true, false, null);
 
         // When
         Main.run(client, codec, parsed, out, err);
@@ -340,7 +361,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, true);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of(), false, true, null);
 
         // When
         Main.run(client, codec, parsed, out, err);
@@ -354,7 +375,7 @@ class MainTest {
         // Given
         given(client.evaluate(any())).willReturn(response(Map.of("urgent", new Answer.Noul(0.5))));
         Main.ParsedArgs parsed = new Main.ParsedArgs("hi", Model.LATEST,
-                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("bogus"), false, false);
+                Map.of("urgent", Question.noul("Is this urgent?")), List.of(), List.of("bogus"), false, false, null);
 
         // When
         int result = Main.run(client, codec, parsed, out, err);

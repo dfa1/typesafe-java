@@ -13,6 +13,8 @@ import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
 import io.github.dfa1.typesafe.client.http.jdk.JdkHttpTransport;
 import io.github.dfa1.typesafe.codec.Codec;
 
+import java.io.IOException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -33,12 +35,15 @@ import java.util.Map;
 public final class Main {
 
     private static final String USAGE = "Usage: typesafe --state <text> [--model <id>] "
+            + "[--endpoint <url>] "
             + "[--noul [<name>=]<instructions>]... "
             + "[--choice [<name>=]<instructions>|<option1,option2,...>]... "
             + "[--score [<name>=]<instructions>|<level1,level2,...>]... "
             + "[--min <name>=<threshold>]... [--print <name>]... "
             + "[--verbose] [--timing] | --version | --help "
             + "(name defaults to noul/choice/score, so name it explicitly if you use more than one; "
+            + "--endpoint points at any TypeSafe-compatible server instead of api.typesafe.ai, and "
+            + "makes ~/.typesafe.apikey optional (no key means no Authorization header); "
             + "--min compares a noul/score answer's value, exits 1 if any is below its threshold; "
             + "--print prints just that answer's value; without --print, stdout is silent unless "
             + "--verbose, which prints the full response as JSON)";
@@ -69,11 +74,32 @@ public final class Main {
         }
 
         Jackson3Codec codec = new Jackson3Codec();
-        try (TypeSafeClient client = DefaultTypeSafeClient.builder().apiKey(ApiKey.fromDefaultFile())
+        DefaultTypeSafeClient.Builder builder = DefaultTypeSafeClient.builder()
                 .codec(codec)
-                .httpTransport(new JdkHttpTransport())
-                .build()) {
+                .httpTransport(new JdkHttpTransport());
+        ApiKey apiKey = loadApiKey(parsed.endpoint());
+        if (apiKey != null) {
+            builder.apiKey(apiKey);
+        }
+        if (parsed.endpoint() != null) {
+            builder.endpoint(parsed.endpoint());
+        }
+        try (TypeSafeClient client = builder.build()) {
             return run(client, codec, parsed, out, err);
+        }
+    }
+
+    /** The key file is required against the default endpoint (the real API needs auth), but
+     *  optional against any {@code --endpoint} override (a local/self-hosted server may need
+     *  none). */
+    private static ApiKey loadApiKey(URI endpoint) throws IOException {
+        if (endpoint == null) {
+            return ApiKey.fromDefaultFile();
+        }
+        try {
+            return ApiKey.fromDefaultFile();
+        } catch (IOException e) {
+            return null;
         }
     }
 
@@ -115,7 +141,7 @@ public final class Main {
     }
 
     record ParsedArgs(String state, Model model, Map<String, Question> questions, List<String> minSpecs,
-            List<String> printNames, boolean verbose, boolean timing) {
+            List<String> printNames, boolean verbose, boolean timing, URI endpoint) {
     }
 
     static ParsedArgs parse(String[] args) {
@@ -126,6 +152,7 @@ public final class Main {
         List<String> printNames = new ArrayList<>();
         boolean verbose = false;
         boolean timing = false;
+        URI endpoint = null;
 
         try {
             for (int i = 0; i < args.length; i++) {
@@ -136,6 +163,7 @@ public final class Main {
                     case "--timing" -> timing = true;
                     case "--state" -> state = args[++i];
                     case "--model" -> model = new Model(args[++i]);
+                    case "--endpoint" -> endpoint = URI.create(args[++i]);
                     case "--min" -> minSpecs.add(args[++i]);
                     case "--print" -> printNames.add(args[++i]);
                     case "--noul", "--choice", "--score" -> {
@@ -159,7 +187,7 @@ public final class Main {
             throw new IllegalArgumentException("At least one --noul/--choice/--score question is required");
         }
 
-        return new ParsedArgs(state, model, questions, minSpecs, printNames, verbose, timing);
+        return new ParsedArgs(state, model, questions, minSpecs, printNames, verbose, timing, endpoint);
     }
 
     static String answerValue(EvaluateResponse response, String name) {

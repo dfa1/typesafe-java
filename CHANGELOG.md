@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **`cli`: `--endpoint`** — point the CLI at any TypeSafe-compatible server instead of `api.typesafe.ai`; with it, `~/.typesafe.apikey` becomes optional.
+
 ## [0.7.0] - 2026-10-04
 
 - **Run TypeSafe on your own machine: `client-local`** — in-process clients for [Cloudflare's Clef-flash](https://huggingface.co/Cloudflare/clef-flash) (`LocalClefTypeSafeClient`, the closest to Jev, 4-bit and on the Apple GPU via `loadOnGpu`) and [Laya](https://huggingface.co/convaiinnovations/laya-typed-decisions) (`LocalLayaTypeSafeClient`, about 0.1 s per request), plus Qwen2.5 as a baseline, all on ONNX Runtime behind the same `TypeSafeClient`; sizes and speeds are in the README. (#14, #19)

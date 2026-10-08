@@ -583,6 +583,12 @@ type, since unnamed ones of the same type overwrite each other. `--model <id>` (
 `jev-preview`) overrides the default `jev-latest`; `jev-latest`/`jev-preview` resolve to their
 alias, any other id is pinned directly. Reads the token from `~/.typesafe.apikey`.
 
+`--endpoint <url>` points at any TypeSafe-compatible server instead of `api.typesafe.ai` — e.g.
+a server running [Open-Jev](https://huggingface.co/com-kotobalabs/open-jev-deberta-v3-large), or
+the MLX Clef-flash server from [Run Clef-flash on a Mac with MLX](#run-clef-flash-on-a-mac-with-mlx)
+(`http://localhost:8000/v1/systemone`). With `--endpoint`, `~/.typesafe.apikey` becomes optional:
+no key file means no `Authorization` header.
+
 Stdout is silent by default — reach for `--print`/`--verbose` below to see anything. `--verbose`
 prints the full `EvaluateResponse` as compact JSON to stdout (pipe it into `jq` to read it), plus the
 outgoing request and the response's request id to stderr; `--timing` prints how long the
