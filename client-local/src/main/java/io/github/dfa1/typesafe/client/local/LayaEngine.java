@@ -32,6 +32,7 @@ import java.util.Set;
  */
 final class LayaEngine implements Engine {
 
+    private static final String MASK_TOKEN = "[MASK]";
     private static final int CHOICE = 0, SCORE = 1, NOUL = 2; // rl_common.QTYPES
     private static final int OPTION_TOKENS = 48;
 
@@ -43,14 +44,14 @@ final class LayaEngine implements Engine {
     private final double[] temperature;
     private final Map<String, Double> temperatureByOptions;
 
-    private LayaEngine(OrtSession session, BpeTokenizer tokenizer, Map<String, Object> config, Model model) throws OrtException {
+    private LayaEngine(OrtSession session, BpeTokenizer tokenizer, Map<String, Object> config, Model model) {
         this.session = session;
         this.model = model;
         this.tokenizer = tokenizer;
         this.cls = special("[CLS]");
         this.sep = special("[SEP]");
         this.pad = special("[PAD]");
-        this.mask = special("[MASK]");
+        this.mask = special(MASK_TOKEN);
         this.maxLen = ((Number) config.get("max_len")).intValue();
         this.headMaxLen = ((Number) config.get("head_max_len")).intValue();
         @SuppressWarnings("unchecked")
@@ -129,10 +130,10 @@ final class LayaEngine implements Engine {
             case Question.Noul ignored -> "noul";
         };
         Content instructions = question.instructions();
-        long[] head = encode(type + " question: " + serialize(instructions).replace("[MASK]", " "));
+        long[] head = encode(type + " question: " + serialize(instructions).replace(MASK_TOKEN, " "));
         List<long[]> opts = new ArrayList<>();
         for (String option : options(question)) {
-            long[] text = encode(" " + option.replace("[MASK]", " "));
+            long[] text = encode(" " + option.replace(MASK_TOKEN, " "));
             long[] withMarker = new long[1 + Math.min(OPTION_TOKENS, text.length)];
             withMarker[0] = mask;
             System.arraycopy(text, 0, withMarker, 1, withMarker.length - 1);
@@ -159,7 +160,7 @@ final class LayaEngine implements Engine {
         }
         ids.add(sep);
         int room = Math.max(0, maxLen - ids.size() - 1);
-        long[] st = encode(state.replace("[MASK]", " "));
+        long[] st = encode(state.replace(MASK_TOKEN, " "));
         for (int i = 0; i < Math.min(room, st.length); i++) {
             ids.add(st[i]);
         }
@@ -244,7 +245,16 @@ final class LayaEngine implements Engine {
 
     /** rl_agent_api: logits / temperature for this (type, option count) bucket, softmaxed over the real options. */
     private double[] probabilities(float[] logits, int k, int qtype) {
-        String size = k <= 2 ? "2" : k <= 5 ? "3-5" : k <= 10 ? "6-10" : "11+";
+        String size;
+        if (k <= 2) {
+            size = "2";
+        } else if (k <= 5) {
+            size = "3-5";
+        } else if (k <= 10) {
+            size = "6-10";
+        } else {
+            size = "11+";
+        }
         String bucket = List.of("choice", "score", "noul").get(qtype) + ":" + size;
         double t = temperatureByOptions.getOrDefault(bucket, temperature[qtype]);
         float[] z = new float[k];

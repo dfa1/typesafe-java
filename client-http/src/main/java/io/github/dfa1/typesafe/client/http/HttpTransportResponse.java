@@ -22,8 +22,8 @@ public record HttpTransportResponse(int statusCode, Map<String, String> headers,
     // a record compares and prints an array by identity; compare the body by content instead
     @Override
     public boolean equals(Object o) {
-        return o instanceof HttpTransportResponse r && statusCode == r.statusCode && headers.equals(r.headers)
-                && Arrays.equals(body, r.body);
+        return o instanceof HttpTransportResponse(int s, var h, byte[] b) && statusCode == s && headers.equals(h)
+                && Arrays.equals(body, b);
     }
 
     @Override

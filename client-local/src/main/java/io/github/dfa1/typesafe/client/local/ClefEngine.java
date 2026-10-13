@@ -206,11 +206,9 @@ final class ClefEngine implements Engine {
                 options.put("true", c.getOrDefault("true", "The proposition is true or the answer is yes."));
                 options.put("false", c.getOrDefault("false", "The proposition is false or the answer is no."));
             }
-            case Question.Choice(Content ignored, Map<String, String> criteria) -> {
-                criteria.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey(Comparator.comparing(k -> k.codePoints().toArray(), Arrays::compare)))
-                        .forEach(e -> options.put(e.getKey(), e.getValue()));
-            }
+            case Question.Choice(Content ignored, Map<String, String> criteria) -> criteria.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey(Comparator.comparing(k -> k.codePoints().toArray(), Arrays::compare)))
+                    .forEach(e -> options.put(e.getKey(), e.getValue()));
             case Question.Score(Content ignored, List<String> criteria) -> {
                 for (int i = 0; i < criteria.size(); i++) {
                     options.put(String.valueOf(i), criteria.get(i));

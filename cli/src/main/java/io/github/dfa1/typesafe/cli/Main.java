@@ -19,9 +19,11 @@ import java.nio.charset.StandardCharsets;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * Command-line entry point, built as an uber-jar. Evaluates a single string {@code --state}
@@ -105,8 +107,7 @@ public final class Main {
 
     /** The evaluate-and-print flow, taking an already-built client so it's testable without a
      *  network call. */
-    static int run(TypeSafeClient client, Codec codec, ParsedArgs parsed, PrintStream out, PrintStream err)
-            throws Exception {
+    static int run(TypeSafeClient client, Codec codec, ParsedArgs parsed, PrintStream out, PrintStream err) {
         EvaluateRequest request = EvaluateRequest.of(Content.text(parsed.state()), parsed.model(), parsed.questions());
 
         if (parsed.verbose()) {
@@ -155,19 +156,20 @@ public final class Main {
         URI endpoint = null;
 
         try {
-            for (int i = 0; i < args.length; i++) {
-                String flag = args[i];
+            Iterator<String> it = List.of(args).iterator();
+            while (it.hasNext()) {
+                String flag = it.next();
 
                 switch (flag) {
                     case "--verbose" -> verbose = true;
                     case "--timing" -> timing = true;
-                    case "--state" -> state = args[++i];
-                    case "--model" -> model = new Model(args[++i]);
-                    case "--endpoint" -> endpoint = URI.create(args[++i]);
-                    case "--min" -> minSpecs.add(args[++i]);
-                    case "--print" -> printNames.add(args[++i]);
+                    case "--state" -> state = it.next();
+                    case "--model" -> model = new Model(it.next());
+                    case "--endpoint" -> endpoint = URI.create(it.next());
+                    case "--min" -> minSpecs.add(it.next());
+                    case "--print" -> printNames.add(it.next());
                     case "--noul", "--choice", "--score" -> {
-                        String value = args[++i];
+                        String value = it.next();
                         int eq = value.indexOf('=');
                         String name = eq >= 0 ? value.substring(0, eq) : flag.substring(2);
                         String rest = eq >= 0 ? value.substring(eq + 1) : value;
@@ -176,7 +178,7 @@ public final class Main {
                     default -> throw new IllegalArgumentException("Unknown flag: " + flag);
                 }
             }
-        } catch (ArrayIndexOutOfBoundsException e) {
+        } catch (NoSuchElementException e) {
             throw new IllegalArgumentException("Missing value for " + args[args.length - 1]);
         }
 
@@ -192,7 +194,7 @@ public final class Main {
 
     static String answerValue(EvaluateResponse response, String name) {
         return switch (response.answers().get(name)) {
-            case Answer.Noul n -> String.valueOf(n.noul());
+            case Answer.Noul(var noul) -> String.valueOf(noul);
             case Answer.Choice c -> c.choice();
             case Answer.Score s -> String.valueOf(s.score());
             case null -> throw new IllegalArgumentException("No such answer: " + name);
@@ -206,7 +208,7 @@ public final class Main {
             String name = spec.substring(0, eq);
             double min = Double.parseDouble(spec.substring(eq + 1));
             double value = switch (response.answers().get(name)) {
-                case Answer.Noul n -> n.noul();
+                case Answer.Noul(var noul) -> noul;
                 case Answer.Score s -> s.score();
                 case null -> throw new IllegalArgumentException("No such answer: " + name);
                 default -> throw new IllegalArgumentException(
