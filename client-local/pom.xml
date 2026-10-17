@@ -19,7 +19,7 @@
   </description>
 
   <properties>
-    <onnxruntime.version>1.30.0</onnxruntime.version>
+    <onnxruntime.version>1.31.0</onnxruntime.version>
     <jmh.version>1.37</jmh.version>
     <!-- "model" tests need model directories under ~/.cache/typesafe-local (see client-local/scripts);
          opt in with -DexcludedGroups=acceptance -->
