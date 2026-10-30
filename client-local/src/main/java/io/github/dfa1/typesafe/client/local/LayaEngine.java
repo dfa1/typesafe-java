@@ -245,23 +245,25 @@ final class LayaEngine implements Engine {
 
     /** rl_agent_api: logits / temperature for this (type, option count) bucket, softmaxed over the real options. */
     private double[] probabilities(float[] logits, int k, int qtype) {
-        String size;
-        if (k <= 2) {
-            size = "2";
-        } else if (k <= 5) {
-            size = "3-5";
-        } else if (k <= 10) {
-            size = "6-10";
-        } else {
-            size = "11+";
-        }
-        String bucket = List.of("choice", "score", "noul").get(qtype) + ":" + size;
+        String bucket = List.of("choice", "score", "noul").get(qtype) + ":" + sizeBucket(k);
         double t = temperatureByOptions.getOrDefault(bucket, temperature[qtype]);
         float[] z = new float[k];
         for (int i = 0; i < k; i++) {
             z[i] = (float) (logits[i] / t);
         }
         return Probabilities.softmax(z);
+    }
+
+    /** The option-count part of a temperature bucket name, as rl_agent_api spells it. */
+    static String sizeBucket(int k) {
+        if (k <= 2) {
+            return "2";
+        } else if (k <= 5) {
+            return "3-5";
+        } else if (k <= 10) {
+            return "6-10";
+        }
+        return "11+";
     }
 
     /** Everything but the markers is caller text, so [CLS]/[SEP] spelled there stay text. */

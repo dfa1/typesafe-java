@@ -7,19 +7,29 @@ import io.github.dfa1.typesafe.core.Model;
 import io.github.dfa1.typesafe.client.TypeSafeClient;
 import io.github.dfa1.typesafe.core.Usage;
 import io.github.dfa1.typesafe.codec.jackson3.Jackson3Codec;
+import com.sun.net.httpserver.HttpServer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
@@ -34,6 +44,15 @@ class MainTest {
     private final ByteArrayOutputStream errBuffer = new ByteArrayOutputStream();
     private final PrintStream out = new PrintStream(outBuffer);
     private final PrintStream err = new PrintStream(errBuffer);
+
+    @TempDir
+    private Path tempDir;
+
+    private Path apiKeyFile;
+
+    private HttpServer server;
+
+    private final List<String> authorizations = new ArrayList<>();
 
     @Test
     void parseReadsStateModelAndAllFlagTypes() {
@@ -422,6 +441,76 @@ class MainTest {
         // Then
         assertThat(result).isEqualTo(1);
         assertThat(errBuffer.toString()).contains("Unknown flag: --bogus").contains("Usage: typesafe");
+    }
+
+    @Test
+    void runFromArgsRequiresTheKeyFileAgainstTheDefaultEndpoint() {
+        // Given
+        apiKeyFile = tempDir.resolve("missing.apikey");
+
+        // When / Then
+        assertThatThrownBy(() -> Main.run(new String[] {"--state", "hi", "--noul", "Is this urgent?"},
+                apiKeyFile, out, err))
+                .isInstanceOf(NoSuchFileException.class);
+    }
+
+    @Test
+    void runFromArgsCallsTheEndpointWithoutAuthorizationWhenThereIsNoKeyFile() throws Exception {
+        // Given
+        URI endpoint = startServer();
+        apiKeyFile = tempDir.resolve("missing.apikey");
+
+        // When
+        int result = Main.run(new String[] {
+                "--state", "hi", "--endpoint", endpoint.toString(), "--noul", "urgent=Is this urgent?",
+                "--print", "urgent"
+        }, apiKeyFile, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(outBuffer.toString()).isEqualToIgnoringNewLines("0.92");
+        assertThat(authorizations).containsExactly((String) null);
+    }
+
+    @Test
+    void runFromArgsCallsTheEndpointWithTheKeyFromTheKeyFile() throws Exception {
+        // Given
+        URI endpoint = startServer();
+        apiKeyFile = Files.writeString(tempDir.resolve("typesafe.apikey"), "secret\n");
+
+        // When
+        int result = Main.run(new String[] {
+                "--state", "hi", "--endpoint", endpoint.toString(), "--noul", "urgent=Is this urgent?"
+        }, apiKeyFile, out, err);
+
+        // Then
+        assertThat(result).isZero();
+        assertThat(authorizations).containsExactly("Bearer secret");
+    }
+
+    @AfterEach
+    void stopServer() {
+        if (server != null) {
+            server.stop(0);
+        }
+    }
+
+    /** A local TypeSafe-compatible server answering every evaluate with one noul answer. */
+    private URI startServer() throws Exception {
+        byte[] body = """
+                {"model": "jev-latest", "answers": {"urgent": {"type": "noul", "noul": 0.92}},
+                 "usage": {"input_tokens": 1, "output_tokens": 1}}
+                """.getBytes(StandardCharsets.UTF_8);
+        server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/systemone", exchange -> {
+            authorizations.add(exchange.getRequestHeaders().getFirst("Authorization"));
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        return URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/v1/systemone");
     }
 
     private static EvaluateResponse response(Map<String, Answer> answers) {

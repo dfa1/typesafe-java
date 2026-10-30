@@ -60,6 +60,17 @@ class HttpTransportResponseTest {
         assertThat(new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("other"))).isNotEqualTo(sut);
     }
 
+    @Test
+    void equalsComparesStatusCodeAndHeadersToo() {
+        // Given
+        HttpTransportResponse sut = new HttpTransportResponse(200, Map.of("X-A", "1"), bytes("body"));
+
+        // Then
+        assertThat(new HttpTransportResponse(404, Map.of("X-A", "1"), bytes("body"))).isNotEqualTo(sut);
+        assertThat(new HttpTransportResponse(200, Map.of("X-A", "2"), bytes("body"))).isNotEqualTo(sut);
+        assertThat(sut).isNotEqualTo("body");
+    }
+
     private static byte[] bytes(String text) {
         return text.getBytes(StandardCharsets.UTF_8);
     }

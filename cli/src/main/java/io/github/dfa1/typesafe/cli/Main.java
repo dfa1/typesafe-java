@@ -16,6 +16,8 @@ import io.github.dfa1.typesafe.codec.Codec;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -57,8 +59,12 @@ public final class Main {
         System.exit(run(args, System.out, System.err));
     }
 
-    /** Parses {@code args} and, on success, builds the real client and evaluates. */
     static int run(String[] args, PrintStream out, PrintStream err) throws Exception {
+        return run(args, Path.of(System.getProperty("user.home"), ".typesafe.apikey"), out, err);
+    }
+
+    /** Parses {@code args} and, on success, builds the real client and evaluates. */
+    static int run(String[] args, Path apiKeyFile, PrintStream out, PrintStream err) throws Exception {
         if (args.length == 1 && "--version".equals(args[0])) {
             out.println(Main.class.getPackage().getImplementationVersion());
             return 0;
@@ -79,7 +85,7 @@ public final class Main {
         DefaultTypeSafeClient.Builder builder = DefaultTypeSafeClient.builder()
                 .codec(codec)
                 .httpTransport(new JdkHttpTransport());
-        ApiKey apiKey = loadApiKey(parsed.endpoint());
+        ApiKey apiKey = loadApiKey(parsed.endpoint(), apiKeyFile);
         if (apiKey != null) {
             builder.apiKey(apiKey);
         }
@@ -94,15 +100,11 @@ public final class Main {
     /** The key file is required against the default endpoint (the real API needs auth), but
      *  optional against any {@code --endpoint} override (a local/self-hosted server may need
      *  none). */
-    private static ApiKey loadApiKey(URI endpoint) throws IOException {
-        if (endpoint == null) {
-            return ApiKey.fromDefaultFile();
+    private static ApiKey loadApiKey(URI endpoint, Path apiKeyFile) throws IOException {
+        if (endpoint == null || Files.exists(apiKeyFile)) {
+            return ApiKey.fromFile(apiKeyFile);
         }
-        try {
-            return ApiKey.fromDefaultFile();
-        } catch (IOException e) {
-            return null;
-        }
+        return null;
     }
 
     /** The evaluate-and-print flow, taking an already-built client so it's testable without a
