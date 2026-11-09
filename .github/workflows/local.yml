@@ -37,6 +37,8 @@ jobs:
 
       - name: Prepare models
         if: steps.models.outputs.cache-hit != 'true'
+        env:
+          UV_PYTHON: '3.13'  # --no-build needs wheels; pyyaml has none yet for the runner's newest Python (3.15)
         run: |
           M=~/.cache/typesafe-local
           uvx --no-build --from huggingface_hub==2.1.1 hf download onnx-community/laya-typed-decisions-ONNX tokenizer.json config.json onnx/model.onnx onnx/model.onnx_data --local-dir $M/laya-fp32
