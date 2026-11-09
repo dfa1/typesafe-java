@@ -164,7 +164,7 @@ Structured by [Diataxis](https://diataxis.fr/):
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE.md).
 
 ## Reference
 
